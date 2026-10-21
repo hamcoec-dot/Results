@@ -280,3 +280,38 @@ test('closeMargin: boundaries at 10 votes and 0.5 %', () => {
   assert.equal(closeMargin(contest([3, 1, 2])), 1); // unsorted input
   assert.equal(closeMargin(contest([5, 5], 'VOTE FOR 2')), null); // no loser
 });
+
+test('boundaries: leaders after a Zero report, the change count, exact thresholds', () => {
+  // First votes after a Zero report: no contest had a leader before, so no leader-changed warnings.
+  silent(check('early', EV, { current: currentOf('zero', S('00-zero').early) }), 'leader-changed');
+
+  // "N of M contests changed" agrees with the review screen's independent count.
+  const { buildReview } = require('../src/review');
+  const r4 = buildResults({ early: EV, ed: ED4 }, { lastUpdated: 'x' });
+  const cur3 = JSON.parse(JSON.stringify(currentOf('ed', ED3), (k, v) => (v instanceof Map ? Object.fromEntries(v) : v)));
+  const lines = [];
+  const rows = readCsv(ED4, lines);
+  const { review } = buildReview({ result: r4, current: cur3, source: { rows, lines }, meta: {}, election: ELECTION });
+  const summary = runChecks({ kind: 'ed', rows, result: r4, current: cur3, election: ELECTION, upload: { sha256: 'x' } }).find((c) => c.id === 'summary');
+  assert.match(summary.detail, new RegExp(`^${review.counts.changed} of ${review.counts.contests} contests changed;`));
+
+  // A Zero file with votes but no ballots still blocks.
+  const zeroBallots = (r) => ({ ...r, merged: { ...r.merged, totalBallots: 0 } });
+  fires(check('zero', EV, { tamper: zeroBallots }), 'zero-file-has-votes', 'block');
+
+  // Exactly 100 % precinct turnout is "high"; exactly 95 % is not; ballots > voters is the other check.
+  const stats = (voters, ballots) => (r) => ({ ...r, merged: { ...r.merged, precinctStats: new Map([['P', { name: 'P', voters, ballots, turnoutPercent: (ballots / voters) * 100 }]]) } });
+  assert.ok(check('ed', ED3, { tamper: stats(100, 100) }).some((c) => c.id === 'turnout-high' && /P: 100 %/.test(c.detail)));
+  silent(check('ed', ED3, { tamper: stats(100, 95) }), 'turnout-high');
+  silent(check('ed', ED3, { tamper: stats(100, 101) }), 'turnout-high');
+  silent(check('ed', ED3, { tamper: stats(0, 0) }), 'turnout-high');
+
+  // Votes exactly equal to ballots x seats is not an overvote.
+  const exact = (r) => ({ ...r, merged: { ...r.merged, totalBallots: 100, contests: [{ ...r.merged.contests[0], voteFor: 'VOTE FOR 2', totalVotes: 200 }] } });
+  silent(check('ed', ED3, { tamper: exact }), 'overvote');
+  const over = (r) => ({ ...r, merged: { ...r.merged, totalBallots: 100, contests: [{ ...r.merged.contests[0], voteFor: 'VOTE FOR 2', totalVotes: 201 }] } });
+  assert.equal(fires(check('ed', ED3, { tamper: over }), 'overvote', 'warn')[0].title, 'More votes than ballots allow (1 contest)');
+
+  // Same export time as the last published file is not "older".
+  silent(check('ed', ED3, { upload: { sha256: 'x', lastModified: 5000 }, history: { lastPublishedFileTime: 5000 } }), 'older-export');
+});
