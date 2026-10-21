@@ -749,13 +749,14 @@ window.ElectionApp = (function() {
     patchCards(container, cards);
   }
 
-  // Last markup rendered per contest card, so a live update replaces only the cards that changed.
+  // Last markup rendered per container (contest cards, reporting rows), so a live update replaces
+  // only the items that changed.
   const renderedCards = new WeakMap();
 
   /**
-   * Show cards [{key, html}] in container. When the same cards are on screen in the same order
-   * (a live update with unchanged filters), only cards whose markup changed are swapped, in one
-   * pass; otherwise the list is rebuilt.
+   * Show items [{key, html}] (one element each) in container. When the same items are on screen in
+   * the same order (a live update with unchanged filters), only items whose markup changed are
+   * swapped, in one pass; otherwise the list is rebuilt.
    */
   function patchCards(container, cards) {
     const previous = renderedCards.get(container);
@@ -809,9 +810,7 @@ window.ElectionApp = (function() {
     }
 
     if (tableBody) {
-      let html = '';
-
-    data.contests.forEach(contest => {
+      const rows = data.contests.map(contest => {
       const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
       const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
       const pct = cTotCapped > 0 ? (cRepCapped / cTotCapped * 100).toFixed(1) : '0.0';
@@ -820,7 +819,7 @@ window.ElectionApp = (function() {
         '<span style="color:var(--status-reported); font-weight:700;">&#x2705; COMPLETE</span>' : 
         `<span style="color:var(--primary); font-weight:700;">&#x23F3; IN PROGRESS (${pct}%)</span>`;
 
-      html += `
+      const html = `
         <tr>
           <td style="font-weight:700;">${escapeHtml(contest.title)}</td>
           <td>${escapeHtml(contest.voteFor)}</td>
@@ -833,9 +832,11 @@ window.ElectionApp = (function() {
           <td style="font-weight:700;">${contest.totalVotes.toLocaleString()}</td>
         </tr>
       `;
-    });
+        return { key: slugify(contest.title), html: html.trim() };
+      });
 
-    tableBody.innerHTML = html;
+      // A live update swaps only the rows that changed (see patchCards).
+      patchCards(tableBody, rows);
     }
   }
 

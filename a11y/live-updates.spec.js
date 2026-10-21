@@ -195,3 +195,24 @@ test('when nothing can be loaded, the status says so and keeps retrying', async 
   await page.goto('index.html');
   await expect(status(page)).toHaveText('Results could not be loaded. Retrying…');
 });
+
+test('a live update on the reporting page replaces only the rows that changed', async ({ page }) => {
+  const state = { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' };
+  await fakeBucket(page, state);
+  await page.goto('reporting.html?emulator');
+  const rows = page.locator('#reporting-table-body > tr');
+  await expect(rows.first()).toContainText('92 of 92');
+  await rows.evaluateAll((trs) => trs.forEach((tr, i) => { tr.dataset.mark = String(i); }));
+
+  const next = JSON.parse(read(V03, 'summary.json'));
+  next.latest.contests[2].totalVotes += 5;
+  next.latest.contests[2].candidates[0].votes += 5;
+  next.metadata.dataVersion = 'fedcbafedcba';
+  const rep = JSON.parse(read(V03, 'reporting.json'));
+  rep.metadata.dataVersion = 'fedcbafedcba';
+  state.override = { 'summary.json': JSON.stringify(next), 'reporting.json': JSON.stringify(rep) };
+  await poll(page);
+  await expect(rows.nth(2)).not.toHaveAttribute('data-mark', '2');
+  const marks = await rows.evaluateAll((trs) => trs.map((tr) => tr.dataset.mark ?? null));
+  expect(marks.filter((m) => m === null)).toHaveLength(1);
+});
