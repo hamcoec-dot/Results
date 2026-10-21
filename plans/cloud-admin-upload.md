@@ -615,6 +615,9 @@ Pages must stay fast and lag-free, including on mid-range phones on 4G.
   re-points the open dialog at the same contest.
 - **Dark theme:** `--primary` and `--secondary` are lighter (`#60a5fa`, `#f87171`) so text in those colours passes
   4.5:1. Filled controls use the new `--on-fill` text token (dark text in dark mode).
+- **No `content-visibility` on the public contest cards** (the plan suggested it). With 63 cards, its placeholder heights
+  made the jump menu and `#contest` links land far off target. Lighthouse and the long-task test show the same
+  results without it. Jumps scroll to just below the sticky navbar, whose height is measured at run time.
 - **Lighthouse lives in `perf/` with its own `package.json`.** Its puppeteer download helpers carry high-severity
   advisories that would fail the root `npm audit`. It is a local tool, not run in CI. The a11y harness
   (Playwright + axe) is the root package and the CI job `pages`.

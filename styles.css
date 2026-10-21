@@ -1599,11 +1599,6 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   }
 }
 
-/* Off-screen contest cards skip layout and paint until scrolled near (rendering budget) */
-.contests-grid > .contest-card {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 360px;
-}
 
 /* Narrow phones: a candidate row stacks (name, then bar and votes), so long names and text-spacing
    overrides are never clipped by the card (1.4.10, 1.4.12). The table keeps its ARIA roles. */

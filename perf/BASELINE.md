@@ -42,8 +42,10 @@ What changed for performance:
   slideshow scrolls instead of clipping (1.4.10), with its controls above the slide so slide changes never move them.
 - Polling (bucket mode): `manifest.json` only, under 1 KB, every 60 s; the page's JSON is fetched only when
   `dataVersion` changes; no polling while the tab is hidden, paused, or in a draft view.
-- A live update on the summary page replaces only the changed contest cards; off-screen cards skip rendering
-  (`content-visibility: auto`).
+- A live update on the summary page replaces only the changed contest cards.
+- `content-visibility: auto` was tried on the contest cards and removed. Its placeholder heights made "Jump to
+  contest" and `#contest` links land hundreds of pixels off target, and the measurements above are the same
+  without it.
 - Searches are debounced 150 ms; the precinct pickers are built with a `DocumentFragment`.
 
 LCP is now the hero heading, painted when the data arrives, so it moved from 1.20 s to 1.35 s; it stays well

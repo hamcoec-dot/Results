@@ -376,3 +376,27 @@ test('an older page that preloads data.js (no results-config.js) still renders a
   expect(urls).toContain('/data.js');
   expect(urls).toContain('/summary.json');
 });
+
+for (const width of [375, 1280]) {
+  test(`jump menu and #contest links put the contest just below the sticky navbar @ ${width}px`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' }); // instant scroll, so the position can be read at once
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('index.html');
+    await expect(firstCard(page)).toBeVisible();
+    const gap = (slug) => page.evaluate((s) => Math.round(document.getElementById(`contest-card-${s}`).getBoundingClientRect().top
+      - document.querySelector('.navbar').getBoundingClientRect().bottom), slug);
+    const slugs = await page.locator('#contest-jump-menu option').evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
+    for (const slug of [slugs[10], slugs[30], slugs[slugs.length - 2]]) {
+      await page.selectOption('#contest-jump-menu', slug);
+      await expect.poll(() => gap(slug)).toBe(12);
+    }
+    const context = await page.context().browser().newContext({ viewport: { width, height: 800 }, reducedMotion: 'reduce', baseURL: test.info().project.use.baseURL });
+    const fresh = await context.newPage();
+    await fresh.goto(`index.html#${slugs[30]}`);
+    await expect.poll(() => fresh.evaluate((s) => {
+      const c = document.getElementById(`contest-card-${s}`);
+      return c ? Math.round(c.getBoundingClientRect().top - document.querySelector('.navbar').getBoundingClientRect().bottom) : null;
+    }, slugs[30])).toBe(12);
+    await context.close();
+  });
+}

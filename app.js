@@ -630,11 +630,19 @@ window.ElectionApp = (function() {
     jumpSelect.selectedIndex = 0;
   }
 
+  /** Scroll a contest card to just below the sticky navbar (its height differs by screen width). */
+  function scrollToCard(el) {
+    const navbar = document.querySelector('.navbar');
+    const offset = (navbar ? navbar.getBoundingClientRect().height : 0) + 12;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: reduce ? 'auto' : 'smooth' });
+  }
+
   function jumpToContest(slug) {
     if (!slug) return;
     const targetEl = document.getElementById(`contest-card-${slug}`);
     if (targetEl) {
-      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrollToCard(targetEl);
       window.location.hash = `#${slug}`;
       sessionStorage.setItem('watchedContest', slug);
     }
@@ -675,7 +683,7 @@ window.ElectionApp = (function() {
     if (slug) {
       const targetEl = document.getElementById(`contest-card-${slug}`);
       if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        scrollToCard(targetEl);
         return;
       }
     }
