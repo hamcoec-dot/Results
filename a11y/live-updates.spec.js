@@ -335,3 +335,27 @@ test('a site copy without validate.js still shows results, and says so in the co
   await expect(firstCard(page)).toContainText('92 of 92');
   expect(errors.some((t) => t.includes('validate.js did not load'))).toBe(true);
 });
+
+test('offline fallback: a page opened from disk (file://) shows data.js and picks up the monitor\'s rewrites', async ({ page }) => {
+  const { pathToFileURL } = require('node:url');
+  const root = path.join(__dirname, '..');
+  const dir = test.info().outputPath('site');
+  for (const f of ['index.html', 'app.js', 'results-config.js', 'styles.css', 'data.js', 'functions/src/validate.js']) {
+    fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+    fs.copyFileSync(path.join(root, f), path.join(dir, f));
+  }
+  await page.clock.install();
+  await page.goto(pathToFileURL(path.join(dir, 'index.html')).href);
+  const votes = page.locator('#contests-container .vote-count').first();
+  await expect(votes).toBeVisible();
+  const before = await votes.textContent();
+
+  // What server_monitor.py does when a CSV changes: rewrite data.js with a new version.
+  const js = fs.readFileSync(path.join(dir, 'data.js'), 'utf8');
+  const m = /"votes":\s*(\d+)/.exec(js);
+  fs.writeFileSync(path.join(dir, 'data.js'), js.replace(/"dataVersion":\s*"[0-9a-f]+"/g, '"dataVersion":"abcabcabcabc"')
+    .replace(m[0], m[0].replace(m[1], String(Number(m[1]) + 1000))));
+  await page.clock.runFor(61000);
+  await expect(votes).not.toHaveText(before);
+  await expect(page.locator('#live-status')).not.toContainText('delayed');
+});

@@ -265,8 +265,12 @@ window.ElectionApp = (function() {
     });
   }
 
-  /** Error fallback: the full data.js bundle, loaded as a script. */
-  function loadDataJsFallback() {
+  /**
+   * Error fallback: the full data.js bundle, loaded as a script. This is also how pages opened from
+   * disk (file://, the offline monitor) get data at all, since fetch is blocked there.
+   * With onlyIfChanged, a bundle with the dataVersion already shown is not re-rendered.
+   */
+  function loadDataJsFallback(onlyIfChanged) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = RESULTS.url('data.js', { bust: true });
@@ -278,7 +282,9 @@ window.ElectionApp = (function() {
       checkFiles({ 'summary.json': data }, null);
       expandStatuses(data.latest.contests, data.latest.masterPrecincts || data.masterPrecincts);
       data.hasPrecinctStatuses = true;
+      if (onlyIfChanged && electionData && (data.metadata || {}).dataVersion === activeDataVersion) return false;
       applyData(data, null);
+      return true;
     });
   }
 
@@ -391,6 +397,9 @@ window.ElectionApp = (function() {
   function checkForUpdates() {
     if (!pollInFlight) {
       pollInFlight = loadLatest(!electionData)
+        // Local mode: when the JSON can't be fetched (a page opened from disk), poll data.js instead,
+        // which the offline monitor rewrites, as the pages did before.
+        .catch(err => (RESULTS.local ? loadDataJsFallback(true) : Promise.reject(err)))
         .then(() => { updatesDelayed = false; }, err => {
           console.warn('Live update failed; keeping the last good results.', err);
           updatesDelayed = true;
