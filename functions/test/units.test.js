@@ -244,3 +244,21 @@ test('pyTrueDiv: exact int division, correctly rounded, with Python signs and er
   assert.equal(py.pyIntBig(' 1_000 '), 1000n);
   assert.equal(py.pyIntBig('1.5'), null);
 });
+
+test('statsTurnout: as convert_data.py, ints past 2^53 divided exactly (values from Python)', () => {
+  const { statsTurnout } = require('../src/parse');
+  const repr = (x) => py.pyFloatRepr(x);
+  for (const [ballots, voters, expected] of [
+    ['100000000000000000000000007', '1923', '5.200208008320333e+24'], // plain Numbers give ...334e+24
+    ['1,000,000,000,000,000,000,000,007', '1,923', '5.200208008320333e+22'],
+    ['123456789012345678901234567', '3', '4.1152263004115226e+27'],
+    ['-100000000000000000000000007', '1923', '-5.200208008320333e+24'],
+    ['9007199254740993', '3', '3.002399751580331e+17'],
+    ['100000000000000000000000007', '1923.0', '5.200208008320334e+24'], // a float cell: Python divides floats
+    ['1.5', '100000000000000000000000000', '0.0'],
+    ['x', '5', '0.0'],
+    ['5', '0', '0.0'],
+  ]) {
+    assert.equal(repr(statsTurnout(ballots, voters)), expected, `${ballots} / ${voters}`);
+  }
+});
