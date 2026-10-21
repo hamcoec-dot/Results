@@ -53,7 +53,7 @@ inside the 2.5 s budget. Served **without** compression (a plain local server), 
 ## Not yet covered
 
 - Long tasks during a live refresh are not measured automatically yet. The summary page swaps only the contest
-  cards and the reporting page only the table rows whose markup changed (keyed by contest; both checked in
-  `a11y/live-updates.spec.js`); the precinct views still rebuild on an update.
+  cards, the reporting page only its changed table rows, and the precinct page (by precinct) only its changed
+  cards (keyed; all checked in `a11y/live-updates.spec.js`). The precinct page's by-contest table still rebuilds.
 - `<link rel="preconnect">` to `storage.googleapis.com`: add in Phase 5 together with `PUBLIC_BASE`.
 - Lighthouse is not in CI yet (it needs Chrome and is noisy on shared runners); run it before a release.

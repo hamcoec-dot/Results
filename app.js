@@ -1789,7 +1789,6 @@ window.ElectionApp = (function() {
   }
 
   function renderByPrecinctView(container, latest) {
-    container.innerHTML = '';
     const contests = latest.contests || [];
 
     const filtered = contests.filter(c => {
@@ -1813,14 +1812,12 @@ window.ElectionApp = (function() {
     });
 
     if (filtered.length === 0) {
+      renderedCards.delete(container);
       container.innerHTML = '<div class="no-results-card" style="grid-column: 1 / -1; padding: 48px; text-align: center; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); font-size:16px; font-weight:600; color:var(--neutral-muted);">No contests available for ' + escapeHtml(selectedPrecinct) + ' matching filter criteria</div>';
       return;
     }
 
-    filtered.forEach(c => {
-      const card = document.createElement('article');
-      card.className = 'contest-card';
-      card.style.cssText = 'background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 24px 28px; margin-bottom: 24px; overflow: hidden;';
+    const cards = filtered.map(c => {
 
       const pStatus = (c.precinctsStatus || []).find(p => p.name === selectedPrecinct);
       const isReported = pStatus ? pStatus.reported : false;
@@ -1869,7 +1866,7 @@ window.ElectionApp = (function() {
         `;
       });
 
-      card.innerHTML = `
+      const html = `<article class="contest-card" style="background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 24px 28px; margin-bottom: 24px; overflow: hidden;">
         <header class="contest-header" style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
           <div>
             <h2 class="contest-title" style="font-size:20px; font-weight:800; color:var(--neutral-dark); margin:0;">${escapeHtml(c.title)}</h2>
@@ -1886,12 +1883,16 @@ window.ElectionApp = (function() {
           <span>Precinct Total Votes: <strong style="color:var(--neutral-dark); font-weight:700;">${precinctTotalVotes.toLocaleString()}</strong></span>
           <span>Countywide Contest Total: <strong style="color:var(--neutral-dark); font-weight:700;">${c.totalVotes.toLocaleString()}</strong></span>
         </footer>
-      `;
-      container.appendChild(card);
+      </article>`;
+      return { key: `${selectedPrecinct}|${c.title}`, html };
     });
+
+    // A live update swaps only the cards that changed (see patchCards).
+    patchCards(container, cards);
   }
 
   function renderByContestPrecinctView(container, latest) {
+    renderedCards.delete(container);
     container.innerHTML = '';
     const contests = latest.contests || [];
     let contest = contests.find(c => c.title === selectedContestForPrecinctView);

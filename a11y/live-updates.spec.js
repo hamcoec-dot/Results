@@ -216,3 +216,34 @@ test('a live update on the reporting page replaces only the rows that changed', 
   const marks = await rows.evaluateAll((trs) => trs.map((tr) => tr.dataset.mark ?? null));
   expect(marks.filter((m) => m === null)).toHaveLength(1);
 });
+
+test('precinct page: switching views rebuilds; a live update swaps only the changed precinct cards', async ({ page }) => {
+  const state = { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' };
+  await fakeBucket(page, state);
+  await page.goto('precincts.html?emulator');
+  const cards = page.locator('#precinct-results-container > article');
+  await cards.first().waitFor();
+  const count = await cards.count();
+  await page.click('#view-mode-contest-btn');
+  await page.locator('#precinct-results-container table').waitFor();
+  await page.click('#view-mode-precinct-btn');
+  await expect(cards).toHaveCount(count);
+  await expect(page.locator('#precinct-results-container table')).toHaveCount(0);
+
+  const precinct = await page.locator('#precinct-select').inputValue();
+  const title = (await cards.nth(1).locator('.contest-title').textContent()).trim();
+  await cards.evaluateAll((els) => els.forEach((el, i) => { el.dataset.mark = String(i); }));
+  const next = JSON.parse(read(V03, 'precincts.json'));
+  const contest = next.contests.find((c) => c.title === title);
+  contest.candidates[0].precinctVotes[precinct] = (contest.candidates[0].precinctVotes[precinct] || 0) + 3;
+  contest.candidates[0].votes += 3;
+  contest.totalVotes += 3;
+  next.metadata.dataVersion = '0a0b0c0d0e0f';
+  const summary = JSON.parse(read(V03, 'summary.json'));
+  summary.metadata.dataVersion = '0a0b0c0d0e0f';
+  state.override = { 'precincts.json': JSON.stringify(next), 'summary.json': JSON.stringify(summary) };
+  await poll(page);
+  await expect(cards.nth(1)).not.toHaveAttribute('data-mark', '1');
+  const marks = await cards.evaluateAll((els) => els.map((el) => el.dataset.mark ?? null));
+  expect(marks.filter((m) => m === null)).toHaveLength(1);
+});
