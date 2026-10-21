@@ -93,21 +93,35 @@ window.ElectionApp = (function() {
     // Access control guard if user directly visits precincts.html while disabled
     const path = (window.location.pathname || '').toLowerCase();
     const isPrecinctPage = path.endsWith('precincts.html') || path.endsWith('precincts') || path.includes('/precincts');
-    if (!enablePrecinct && isPrecinctPage) {
-      const mainContainer = document.getElementById('main-content');
-      if (mainContainer) {
-        mainContainer.innerHTML = `
-          <div style="max-width:650px; margin:60px auto; text-align:center; padding:40px 24px; background:var(--neutral-light); border:1px solid var(--border); border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-            <div style="font-size:48px; margin-bottom:16px;">&#x1F5F3;&#xFE0F;</div>
-            <h2 style="color:var(--primary); font-size:22px; font-weight:800; margin-bottom:12px;">Precinct Results Currently Disabled</h2>
-            <p style="color:var(--neutral-muted); font-size:15px; line-height:1.6; margin-bottom:24px;">
-              Precinct-level results are disabled during active Election Night reporting.<br>
-              Official precinct breakdowns are published within 1 to 2 business days following Election Day.
-            </p>
-            <a href="index.html" class="nav-btn active" style="display:inline-block; padding:10px 24px; font-size:14px; text-decoration:none;">Return to Summary Results</a>
-          </div>
-        `;
+    const mainContainer = isPrecinctPage ? document.getElementById('main-content') : null;
+    if (!mainContainer) return;
+    // The page's own content is hidden, not replaced, so a later publish that turns the page back
+    // on shows it again without a reload. The live-status bar stays visible.
+    let note = document.getElementById('precinct-disabled-note');
+    const sections = Array.from(mainContainer.children).filter(c => c !== note && !c.contains(document.getElementById('live-status')));
+    if (enablePrecinct) {
+      if (note) {
+        note.remove();
+        sections.forEach(c => { c.hidden = c.dataset.hiddenBefore === '1'; delete c.dataset.hiddenBefore; });
       }
+      return;
+    }
+    if (!note) {
+      sections.forEach(c => { c.dataset.hiddenBefore = c.hidden ? '1' : ''; c.hidden = true; });
+      note = document.createElement('div');
+      note.id = 'precinct-disabled-note';
+      mainContainer.appendChild(note);
+      note.innerHTML = `
+        <div style="max-width:650px; margin:60px auto; text-align:center; padding:40px 24px; background:var(--neutral-light); border:1px solid var(--border); border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+          <div style="font-size:48px; margin-bottom:16px;">&#x1F5F3;&#xFE0F;</div>
+          <h2 style="color:var(--primary); font-size:22px; font-weight:800; margin-bottom:12px;">Precinct Results Currently Disabled</h2>
+          <p style="color:var(--neutral-muted); font-size:15px; line-height:1.6; margin-bottom:24px;">
+            Precinct-level results are disabled during active Election Night reporting.<br>
+            Official precinct breakdowns are published within 1 to 2 business days following Election Day.
+          </p>
+          <a href="index.html" class="nav-btn active" style="display:inline-block; padding:10px 24px; font-size:14px; text-decoration:none;">Return to Summary Results</a>
+        </div>
+      `;
     }
   }
 
@@ -367,12 +381,7 @@ window.ElectionApp = (function() {
     applyConfigVisibility();
     renderNavbarMetadata();
     if (PAGE_FILE === 'precincts.json') {
-      if (!isPrecinctPageEnabled()) return;
-      restorePrecinctStateFromURL();
-      bindPrecinctPageControls();
-      populatePrecinctSelects();
-      setPrecinctViewMode(precinctViewMode);
-      setPrecinctPartyFilter(precinctPartyFilter);
+      startPrecinctPage();
     } else if (isSlideshowPage()) {
       initSlideshow();
     } else {
@@ -382,12 +391,25 @@ window.ElectionApp = (function() {
     }
   }
 
+  /** The precinct page's first draw: once, when it is enabled (at load or by a later publish). */
+  let precinctPageStarted = false;
+  function startPrecinctPage() {
+    if (precinctPageStarted || !isPrecinctPageEnabled()) return;
+    precinctPageStarted = true;
+    restorePrecinctStateFromURL();
+    bindPrecinctPageControls();
+    populatePrecinctSelects();
+    setPrecinctViewMode(precinctViewMode);
+    setPrecinctPartyFilter(precinctPartyFilter);
+  }
+
   /** A live update: redraw in place without moving focus or scroll. */
   function renderUpdate() {
     applyConfigVisibility();
     renderNavbarMetadata();
     if (PAGE_FILE === 'precincts.json') {
       if (!isPrecinctPageEnabled()) return;
+      if (!precinctPageStarted) { startPrecinctPage(); return; } // it was off when the page opened
       populatePrecinctSelects();
       renderPrecinctPage();
     } else if (isSlideshowPage()) {

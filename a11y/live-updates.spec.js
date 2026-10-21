@@ -405,3 +405,28 @@ for (const width of [375, 1280]) {
     await context.close();
   });
 }
+
+test('precinct page turned back on by a later publish: it appears without a reload, controls working', async ({ page }) => {
+  const off = (dir, file) => { const d = JSON.parse(read(dir, file)); d.config = { ...d.config, enablePrecinctResults: false }; return JSON.stringify(d); };
+  const state = { dir: V02, updatedAt: '2026-11-03T21:42:00-05:00', override: { 'precincts.json': off(V02, 'precincts.json'), 'summary.json': off(V02, 'summary.json') } };
+  await fakeBucket(page, state);
+  await page.goto('precincts.html?emulator');
+  await expect(page.locator('#main-content')).toContainText('Precinct Results Currently Disabled');
+  await expect(status(page)).toBeVisible(); // the live-status bar stays
+
+  state.dir = V03;
+  state.override = null;
+  await poll(page);
+  await expect(page.locator('#main-content')).not.toContainText('Currently Disabled');
+  await expect(page.locator('#precinct-select option').nth(1)).toBeAttached();
+  await expect(page.locator('#precinct-results-container')).toBeVisible();
+  await page.selectOption('#precinct-select', { index: 1 }); // controls are bound
+  await expect(page).toHaveURL(/precinct=/);
+
+  // And off again: hidden again, the bar still there.
+  state.dir = V02;
+  state.override = { 'precincts.json': off(V02, 'precincts.json'), 'summary.json': off(V02, 'summary.json') };
+  await poll(page);
+  await expect(page.locator('#main-content')).toContainText('Precinct Results Currently Disabled');
+  await expect(page.locator('#precinct-results-container')).toBeHidden();
+});
