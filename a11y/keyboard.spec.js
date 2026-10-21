@@ -28,6 +28,7 @@ function noErrors(page) {
 }
 
 test('summary page by keyboard: party filter, search, precinct dialog in and out, export', async ({ page }) => {
+  test.setTimeout(90000); // hundreds of key presses: Firefox on CI runners takes over 30 s
   const errors = noErrors(page);
   await page.goto('index.html');
   await page.bringToFront(); // Firefox throttles a background tab's timers (the search is debounced)
