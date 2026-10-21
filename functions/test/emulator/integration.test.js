@@ -103,3 +103,19 @@ test('two publishes racing on the same base: exactly one wins', { skip }, async 
   assert.ok(code('failed-precondition')(lost) || code('aborted')(lost), lost.message);
   assert.equal((await db.doc(`elections/${EID}`).get()).data().publishLock, null);
 });
+
+test('a settings draft rebuilds the published files under new settings, with no new upload', { skip }, async () => {
+  await call('upsertElection', { id: EID, name: '2026-11-03 General', date: '2026-11-03', county: 'Hamilton', precinctCap: 92, enablePrecinctResults: false, makeActive: true });
+  const before = (await db.doc(`elections/${EID}`).get()).data();
+  const d = await call('createSettingsDraft', { electionId: EID });
+  assert.equal(d.status, 'ready');
+  const doc = await draftDoc(d.draftId);
+  assert.equal(doc.kind, 'settings');
+  assert.notEqual(doc.dataVersion, before.currentVersion);
+  assert.ok(doc.checks.some((c) => c.id === 'settings-changed'));
+  await call('publishDraft', { electionId: EID, draftId: d.draftId, ...reviewAnswers(doc) });
+  const [live] = await pub.file('current/summary.json').download();
+  assert.deepEqual(JSON.parse(live).config, { enablePrecinctResults: false, precinctCap: 92 });
+  const [manifest] = await pub.file('current/manifest.json').download();
+  assert.equal(JSON.parse(manifest).dataVersion, doc.dataVersion);
+});

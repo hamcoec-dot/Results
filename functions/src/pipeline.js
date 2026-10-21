@@ -3,7 +3,9 @@
  * One pass from CSV exports to publishable files: read each CSV once, then parse, merge, build
  * outputs and verify from the same rows (what createDraft will call in Phase 2).
  */
+const crypto = require('node:crypto');
 const { readCsv } = require('./csv');
+const { pyDumps } = require('./pycompat');
 const { parseRows, FIXES } = require('./parse');
 const { mergeParsedData } = require('./merge');
 const { buildOutputs, formatLastUpdated } = require('./outputs');
@@ -34,6 +36,7 @@ function buildResults({ early = null, ed = null }, opts = {}) {
   };
   const result = mergeParsedData(parsed.early, parsed.ed, { precinctCap, fixes });
   if (!result) return null;
+  if (fixes.d4) result.data.dataVersion = versionOf(result.data.contests, config);
 
   const outputs = buildOutputs(result.data, { config, lastUpdated });
   const checks = verify({
@@ -45,4 +48,16 @@ function buildResults({ early = null, ed = null }, opts = {}) {
   return { parsed, merged: result.data, diagnostics: result.diagnostics, outputs, verify: checks };
 }
 
-module.exports = { buildResults };
+/**
+ * d4: one hash of the contests (as merge.js hashes them) and the page config, so the same results
+ * under different settings are different versions. LEGACY keeps merge.js's contests-only hash.
+ */
+function versionOf(contests, config) {
+  return crypto.createHash('md5')
+    .update(pyDumps(contests, { sortKeys: true }))
+    .update('\n')
+    .update(pyDumps(config, { sortKeys: true }))
+    .digest('hex').slice(0, 12);
+}
+
+module.exports = { buildResults, versionOf };

@@ -35,7 +35,7 @@ const CHECK_IDS = Object.freeze([
   'date-unreadable', 'title-mismatch', 'precinct-count', 'overvote', 'ballots-over-registered', 'reporting-decreased',
   'votes-decreased', 'contest-added', 'contest-removed', 'candidate-added', 'candidate-removed', 'leader-changed',
   'close-race', 'ed-none-reporting', 'early-has-reporting', 'duplicate-upload', 'no-change', 'turnout-high',
-  'status-changed', 'older-export', 'rollback',
+  'status-changed', 'older-export', 'rollback', 'settings-changed',
   'summary',
 ]);
 
@@ -120,9 +120,10 @@ function badNumberCells(rows) {
  * @param {{name: string, date: string, precinctCap: number}} a.election
  * @param {{sha256: string, lastModified?: number}} a.upload
  * @param {{uploadSha256s?: string[], lastPublishedFileTime?: number}} [a.history]
+ * @param {{before: object|null, after: object}|null} [a.settingsChange]  a settings rebuild: published vs new page config
  * @returns {object[]} checks, blocks first
  */
-function runChecks({ kind, rows, result, current = null, election, upload, history = {} }) {
+function runChecks({ kind, rows, result, current = null, election, upload, history = {}, settingsChange = null }) {
   if (!KINDS.includes(kind)) throw new TypeError(`unknown upload kind ${kind}`);
   const out = [];
   const add = (...a) => out.push(mk(...a));
@@ -229,8 +230,21 @@ function runChecks({ kind, rows, result, current = null, election, upload, histo
       `This file was saved ${new Date(upload.lastModified).toISOString()}; the last published one ${new Date(history.lastPublishedFileTime).toISOString()}.`);
   }
 
+  if (settingsChange) add('settings-changed', 'info', 'Settings change: the same files, rebuilt', describeSettingsChange(settingsChange));
   if (current) compareWithCurrent(merged, current, add);
   return order(out);
+}
+
+const SETTING_LABELS = { precinctCap: 'Max precincts', enablePrecinctResults: 'Precinct Results page' };
+const settingText = (k, v) => (k === 'enablePrecinctResults' ? (v === false ? 'hidden' : 'shown') : String(v));
+
+/** "Max precincts: 92 → 94. Precinct Results page: shown → hidden." for a settings rebuild. */
+function describeSettingsChange({ before, after }) {
+  const keys = Object.keys(SETTING_LABELS);
+  if (!before) return `No settings were published before. Publishing: ${keys.map((k) => `${SETTING_LABELS[k]} ${settingText(k, after[k])}`).join(', ')}.`;
+  const changed = keys.filter((k) => settingText(k, before[k] ?? (k === 'precinctCap' ? 92 : true)) !== settingText(k, after[k]));
+  if (!changed.length) return 'No settings differ from what is published; only the build time changes.';
+  return changed.map((k) => `${SETTING_LABELS[k]}: ${settingText(k, before[k] ?? (k === 'precinctCap' ? 92 : true))} → ${settingText(k, after[k])}.`).join(' ');
 }
 
 function compareWithCurrent(draft, current, add) {
@@ -302,4 +316,4 @@ function unreadableCheck(err) {
   return order([mk('unreadable', 'block', 'File could not be read', `${err.message}. Re-export the Custom Table Report and upload it again.`)])[0];
 }
 
-module.exports = { runChecks, runRollbackChecks, unreadableCheck, normalizeDate, closeMargin, badNumberCells, CHECK_IDS, REPORTING_MISMATCH_SEVERITY };
+module.exports = { runChecks, runRollbackChecks, unreadableCheck, normalizeDate, closeMargin, badNumberCells, describeSettingsChange, CHECK_IDS, REPORTING_MISMATCH_SEVERITY };

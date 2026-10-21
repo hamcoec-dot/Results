@@ -73,7 +73,7 @@
     countdownText = h('span', { 'aria-live': 'off' });
     C.clear(document.getElementById('status-bar')).appendChild(h('p', { class: 'row' },
       h('span', null, 'Draft ', h('code', null, draftId.slice(0, 8) + '…')),
-      h('span', null, '· ' + (d.kind === 'rollback' ? 'Rollback to ' + d.rollbackOf : 'Kind: ' + d.kind)),
+      h('span', null, '· ' + (d.kind === 'rollback' ? 'Rollback to ' + d.rollbackOf : d.kind === 'settings' ? 'Settings change (same files)' : 'Kind: ' + d.kind)),
       h('span', null, '· Based on ' + (d.baseVersion || 'nothing published')),
       h('span', null, '· ' + counts.block + ' blocking, ' + counts.warn + ' warnings, ' + counts.info + ' info'),
       h('span', null, '· Status: ' + d.status),
@@ -348,7 +348,7 @@
   function summarySentence() {
     var r = S.review;
     var hl = r.headline.precinctsReporting;
-    var kind = { zero: 'Zero report', early: 'Early/ABS update', ed: 'Election Day update', rollback: 'Rollback' }[r.file.kind] || r.file.kind;
+    var kind = { zero: 'Zero report', early: 'Early/ABS update', ed: 'Election Day update', rollback: 'Rollback', settings: 'Settings change' }[r.file.kind] || r.file.kind;
     return 'Publish ' + kind + ': ' + (hl.current === null ? 'first publish, ' : hl.current + ' → ') + hl.draft + ' of ' + hl.of + ' precincts reporting, '
       + r.counts.changed + ' contests changed, ' + r.counts.leaderChanges + ' leader change' + (r.counts.leaderChanges === 1 ? '' : 's') + '.';
   }
