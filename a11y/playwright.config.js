@@ -19,7 +19,9 @@ module.exports = defineConfig({
   testMatch: '*.spec.js',
   fullyParallel: true,
   reporter: process.env.CI ? 'github' : 'list',
-  use: { baseURL: `http://127.0.0.1:${PORT}/` },
+  // Hamilton County's time zone and locale, so times like "Results updated 9:58 PM" read the same
+  // on a UTC CI runner as on a county machine.
+  use: { baseURL: `http://127.0.0.1:${PORT}/`, timezoneId: 'America/New_York', locale: 'en-US' },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
     ...others,
