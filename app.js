@@ -28,6 +28,10 @@ window.ElectionApp = (function() {
   // Without results-config.js the pages read ./ as the legacy monitor writes it.
   const RESULTS = window.RESULTS || { url: file => `./${file}?t=${Date.now()}`, draft: null, local: true, usesManifest: false };
   const Validate = window.ResultsValidate || null;
+  if (!Validate && !RESULTS.local) {
+    // Bucket and draft data are checked before they are shown; a site copy without the validator cannot.
+    console.error('functions/src/validate.js did not load: results are shown without validation. Deploy it with the pages.');
+  }
 
   // The page's own data file. The slideshow shows the summary.
   const PAGE_FILE = document.getElementById('precinct-results-container') ? 'precincts.json'

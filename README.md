@@ -83,6 +83,10 @@ Emulators by hand: `npx firebase-tools@13.35.1 emulators:start --only auth,fires
 (ports 9099, 8181, 9199, 5001). Then `node tools/seed-emulator.js` (admin `admin@example.test`) and
 `node tools/emulator-drafts.js`, which publishes a sample file and prints `?emulator&draft=…` links.
 
+Every copy of the public site (GitHub Pages, the county IIS server) must include `results-config.js`, `app.js`,
+`styles.css` and `functions/src/validate.js` next to the four pages. Without the validator the pages still work,
+but they show bucket and draft data unvalidated, and log an error in the console.
+
 Public pages: serve the repo root (`npx http-server -p 8123 -c-1`) and open a page with
 - no parameter: the files next to the pages (`./`), as the live site does until `PUBLIC_BASE` is set in `results-config.js`;
 - `?local`: always `./` (the offline fallback);

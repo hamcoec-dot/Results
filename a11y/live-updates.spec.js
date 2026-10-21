@@ -325,3 +325,13 @@ test('prefers-reduced-motion: no transitions or smooth scrolling', async ({ page
   expect(motion.scroll).toBe('auto');
   expect(parseFloat(motion.bar)).toBeLessThan(0.001);
 });
+
+test('a site copy without validate.js still shows results, and says so in the console', async ({ page }) => {
+  await fakeBucket(page, { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' });
+  await page.route('**/functions/src/validate.js', (route) => route.fulfill({ status: 404, body: '' }));
+  const errors = [];
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('index.html?emulator');
+  await expect(firstCard(page)).toContainText('92 of 92');
+  expect(errors.some((t) => t.includes('validate.js did not load'))).toBe(true);
+});
