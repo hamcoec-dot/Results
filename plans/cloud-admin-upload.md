@@ -419,6 +419,9 @@ Keep `convert_data.py`, `verify.py`, `server_monitor.py` and `Run_Monitor.bat` a
 3. **`admin.html`/`admin.js`, `review.html`/`review.js`, and `firebase-config.js`.** Build them mobile-first and to AA from the start, and add the `a11y/` test harness.
 4. **Accessibility baseline audit and fixes for the existing public pages, then `app.js` and the pages switched to `RESULTS_BASE_URL`, with `results-config.js`, `?draft` mode and the live-update pause controls.**
    Layers 8, 9 and 12, the DOM oracle, and `validate.js` wired into `app.js`.
+
+   **Status (2026-10-21): built in PR #3.** Not done: visual regression (layer 9). Related PRs: #4 (settings drafts, fix d4), #5
+   (parity fixes), #6 (Phase 5 prep: deploy workflow, smoke and load tools, rehearsal). Decisions: Appendix C.
 5. **README, GCP project setup for both staging and prod, `nightly.yml` and `deploy.yml`, first deploy, invoker grants, CORS, uptime checks and alerts, layers 13–15 on staging, a dry run with the `Web Results Samples` 00→06 sequence, and the first mock-election rehearsal.**
 
 Phases 3 and 4 can run in parallel once phase 2's callable contract is fixed. Every phase that touches UI must pass `npm run a11y`, `npm run perf`, and the manual checklists below before it is done. Phase 2 must also meet the function latency budgets.
