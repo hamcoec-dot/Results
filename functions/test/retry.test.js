@@ -7,7 +7,9 @@ const err = (props, message = 'x') => Object.assign(new Error(message), props);
 const noSleep = { sleep: async () => {} };
 
 test('isTransient: network drops and busy servers, not real answers', () => {
-  for (const e of [err({ code: 'ECONNRESET' }), err({ code: 'ETIMEDOUT' }), err({ cause: { code: 'UND_ERR_SOCKET' } }),
+  for (const e of [err({ code: 'ECONNRESET' }), err({ code: 'ETIMEDOUT' }),
+    err({ code: 'EPIPE' }), err({ code: 'EAI_AGAIN' }), err({ code: 'ESOCKETTIMEDOUT' }), err({ code: 408 }), err({ code: 504 }),
+    err({ cause: { code: 'UND_ERR_SOCKET' } }),
     err({ code: 503 }), err({ code: 429 }), err({ response: { status: 502 } }), err({ status: 500 }),
     err({}, 'request to http://x failed, reason: read ECONNRESET'), err({}, 'socket hang up')]) {
     assert.equal(isTransient(e), true, e.message + JSON.stringify(e));
