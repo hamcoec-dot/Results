@@ -987,7 +987,6 @@ window.ElectionApp = (function() {
     const backdrop = document.getElementById('precinct-modal');
     if (backdrop) {
       backdrop.classList.add('active');
-      backdrop.setAttribute('aria-hidden', 'false');
       const closeBtn = backdrop.querySelector('.modal-close-btn');
       if (closeBtn) closeBtn.focus();
     }
@@ -1029,7 +1028,6 @@ window.ElectionApp = (function() {
     const backdrop = document.getElementById('precinct-modal');
     if (backdrop) {
       backdrop.classList.remove('active');
-      backdrop.setAttribute('aria-hidden', 'true');
     }
     currentModalContest = null;
     if (!wasOpen) return;

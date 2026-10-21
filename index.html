@@ -32,7 +32,7 @@
   <nav class="navbar" role="navigation" aria-label="Main Navigation">
     <a href="index.html" class="navbar-brand" aria-label="Hamilton County Election Commission Home">
       <div class="navbar-seal" aria-hidden="true">
-        <svg class="tn-seal-svg" viewBox="0 0 100 100" width="100%" height="100%" aria-label="Tennessee Three Grand Divisions Logo">
+        <svg class="tn-seal-svg" viewBox="0 0 100 100" width="100%" height="100%" focusable="false">
           <circle cx="50" cy="50" r="50" fill="#CC0000" />
           <circle cx="50" cy="50" r="43" fill="none" stroke="#FFFFFF" stroke-width="4" />
           <circle cx="50" cy="50" r="41" fill="#002147" />
@@ -89,7 +89,7 @@
           <button type="button" class="export-btn" onclick="ElectionApp.exportCSV()">
             &#x1F4E5; Export CSV
           </button>
-          <div class="status-badge" aria-label="Election Status">
+          <div class="status-badge" role="group" aria-label="Election Status">
             <span class="pulse-dot" aria-hidden="true"></span>
             <span id="status-text">UNOFFICIAL RESULTS</span>
           </div>
@@ -107,7 +107,7 @@
         <div class="metric-card" style="flex: 2 1 320px !important;">
           <div class="metric-label">Total Ballots Cast</div>
           <div id="stat-ballots" class="metric-value">--</div>
-          <div class="ballot-breakdown-pills" aria-label="Party Ballot Breakdown">
+          <div class="ballot-breakdown-pills" role="group" aria-label="Party Ballot Breakdown">
             <span class="ballot-pill ballot-pill-rep">REP: <strong id="stat-ballots-rep">--</strong></span>
             <span class="ballot-pill ballot-pill-dem">DEM: <strong id="stat-ballots-dem">--</strong></span>
             <span class="ballot-pill ballot-pill-gen">GEN: <strong id="stat-ballots-gen">--</strong></span>
@@ -167,7 +167,7 @@
   </button>
 
   <!-- Precinct Reporting Visual Modal Dialog -->
-  <div id="precinct-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
+  <div id="precinct-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card">
       <header class="modal-header">
         <div>
