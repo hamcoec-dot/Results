@@ -43,6 +43,8 @@ for (const width of WIDTHS) {
 test.describe('signed in (emulators)', () => {
   test.skip(!emulators, 'set EMULATORS=1 with the emulators running and seeded (npm run a11y:admin)');
   test.describe.configure({ mode: 'serial' });
+  // Each test runs several axe audits and opens four tabs; Firefox on a CI runner needs more than 30 s.
+  test.setTimeout(120000);
 
   let reviewUrl;
 
