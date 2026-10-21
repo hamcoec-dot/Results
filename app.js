@@ -81,7 +81,8 @@ window.ElectionApp = (function() {
     // Hide/show precinct navigation links across all pages
     const precinctNavs = document.querySelectorAll('a[href="precincts.html"]');
     precinctNavs.forEach(nav => {
-      nav.style.display = enablePrecinct ? '' : 'none';
+      // The hidden attribute, not style.display: .nav-btn sets display with !important.
+      nav.hidden = !enablePrecinct;
     });
 
     // Access control guard if user directly visits precincts.html while disabled

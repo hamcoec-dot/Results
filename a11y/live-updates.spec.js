@@ -283,3 +283,20 @@ test('the 60 s poll: an unchanged poll moves under 1 KB; a hidden tab makes no r
   await page.clock.runFor(61000);
   await expect.poll(() => log.length).toBe(2);
 });
+
+test('precinct page turned off in the settings: the page says so, and its nav links are hidden', async ({ page }) => {
+  const { AxeBuilder } = require('@axe-core/playwright');
+  const off = (file) => { const d = JSON.parse(read(V03, file)); d.config = { ...d.config, enablePrecinctResults: false }; return JSON.stringify(d); };
+  const state = { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00', override: { 'precincts.json': off('precincts.json'), 'summary.json': off('summary.json') } };
+  await fakeBucket(page, state);
+  await page.goto('precincts.html?emulator');
+  await expect(page.getByRole('heading', { name: 'Precinct Results Currently Disabled' })).toBeVisible();
+  await expect(page.locator('a[href="precincts.html"]')).toHaveCount(1);
+  await expect(page.locator('a[href="precincts.html"]')).toBeHidden();
+  const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(violations.map((v) => v.id)).toEqual([]);
+
+  await page.goto('index.html?emulator');
+  await expect(firstCard(page)).toBeVisible();
+  await expect(page.locator('a[href="precincts.html"]')).toBeHidden();
+});

@@ -1728,3 +1728,8 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   letter-spacing: normal !important;
   color: var(--neutral-dark) !important;
 }
+
+/* hidden always wins over the components' display rules (they use !important) */
+[hidden] {
+  display: none !important;
+}
