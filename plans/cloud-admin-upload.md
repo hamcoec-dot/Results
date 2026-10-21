@@ -624,3 +624,20 @@ Pages must stay fast and lag-free, including on mid-range phones on 4G.
 - **Lighthouse lives in `perf/` with its own `package.json`.** Its puppeteer download helpers carry high-severity
   advisories that would fail the root `npm audit`. It is a local tool, not run in CI. The a11y harness
   (Playwright + axe) is the root package and the CI job `pages`.
+- **Requests time out after 20 s.** Without a timeout, a request that never answered left the poll in flight, and live
+  updates stopped for good. The data files are at most about 5 KB gzipped, so 20 s is ample even on 2G.
+- **CSV exports guard against formula injection.** Text starting with `=`, `+`, `-`, `@`, a tab or a CR gets a
+  leading apostrophe. Numbers are written as numbers.
+- **Cross-browser:**
+  - The behaviour specs run in Chromium, Firefox, WebKit and on emulated Pixel 7 and iPhone 14 (CI job `browsers`).
+  - The signed-in admin specs run in Chromium and Firefox.
+  - WebKit is left out of the admin specs: Playwright's Windows WebKit build drops Firestore requests at random, so
+    Safari on an iPad and an iPhone is a manual checklist item.
+  - axe and screenshots stay on Chromium.
+- **Tests run in America/New_York with the en-US locale.** "Results updated 9:58 PM" must read the same on a UTC CI
+  runner.
+- **The storage retry (#10) is also cherry-picked onto this branch.** The Storage emulator's connection resets also
+  happen on Linux CI, and the admin E2E uploads more than 20 files.
+- **The election-night E2E checks precincts reporting against the CSV's "R of T" headers, not the golden output.**
+  The golden output keeps the legacy reporting rule (D1/D2), so after 03 it says 92 of 92 where the file says 5 of 92.
+  Votes and percentages are compared with the golden output.
