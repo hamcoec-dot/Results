@@ -60,6 +60,75 @@ test.describe('admin flows (emulators)', () => {
     return (await btn.textContent()).replace(/\s+/g, ' ').trim();
   };
 
+  // Layer 8's election night (plan: Test strategy): every sample from Zero to End of Provisional
+  // goes through upload, review and publish in the UI. A public page left open picks up each
+  // publish by polling. Every contest, candidate, vote and percentage it shows equals the Python
+  // reference output (functions/test/golden) for that point in the night. Precincts reporting is
+  // checked against the CSV itself: the reference uses the legacy reporting rule (D1/D2, fixed in the
+  // cloud pipeline), so after 03 it says 92 of 92 where the file says 5 of 92. Runs first,
+  // on the freshly seeded election, so the Early and ED slots hold exactly what the golden cases used.
+  test('election night 00 → 06 through the UI: each publish reaches an open public page, equal to the Python reference', async ({ page, browser }) => {
+    test.setTimeout(600000);
+    const fs = require('node:fs');
+    const golden = (id) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'functions', 'test', 'golden', id, 'summary.json'), 'utf8')).latest;
+    const fmt = (n) => n.toLocaleString('en-US');
+    const norm = (s) => s.replace(/\s+/g, ' ').trim();
+    const night = [
+      ['zero', '00-Zero File', 'samples-92-00-zero'],
+      ['early', '01-After NH&ABS', 'samples-92-01-nh-abs'],
+      ['early', '02-After EV', 'samples-92-02-ev'],
+      ['ed', '03-After 5 Reporting', 'samples-92-03-5-reporting'],
+      ['ed', '04-After 10 Reporting', 'samples-92-04-10-reporting'],
+      ['ed', '05-End of Election Day', 'samples-92-05-end-ed'],
+      ['ed', '06-End of Provisional', 'samples-92-06-end-provisional'],
+    ];
+    const viewer = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
+    let opened = false;
+    for (const [kind, sample, id] of night) {
+      await signIn(page);
+      await upload(page, kind, sample);
+      await publishFromReview(page);
+      const want = golden(id);
+      if (!opened) {
+        await viewer.goto('index.html?emulator');
+        opened = true;
+      } else {
+        await viewer.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); // the poll, now
+      }
+      await expect(viewer.locator('#stat-ballots'), sample).toHaveText(fmt(want.totalBallots), { timeout: 30000 });
+      await expect(viewer.locator('#stat-voters')).toHaveText(fmt(want.totalVoters));
+      // Every "R of T Precincts Reporting" header in the file; an Early or Zero file reports no ED precincts.
+      const csvText = fs.readFileSync(SAMPLE(sample), 'utf8');
+      const inFile = new Set([...csvText.matchAll(/(\d+) of (\d+) Precincts Reporting/g)].map((m) => `${m[1]} of ${m[2]}`));
+      const rOfT = (text) => /(\d+) of (\d+)/.exec(text).slice(1).map(Number);
+      const okReporting = (text, total) => {
+        const [r, t] = rOfT(text);
+        expect(t, text).toBe(total);
+        if (kind === 'ed') expect(inFile.has(`${r} of ${t}`), `${sample}: "${r} of ${t}" is not in the file`).toBe(true);
+        else expect(r, text).toBe(0);
+      };
+      okReporting(await viewer.locator('#stat-reporting').textContent(), want.overallPrecinctsTotal);
+      const shown = await viewer.locator('#contests-container > article').evaluateAll((cards) => cards.map((card) => ({
+        title: card.querySelector('.contest-title').textContent,
+        meta: card.querySelector('.contest-meta').textContent,
+        reporting: card.querySelector('.reporting-btn').textContent,
+        rows: Array.from(card.querySelectorAll('.candidate-row')).map((r) => ({
+          name: r.querySelector('.cand-name-cell span').textContent,
+          votes: r.querySelector('.vote-count').textContent,
+          pct: r.querySelector('.vote-percent').textContent,
+        })),
+      })));
+      expect(shown.map((c) => c.title), sample).toEqual(want.contests.map((c) => c.title));
+      want.contests.forEach((c, i) => {
+        expect(norm(shown[i].meta), `${sample} / ${c.title}`).toContain(`Total Votes: ${fmt(c.totalVotes)}`);
+        expect(norm(shown[i].reporting), `${sample} / ${c.title}`).toMatch(/\d+ of \d+ Election Day Precincts Reporting/);
+        okReporting(shown[i].reporting, c.precinctsTotal);
+        expect(shown[i].rows, `${sample} / ${c.title}`).toEqual(c.candidates.map((x) => ({ name: x.name, votes: fmt(x.votes), pct: `(${x.percentage.toFixed(1)}%)` })));
+      });
+    }
+    await viewer.context().close();
+  });
+
   test('publish 02 then 03; roll back to 02 through review; the public page reverts', async ({ page }) => {
     await signIn(page);
     await upload(page, 'early', '02-After EV');
@@ -78,7 +147,7 @@ test.describe('admin flows (emulators)', () => {
     await expect(history.getByText('Live now')).toBeVisible({ timeout: 15000 });
     const rollbackButtons = history.getByRole('button', { name: 'Roll back to this' });
     expect(await rollbackButtons.count()).toBeGreaterThanOrEqual(1);
-    await rollbackButtons.last().click();
+    await rollbackButtons.first().click(); // newest first: the version just before the live one
     await expect(page.locator('#confirm-dialog')).toBeVisible();
     const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     expect(violations.map((v) => v.id)).toEqual([]);
@@ -169,7 +238,9 @@ test.describe('publish guard rails (emulators)', () => {
     await upload(page, 'ed', SAMPLE('05-End of Election Day'));
     const draftA = page.url();
     await signIn(page);
-    await upload(page, 'ed', SAMPLE('06-End of Provisional'));
+    // B must differ from what is live (02 + 06 after the rollback above): publishing a draft equal to
+    // the live version leaves currentVersion as it is, so A would rightly not be stale.
+    await upload(page, 'ed', SAMPLE('04-After 10 Reporting'));
     await tickAll(page);
     await openAll(page);
     await publish(page);
