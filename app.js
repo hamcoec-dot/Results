@@ -478,8 +478,13 @@ window.ElectionApp = (function() {
     const el = document.getElementById('live-status');
     if (!el) return;
     let text;
-    if (!electionData) {
-      text = updatesDelayed ? 'Results could not be loaded. Retrying…' : 'Loading results…';
+    if (!electionData && !updatesDelayed) {
+      text = 'Loading results…';
+    } else if (!electionData) {
+      // Only say "Retrying" when a retry is scheduled: a draft never polls, and a paused page waits.
+      if (RESULTS.draft) text = 'This draft could not be loaded. It may have been published, discarded or expired: open it again from its review page.';
+      else if (livePaused) text = 'Results could not be loaded. Live updates are paused: resume them to try again.';
+      else text = 'Results could not be loaded. Retrying…';
     } else if (RESULTS.draft) {
       text = `Draft preview, built ${lastUpdatedText}. Live updates are off.`;
     } else if (updatesDelayed) {

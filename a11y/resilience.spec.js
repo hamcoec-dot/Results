@@ -228,3 +228,23 @@ test('a failed first load (and no data.js to fall back on) says so, shows no num
   await poll(page);
   await expect(firstCard(page)).toContainText('92 of 92');
 });
+
+test('a draft whose files are gone says so (no "Retrying": drafts never poll)', async ({ page }) => {
+  await page.route('http://127.0.0.1:9199/**', (route) => route.fulfill({ status: 404, body: '' }));
+  await page.goto('index.html?emulator&draft=0123456789abcdef0123456789abcdef');
+  await expect(status(page)).toHaveText(/^This draft could not be loaded\. It may have been published, discarded or expired/);
+  await expect(page.locator('.draft-banner')).toBeVisible();
+});
+
+test('a failed first load while paused says how to retry; resuming loads the results', async ({ page }) => {
+  const state = { dir: V03, updatedAt: at, fault: { 'summary.json': { status: 503 }, 'data.js': { status: 404 } } };
+  await fakeBucket(page, state);
+  await page.goto('index.html?emulator');
+  await expect(status(page)).toContainText('Retrying');
+  await page.getByRole('button', { name: 'Pause live updates' }).click();
+  await expect(status(page)).toHaveText('Results could not be loaded. Live updates are paused: resume them to try again.');
+  state.fault = null;
+  await page.getByRole('button', { name: /Resume live updates|Pause live updates/ }).click();
+  await expect(firstCard(page)).toContainText('92 of 92');
+  await expect(status(page)).toHaveText(/^Results updated /);
+});
