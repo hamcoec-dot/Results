@@ -127,8 +127,9 @@ test('size limits: a 5 MB export parses in time; an oversized field is a CsvErro
   // Many elections back to back: still a well-formed sequence of contest blocks.
   const five = big + big.split('\n').slice(3).join('\n').repeat(reps - 1);
   assert.ok(five.length >= 5_000_000);
-  // Budget: createDraft on the largest upload, p95 < 5 s (plan: Performance requirements).
-  const r = timed(() => buildResults({ early: null, ed: five }, { lastUpdated: 'x' }), 5000);
+  // Budget: createDraft on the largest upload, p95 < 5 s (plan: Performance requirements). Under
+  // c8 (NODE_V8_COVERAGE) the code is instrumented and ~2-3x slower, so there it only proves no hang.
+  const r = timed(() => buildResults({ early: null, ed: five }, { lastUpdated: 'x' }), process.env.NODE_V8_COVERAGE ? 15000 : 5000);
   assert.ok(r.value, r.error?.message);
   assert.throws(() => readCsv(`"${'x'.repeat(131073)}"`), CsvError);
   assert.doesNotThrow(() => readCsv(`"${'x'.repeat(131072)}"`));
