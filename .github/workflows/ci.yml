@@ -113,4 +113,5 @@ jobs:
       - name: osv-scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
         with:
-          scan-args: --lockfile=functions/package-lock.json
+          # functions and the page tooling; perf/ (local Lighthouse runner, not shipped) is left out on purpose.
+          scan-args: --lockfile=functions/package-lock.json --lockfile=package-lock.json
