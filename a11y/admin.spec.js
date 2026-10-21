@@ -84,6 +84,7 @@ test.describe('signed in (emulators)', () => {
     await expect(page.locator('#upload-form')).toBeVisible({ timeout: 15000 });
     await page.goto(reviewUrl);
     await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }); // cards rendered: nothing moves now
     for (const width of WIDTHS) {
       await page.setViewportSize({ width, height: 800 });
       await audit(page);

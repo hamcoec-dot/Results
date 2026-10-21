@@ -41,6 +41,9 @@ they can't. Record the date, browser and result of each run at the bottom.
 ## Screen readers
 - [ ] NVDA + Chrome and NVDA + Firefox, on the summary, reporting and precinct pages and the full admin flow.
 - [ ] VoiceOver on iOS Safari and TalkBack on Android Chrome: the full review-and-publish flow on a phone.
+- [ ] Safari (an iPad and an iPhone): sign in, upload, review, publish, roll back. The automated admin flows run in
+  Chromium and Firefox only. Playwright's Windows WebKit build drops Firestore requests at random, so it can't
+  stand in for Safari here.
 - [ ] Checks for each:
   - [ ] the reporting buttons read "N of M Election Day Precincts Reporting in <contest>";
   - [ ] filter buttons read as toggle buttons with their state;

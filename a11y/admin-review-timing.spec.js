@@ -30,6 +30,7 @@ test.describe('review screen interactions at 4x CPU', () => {
     await page.click('#upload-form button[type="submit"]');
     await page.waitForURL(/review\.html\?/, { timeout: 120000 });
     await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }); // cards rendered: nothing moves now
     await expect(page.locator('#contests')).not.toBeEmpty();
     await page.waitForTimeout(500);
 

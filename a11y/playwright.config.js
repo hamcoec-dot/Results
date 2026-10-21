@@ -13,6 +13,10 @@ const others = [
   { name: 'pixel-7', use: { ...devices['Pixel 7'] } },
   { name: 'iphone-14', use: { ...devices['iPhone 14'] } },
 ].map((p) => ({ ...p, testMatch: BEHAVIOUR }));
+// The signed-in admin specs in Firefox too (npm run a11y:admin:firefox, CI job emulator). WebKit is left
+// out: Playwright's Windows WebKit build drops Firestore requests at random (seen 2026-10-21). Check
+// Safari by hand on an iPad and an iPhone (a11y/CHECKLIST.md).
+const ADMIN_SPECS = /admin(-flows|-keyboard)?.spec.js$/;
 
 module.exports = defineConfig({
   testDir: __dirname,
@@ -27,6 +31,7 @@ module.exports = defineConfig({
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
     ...others,
+    { name: 'firefox-admin', use: { ...devices['Desktop Firefox'] }, testMatch: ADMIN_SPECS },
   ],
   webServer: {
     command: `npx http-server .. -p ${PORT} -c-1 -a 127.0.0.1 -s`,

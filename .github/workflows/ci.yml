@@ -71,8 +71,11 @@ jobs:
         working-directory: .
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox
           npm run a11y:admin
+      - name: Admin flows in Firefox (on fresh emulators)
+        working-directory: .
+        run: npm run a11y:admin:firefox
 
   pages:
     # Layers 10 and 12: axe (WCAG 2.1 AA) and live-update tests on the public pages.

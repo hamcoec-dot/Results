@@ -47,6 +47,7 @@ test.describe('admin by keyboard only (emulators)', () => {
       await page.click('#upload-form button[type="submit"]');
       await page.waitForURL(/review\.html\?/, { timeout: 120000 });
       await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+      await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }); // cards rendered: nothing moves now
       for (const box of await page.locator('#checks input[type="checkbox"]').all()) await box.check();
       for (const link of await page.locator('#previews a').all()) {
         const [tab] = await Promise.all([context.waitForEvent('page'), link.click()]);
@@ -70,6 +71,7 @@ test.describe('admin by keyboard only (emulators)', () => {
     await page.keyboard.press('Enter');
     await page.waitForURL(/review\.html\?/, { timeout: 120000 });
     await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }); // cards rendered: nothing moves now
 
     // Every warning: reached with Tab and ticked with Space.
     const boxes = await page.locator('#checks input[type="checkbox"]').evaluateAll((els) => els.map((e) => e.id));

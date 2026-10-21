@@ -202,11 +202,20 @@
     var list = S.review.contests;
     S.contests = [];
     var i = 0;
+    // Each card is filtered as it is added, so the list only grows by the cards that will stay and
+    // the Publish panel below moves as little as possible while the chunks render.
+    el.setAttribute('aria-busy', 'true');
     var chunk = function () {
       var frag = document.createDocumentFragment();
-      for (var end = Math.min(i + 8, list.length); i < end; i++) frag.appendChild(contestCard(list[i], i));
+      var shows = matcher();
+      for (var end = Math.min(i + 8, list.length); i < end; i++) {
+        var card = contestCard(list[i], i);
+        card.hidden = !shows(S.contests[S.contests.length - 1]);
+        frag.appendChild(card);
+      }
       el.appendChild(frag);
       if (i < list.length) return C.yieldToMain().then(chunk);
+      el.setAttribute('aria-busy', 'false');
       applyFilter();
       return null;
     };
@@ -257,14 +266,20 @@
     return card;
   }
 
-  function applyFilter() {
+  /** The current filter and search, as a test of one S.contests entry. */
+  function matcher() {
     var q = document.getElementById('contest-search').value.trim().toLowerCase();
     var f = document.getElementById('contest-filter').value;
     var test = { changed: function (c) { return c.changed; }, leader: function (c) { return c.leaderChanged; }, down: function (c) { return c.decreased; },
       close: function (c) { return c.closeMargin !== null; }, all: function () { return true; } }[f];
+    return function (x) { return test(x.c) && (!q || x.text.indexOf(q) >= 0); };
+  }
+
+  function applyFilter() {
+    var shows = matcher();
     var shown = 0;
     S.contests.forEach(function (x) {
-      var on = test(x.c) && (!q || x.text.indexOf(q) >= 0);
+      var on = shows(x);
       x.el.hidden = !on;
       if (on) shown++;
     });

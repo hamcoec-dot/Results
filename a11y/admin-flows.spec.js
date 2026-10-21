@@ -34,10 +34,12 @@ test.describe('admin flows (emulators)', () => {
     await page.click('#upload-form button[type="submit"]');
     await page.waitForURL(/review\.html\?/, { timeout: 120000 });
     await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }); // cards rendered: nothing moves now
   }
 
   /** On the review screen: tick every warning, open every draft page, publish with the typed count. */
   async function publishFromReview(page) {
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 });
     for (const box of await page.locator('#checks input[type="checkbox"]').all()) await box.check();
     for (const link of await page.locator('#previews a').all()) {
       const [tab] = await Promise.all([page.context().waitForEvent('page'), link.click()]);
@@ -215,6 +217,7 @@ test.describe('publish guard rails (emulators)', () => {
     await page.click('#upload-form button[type="submit"]');
     await page.waitForURL(/review\.html\?/, { timeout: 120000 });
     await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }); // cards rendered: nothing moves now
   }
   const tickAll = async (page) => { for (const box of await page.locator('#checks input[type="checkbox"]').all()) await box.check(); };
   const openAll = async (page) => {
@@ -224,6 +227,7 @@ test.describe('publish guard rails (emulators)', () => {
     }
   };
   async function publish(page) {
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 });
     await page.click('#publish-btn');
     const count = /(?:→|first publish,) (\d+) of \d+ precincts/.exec(await page.locator('#publish-summary').textContent());
     await page.fill('#confirm-count', count[1]);
@@ -265,6 +269,7 @@ test.describe('publish guard rails (emulators)', () => {
 
     await page.goto(draftA);
     await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+    await page.waitForFunction(() => document.getElementById('contests').getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }); // cards rendered: nothing moves now
     await tickAll(page);
     await openAll(page);
     await publish(page);
