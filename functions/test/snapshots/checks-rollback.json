@@ -27,11 +27,53 @@
   "key": "reporting-decreased:1",
   "id": "reporting-decreased",
   "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Governor: 10 → 5.",
+  "title": "Contests (15) with fewer precincts reporting",
+  "detail": "Governor: 10 → 5\nConstitutional Amendment #1: 10 → 5\nConstitutional Amendment #2: 10 → 5\nConstitutional Amendment #3: 10 → 5\nUnited States Senate: 10 → 5\nUnited States House of Representatives, District 3: 10 → 5\nTennessee Senate, District 11: 7 → 3\nTennessee House of Representatives, District 26: 5 → 2\nTennessee House of Representatives, District 27: 7 → 4\nTennessee House of Representatives, District 30: 1 → 0\nRed Bank Commission Red Bank: 1 → 0\nRed Bank Charter Referendum Red Bank: 1 → 0\nSoddy Daisy Commissioner: 3 → 2\nWalden Alderman: 1 → 0\nWalden Referendum: 1 → 0",
   "refs": [
    {
     "contest": "Governor"
+   },
+   {
+    "contest": "Constitutional Amendment #1"
+   },
+   {
+    "contest": "Constitutional Amendment #2"
+   },
+   {
+    "contest": "Constitutional Amendment #3"
+   },
+   {
+    "contest": "United States Senate"
+   },
+   {
+    "contest": "United States House of Representatives, District 3"
+   },
+   {
+    "contest": "Tennessee Senate, District 11"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 26"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 27"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner"
+   },
+   {
+    "contest": "Walden Alderman"
+   },
+   {
+    "contest": "Walden Referendum"
    }
   ]
  },
@@ -39,11 +81,53 @@
   "key": "votes-decreased:1",
   "id": "votes-decreased",
   "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Governor: 1,606 → 1,430.",
+  "title": "Contest totals that went down (15)",
+  "detail": "Governor: 1,606 → 1,430\nConstitutional Amendment #1: 219 → 195\nConstitutional Amendment #2: 219 → 195\nConstitutional Amendment #3: 219 → 195\nUnited States Senate: 1,095 → 975\nUnited States House of Representatives, District 3: 730 → 650\nTennessee Senate, District 11: 165 → 144\nTennessee House of Representatives, District 26: 19 → 16\nTennessee House of Representatives, District 27: 90 → 78\nTennessee House of Representatives, District 30: 24 → 21\nRed Bank Commission Red Bank: 48 → 42\nRed Bank Charter Referendum Red Bank: 24 → 21\nSoddy Daisy Commissioner: 52 → 44\nWalden Alderman: 8 → 7\nWalden Referendum: 24 → 21",
   "refs": [
    {
     "contest": "Governor"
+   },
+   {
+    "contest": "Constitutional Amendment #1"
+   },
+   {
+    "contest": "Constitutional Amendment #2"
+   },
+   {
+    "contest": "Constitutional Amendment #3"
+   },
+   {
+    "contest": "United States Senate"
+   },
+   {
+    "contest": "United States House of Representatives, District 3"
+   },
+   {
+    "contest": "Tennessee Senate, District 11"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 26"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 27"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner"
+   },
+   {
+    "contest": "Walden Alderman"
+   },
+   {
+    "contest": "Walden Referendum"
    }
   ]
  },
@@ -51,1073 +135,233 @@
   "key": "votes-decreased:2",
   "id": "votes-decreased",
   "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Marsha Blackburn: 73 → 65.",
+  "title": "Candidate totals that went down (57)",
+  "detail": "Governor / Marsha Blackburn: 73 → 65\nGovernor / Jerri Green: 146 → 130\nGovernor / Misam Abidi: 73 → 65\nGovernor / Dean Brewer: 146 → 130\nGovernor / Ray Brown: 73 → 65\nGovernor / David Hatley: 146 → 130\nGovernor / Wendell Jackson: 73 → 65\nGovernor / Charles Van Morgan: 146 → 130\nGovernor / Eddie Lee Murphy: 73 → 65\nGovernor / Lauren Pinkston: 146 → 130\nGovernor / Victor L. Scoggin: 73 → 65\nGovernor / Dave Seeman: 146 → 130\nGovernor / Karl Knox Smithson: 73 → 65\nGovernor / L. Webb Taylor: 146 → 130\nGovernor / Robert C. Vick: 73 → 65\nConstitutional Amendment #1 / Yes: 73 → 65\nConstitutional Amendment #1 / No: 146 → 130\nConstitutional Amendment #2 / Yes: 73 → 65\nConstitutional Amendment #2 / No: 146 → 130\nConstitutional Amendment #3 / Yes: 73 → 65\nConstitutional Amendment #3 / No: 146 → 130\nUnited States Senate / Bill Hagerty: 73 → 65\nUnited States Senate / Marquita Bradshaw: 146 → 130\nUnited States Senate / Tharon Chandler: 73 → 65\nUnited States Senate / Andrew Gerena: 146 → 130\nUnited States Senate / Jeremy Dean Hearn: 73 → 65\nUnited States Senate / Robert Jones: 146 → 130\nUnited States Senate / James William Macon III: 73 → 65\nUnited States Senate / Yoshi D. Matthews: 146 → 130\nUnited States Senate / David Sutman, Jr.: 73 → 65\nUnited States Senate / Catherine Barcel \"Barcy\" Whitson: 146 → 130\nUnited States House of Representatives, District 3 / Chuck Fleischmann: 73 → 65\nUnited States House of Representatives, District 3 / Anna Golladay: 146 → 130\nUnited States House of Representatives, District 3 / Dean Arnold: 73 → 65\nUnited States House of Representatives, District 3 / Jean Howard-Hill: 146 → 130\nUnited States House of Representatives, District 3 / Rodney Joe King: 73 → 65\nUnited States House of Representatives, District 3 / Donnie Lynn Ownby: 146 → 130\nUnited States House of Representatives, District 3 / Edward John Roland: 73 → 65\nTennessee Senate, District 11 / Bo Watson: 55 → 48\nTennessee Senate, District 11 / Tim Roberts: 110 → 96\nTennessee House of Representatives, District 26 / Greg Martin: 19 → 16\nTennessee House of Representatives, District 27 / Michele Reneau: 30 → 26\nTennessee House of Representatives, District 27 / Paige Quirin: 60 → 52\nTennessee House of Representatives, District 30 / Esther Helton Haynes: 8 → 7\nTennessee House of Representatives, District 30 / Art Rymer: 16 → 14\nRed Bank Commission Red Bank / Hollie Berry: 8 → 7\nRed Bank Commission Red Bank / Chad Bullard: 16 → 14\nRed Bank Commission Red Bank / Jamie Fairbanks-Harvey: 8 → 7\nRed Bank Commission Red Bank / David R. Smith: 16 → 14\nRed Bank Charter Referendum Red Bank / For the amendment: 8 → 7\nRed Bank Charter Referendum Red Bank / Against the amendment: 16 → 14\nSoddy Daisy Commissioner / Jay Branum: 13 → 11\nSoddy Daisy Commissioner / Marcus Keith: 26 → 22\nSoddy Daisy Commissioner / Mark Penney: 13 → 11\nWalden Alderman / Angela Cassidy: 8 → 7\nWalden Referendum / For: 8 → 7\nWalden Referendum / Against: 16 → 14",
   "refs": [
    {
     "contest": "Governor",
     "candidate": "Marsha Blackburn"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:3",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Jerri Green: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Jerri Green"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:4",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Misam Abidi: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Misam Abidi"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:5",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Dean Brewer: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Dean Brewer"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:6",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Ray Brown: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Ray Brown"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:7",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / David Hatley: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "David Hatley"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:8",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Wendell Jackson: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Wendell Jackson"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:9",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Charles Van Morgan: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Charles Van Morgan"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:10",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Eddie Lee Murphy: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Eddie Lee Murphy"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:11",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Lauren Pinkston: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Lauren Pinkston"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:12",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Victor L. Scoggin: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Victor L. Scoggin"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:13",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Dave Seeman: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Dave Seeman"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:14",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Karl Knox Smithson: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Karl Knox Smithson"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:15",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / L. Webb Taylor: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "L. Webb Taylor"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:16",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Governor / Robert C. Vick: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Governor",
     "candidate": "Robert C. Vick"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:2",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Constitutional Amendment #1: 10 → 5.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #1"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:17",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Constitutional Amendment #1: 219 → 195.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #1"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:18",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Constitutional Amendment #1 / Yes: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Constitutional Amendment #1",
     "candidate": "Yes"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:19",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Constitutional Amendment #1 / No: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Constitutional Amendment #1",
     "candidate": "No"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:3",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Constitutional Amendment #2: 10 → 5.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #2"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:20",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Constitutional Amendment #2: 219 → 195.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #2"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:21",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Constitutional Amendment #2 / Yes: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Constitutional Amendment #2",
     "candidate": "Yes"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:22",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Constitutional Amendment #2 / No: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Constitutional Amendment #2",
     "candidate": "No"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:4",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Constitutional Amendment #3: 10 → 5.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #3"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:23",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Constitutional Amendment #3: 219 → 195.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #3"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:24",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Constitutional Amendment #3 / Yes: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "Constitutional Amendment #3",
     "candidate": "Yes"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:25",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Constitutional Amendment #3 / No: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "Constitutional Amendment #3",
     "candidate": "No"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:5",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "United States Senate: 10 → 5.",
-  "refs": [
-   {
-    "contest": "United States Senate"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:26",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "United States Senate: 1,095 → 975.",
-  "refs": [
-   {
-    "contest": "United States Senate"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:27",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Bill Hagerty: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Bill Hagerty"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:28",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Marquita Bradshaw: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Marquita Bradshaw"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:29",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Tharon Chandler: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Tharon Chandler"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:30",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Andrew Gerena: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Andrew Gerena"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:31",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Jeremy Dean Hearn: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Jeremy Dean Hearn"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:32",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Robert Jones: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Robert Jones"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:33",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / James William Macon III: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "James William Macon III"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:34",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Yoshi D. Matthews: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Yoshi D. Matthews"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:35",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / David Sutman, Jr.: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "David Sutman, Jr."
-   }
-  ]
- },
- {
-  "key": "votes-decreased:36",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States Senate / Catherine Barcel \"Barcy\" Whitson: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States Senate",
     "candidate": "Catherine Barcel \"Barcy\" Whitson"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:6",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "United States House of Representatives, District 3: 10 → 5.",
-  "refs": [
-   {
-    "contest": "United States House of Representatives, District 3"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:37",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "United States House of Representatives, District 3: 730 → 650.",
-  "refs": [
-   {
-    "contest": "United States House of Representatives, District 3"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:38",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States House of Representatives, District 3 / Chuck Fleischmann: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States House of Representatives, District 3",
     "candidate": "Chuck Fleischmann"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:39",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States House of Representatives, District 3 / Anna Golladay: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States House of Representatives, District 3",
     "candidate": "Anna Golladay"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:40",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States House of Representatives, District 3 / Dean Arnold: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States House of Representatives, District 3",
     "candidate": "Dean Arnold"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:41",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States House of Representatives, District 3 / Jean Howard-Hill: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States House of Representatives, District 3",
     "candidate": "Jean Howard-Hill"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:42",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States House of Representatives, District 3 / Rodney Joe King: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States House of Representatives, District 3",
     "candidate": "Rodney Joe King"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:43",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States House of Representatives, District 3 / Donnie Lynn Ownby: 146 → 130.",
-  "refs": [
+   },
    {
     "contest": "United States House of Representatives, District 3",
     "candidate": "Donnie Lynn Ownby"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:44",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "United States House of Representatives, District 3 / Edward John Roland: 73 → 65.",
-  "refs": [
+   },
    {
     "contest": "United States House of Representatives, District 3",
     "candidate": "Edward John Roland"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:7",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee Senate, District 11: 7 → 3.",
-  "refs": [
-   {
-    "contest": "Tennessee Senate, District 11"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:45",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Tennessee Senate, District 11: 165 → 144.",
-  "refs": [
-   {
-    "contest": "Tennessee Senate, District 11"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:46",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Tennessee Senate, District 11 / Bo Watson: 55 → 48.",
-  "refs": [
+   },
    {
     "contest": "Tennessee Senate, District 11",
     "candidate": "Bo Watson"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:47",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Tennessee Senate, District 11 / Tim Roberts: 110 → 96.",
-  "refs": [
+   },
    {
     "contest": "Tennessee Senate, District 11",
     "candidate": "Tim Roberts"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:8",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee House of Representatives, District 26: 5 → 2.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 26"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:48",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Tennessee House of Representatives, District 26: 19 → 16.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 26"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:49",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Tennessee House of Representatives, District 26 / Greg Martin: 19 → 16.",
-  "refs": [
+   },
    {
     "contest": "Tennessee House of Representatives, District 26",
     "candidate": "Greg Martin"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:9",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee House of Representatives, District 27: 7 → 4.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 27"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:50",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Tennessee House of Representatives, District 27: 90 → 78.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 27"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:51",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Tennessee House of Representatives, District 27 / Michele Reneau: 30 → 26.",
-  "refs": [
+   },
    {
     "contest": "Tennessee House of Representatives, District 27",
     "candidate": "Michele Reneau"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:52",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Tennessee House of Representatives, District 27 / Paige Quirin: 60 → 52.",
-  "refs": [
+   },
    {
     "contest": "Tennessee House of Representatives, District 27",
     "candidate": "Paige Quirin"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:10",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee House of Representatives, District 30: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 30"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:53",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Tennessee House of Representatives, District 30: 24 → 21.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 30"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:54",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Tennessee House of Representatives, District 30 / Esther Helton Haynes: 8 → 7.",
-  "refs": [
+   },
    {
     "contest": "Tennessee House of Representatives, District 30",
     "candidate": "Esther Helton Haynes"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:55",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Tennessee House of Representatives, District 30 / Art Rymer: 16 → 14.",
-  "refs": [
+   },
    {
     "contest": "Tennessee House of Representatives, District 30",
     "candidate": "Art Rymer"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:11",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Red Bank Commission Red Bank: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Red Bank Commission Red Bank"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:56",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Red Bank Commission Red Bank: 48 → 42.",
-  "refs": [
-   {
-    "contest": "Red Bank Commission Red Bank"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:57",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Red Bank Commission Red Bank / Hollie Berry: 8 → 7.",
-  "refs": [
+   },
    {
     "contest": "Red Bank Commission Red Bank",
     "candidate": "Hollie Berry"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:58",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Red Bank Commission Red Bank / Chad Bullard: 16 → 14.",
-  "refs": [
+   },
    {
     "contest": "Red Bank Commission Red Bank",
     "candidate": "Chad Bullard"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:59",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Red Bank Commission Red Bank / Jamie Fairbanks-Harvey: 8 → 7.",
-  "refs": [
+   },
    {
     "contest": "Red Bank Commission Red Bank",
     "candidate": "Jamie Fairbanks-Harvey"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:60",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Red Bank Commission Red Bank / David R. Smith: 16 → 14.",
-  "refs": [
+   },
    {
     "contest": "Red Bank Commission Red Bank",
     "candidate": "David R. Smith"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:12",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Red Bank Charter Referendum Red Bank: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Red Bank Charter Referendum Red Bank"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:61",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Red Bank Charter Referendum Red Bank: 24 → 21.",
-  "refs": [
-   {
-    "contest": "Red Bank Charter Referendum Red Bank"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:62",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Red Bank Charter Referendum Red Bank / For the amendment: 8 → 7.",
-  "refs": [
+   },
    {
     "contest": "Red Bank Charter Referendum Red Bank",
     "candidate": "For the amendment"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:63",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Red Bank Charter Referendum Red Bank / Against the amendment: 16 → 14.",
-  "refs": [
+   },
    {
     "contest": "Red Bank Charter Referendum Red Bank",
     "candidate": "Against the amendment"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:13",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Soddy Daisy Commissioner: 3 → 2.",
-  "refs": [
-   {
-    "contest": "Soddy Daisy Commissioner"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:64",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Soddy Daisy Commissioner: 52 → 44.",
-  "refs": [
-   {
-    "contest": "Soddy Daisy Commissioner"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:65",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Soddy Daisy Commissioner / Jay Branum: 13 → 11.",
-  "refs": [
+   },
    {
     "contest": "Soddy Daisy Commissioner",
     "candidate": "Jay Branum"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:66",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Soddy Daisy Commissioner / Marcus Keith: 26 → 22.",
-  "refs": [
+   },
    {
     "contest": "Soddy Daisy Commissioner",
     "candidate": "Marcus Keith"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:67",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Soddy Daisy Commissioner / Mark Penney: 13 → 11.",
-  "refs": [
+   },
    {
     "contest": "Soddy Daisy Commissioner",
     "candidate": "Mark Penney"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:14",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Walden Alderman: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Walden Alderman"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:68",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Walden Alderman: 8 → 7.",
-  "refs": [
-   {
-    "contest": "Walden Alderman"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:69",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Walden Alderman / Angela Cassidy: 8 → 7.",
-  "refs": [
+   },
    {
     "contest": "Walden Alderman",
     "candidate": "Angela Cassidy"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:15",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Walden Referendum: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Walden Referendum"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:70",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Contest total went down",
-  "detail": "Walden Referendum: 24 → 21.",
-  "refs": [
-   {
-    "contest": "Walden Referendum"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:71",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Walden Referendum / For: 8 → 7.",
-  "refs": [
+   },
    {
     "contest": "Walden Referendum",
     "candidate": "For"
-   }
-  ]
- },
- {
-  "key": "votes-decreased:72",
-  "id": "votes-decreased",
-  "severity": "warn",
-  "title": "Candidate total went down",
-  "detail": "Walden Referendum / Against: 16 → 14.",
-  "refs": [
+   },
    {
     "contest": "Walden Referendum",
     "candidate": "Against"

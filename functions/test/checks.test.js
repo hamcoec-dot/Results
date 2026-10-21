@@ -206,11 +206,20 @@ test('duplicate-upload, older-export, no-change', () => {
 
 test('decreases against what is published', () => {
   const checks = check('ed', ED3, { current: currentOf('ed', ED4) });
-  fires(checks, 'reporting-decreased', 'warn');
+  // The county total and one grouped warning listing every contest that went down.
+  const fewer = fires(checks, 'reporting-decreased', 'warn');
+  assert.deepEqual(fewer.map((c) => c.title.replace(/\(\d+\)/, '(n)')), ['Precincts reporting went down', 'Contests (n) with fewer precincts reporting']);
+  const grouped = fewer[1];
+  assert.equal(grouped.refs.length, grouped.detail.split('\n').length);
+  assert.ok(grouped.refs.length > 1 && grouped.refs.every((r) => r.contest));
+  assert.match(grouped.detail, /^.+: \d+ → \d+$/m);
   const dec = fires(checks, 'votes-decreased', 'warn');
   assert.ok(dec.some((c) => c.title === 'Total ballots went down'));
-  assert.ok(dec.some((c) => c.title === 'Candidate total went down' && c.refs[0].candidate));
-  assert.ok(dec.some((c) => c.title === 'Contest total went down'));
+  // Ballots, then one grouped warning for contest totals and one for candidate totals.
+  assert.deepEqual(dec.map((c) => c.title.replace(/\(\d+\)/, '(n)')), ['Total ballots went down', 'Contest totals that went down (n)', 'Candidate totals that went down (n)']);
+  for (const g of dec.slice(1)) assert.equal(g.refs.length, g.detail.split('\n').length);
+  assert.ok(dec[2].refs.every((r) => r.contest && r.candidate));
+  assert.ok(dec[1].refs.every((r) => r.contest && !r.candidate));
 });
 
 test('contests and candidates added or removed; status label', () => {
