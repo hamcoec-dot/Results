@@ -271,6 +271,9 @@ test('auditLive: served bytes must equal the published version', async () => {
   assert.deepEqual((await env.svc.auditLive(ADMIN, { electionId: EID })).problems, ['manifest.json could not be fetched or is not JSON']);
   const audits = (await env.db.list('audit')).map((a) => a.data).filter((a) => a.action === 'auditLive');
   assert.deepEqual(audits.map((a) => a.ok), [true, true, false, false]);
+  const lastAudit = (await env.db.get(paths.election(EID))).lastAudit;
+  assert.equal(lastAudit.ok, false);
+  assert.deepEqual(lastAudit.problems, ['manifest.json could not be fetched or is not JSON']);
 });
 
 test('settings: validation with the fix in the message; one active election', async () => {

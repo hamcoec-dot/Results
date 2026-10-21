@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app http://127.0.0.1:* http://localhost:*; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="robots" content="noindex">
+  <title>Election Admin – Hamilton County Election Results</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin.css">
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-functions-compat.js"></script>
+  <script defer src="firebase-config.js"></script>
+  <script defer src="admin-common.js"></script>
+  <script defer src="admin.js"></script>
+</head>
+<body class="admin">
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+  <header class="navbar">
+    <a href="index.html" class="navbar-brand"><span class="navbar-title">Hamilton County Election Commission</span></a>
+    <nav class="navbar-controls" aria-label="Admin">
+      <a class="nav-btn" href="admin.html" aria-current="page">Election admin</a>
+      <a class="nav-btn" href="index.html" target="_blank" rel="noopener">Public results (opens in new tab)</a>
+    </nav>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <h1>Election admin</h1>
+    <p id="page-status" class="status-line" role="status" aria-live="polite"></p>
+    <div id="page-alert" class="alert" role="alert"></div>
+
+    <section id="signin" class="card" aria-labelledby="signin-h" hidden>
+      <h2 id="signin-h">Sign in</h2>
+      <form id="signin-form" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required aria-describedby="signin-error">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required aria-describedby="signin-error">
+        </div>
+        <p id="signin-error" class="field-error"></p>
+        <button class="btn btn-primary" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <section id="not-admin" class="card" aria-labelledby="not-admin-h" hidden>
+      <h2 id="not-admin-h">Not authorised</h2>
+      <p>This account is signed in but is not an election administrator. Ask an administrator to add it.</p>
+      <button class="btn sign-out" type="button">Sign out</button>
+    </section>
+
+    <div id="app" hidden>
+      <p class="row">Signed in as <strong class="who"></strong> <button class="btn sign-out" type="button">Sign out</button></p>
+      <div id="audit-alert" class="alert" role="alert"></div>
+
+      <section class="card" aria-labelledby="election-h">
+        <h2 id="election-h">Election</h2>
+        <div class="field">
+          <label for="election-select">Election</label>
+          <select id="election-select"></select>
+        </div>
+        <p id="published-now"></p>
+      </section>
+
+      <section class="card" aria-labelledby="settings-h">
+        <h2 id="settings-h">Election settings</h2>
+        <form id="settings-form" novalidate>
+          <div class="field">
+            <label for="s-id">Election id</label>
+            <span class="hint" id="s-id-hint">Lower-case letters, digits and dashes, e.g. 2026-11-03-general. Cannot be changed later.</span>
+            <input id="s-id" name="id" type="text" autocomplete="off" aria-describedby="s-id-hint s-id-error">
+            <p id="s-id-error" class="field-error"></p>
+          </div>
+          <div class="field">
+            <label for="s-name">Name</label>
+            <span class="hint" id="s-name-hint">As printed on the export's second row, e.g. 2026-11-03 General.</span>
+            <input id="s-name" name="name" type="text" autocomplete="off" aria-describedby="s-name-hint s-name-error">
+            <p id="s-name-error" class="field-error"></p>
+          </div>
+          <div class="field">
+            <label for="s-date">Election date</label>
+            <input id="s-date" name="date" type="date" aria-describedby="s-date-error">
+            <p id="s-date-error" class="field-error"></p>
+          </div>
+          <div class="field">
+            <label for="s-county">County</label>
+            <input id="s-county" name="county" type="text" autocomplete="off" aria-describedby="s-county-error">
+            <p id="s-county-error" class="field-error"></p>
+          </div>
+          <div class="field">
+            <label for="s-cap">Max precincts</label>
+            <span class="hint" id="s-cap-hint">Number of precincts in this election (1–999). Takes effect on the next draft.</span>
+            <input id="s-cap" name="precinctCap" type="number" min="1" max="999" step="1" inputmode="numeric" aria-describedby="s-cap-hint s-cap-error">
+            <p id="s-cap-error" class="field-error"></p>
+          </div>
+          <div class="field">
+            <label class="choice" for="s-precinct-page"><input id="s-precinct-page" name="enablePrecinctResults" type="checkbox"> Show the Precinct Results page</label>
+            <label class="choice" for="s-active"><input id="s-active" name="makeActive" type="checkbox"> This is the active election</label>
+          </div>
+          <button class="btn btn-primary" type="submit">Save settings</button>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="upload-h">
+        <h2 id="upload-h">Upload results</h2>
+        <form id="upload-form" novalidate>
+          <fieldset class="field" aria-describedby="kind-error">
+            <legend>What is this file?</legend>
+            <label class="choice" for="k-zero"><input id="k-zero" type="radio" name="kind" value="zero"> Zero report (before any votes)</label>
+            <label class="choice" for="k-early"><input id="k-early" type="radio" name="kind" value="early"> Early voting / Absentee</label>
+            <label class="choice" for="k-ed"><input id="k-ed" type="radio" name="kind" value="ed"> Election Day</label>
+            <p id="kind-error" class="field-error"></p>
+          </fieldset>
+          <div class="field">
+            <label for="u-file">CSV file (Custom Table Report)</label>
+            <input id="u-file" name="file" type="file" accept=".csv,text/csv" aria-describedby="file-error">
+            <p id="file-error" class="field-error"></p>
+          </div>
+          <button class="btn btn-primary" type="submit">Upload &amp; create draft</button>
+          <p class="hint">Nothing is published here. The draft opens on the Review screen.</p>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="drafts-h">
+        <h2 id="drafts-h">Open drafts</h2>
+        <div id="drafts"></div>
+      </section>
+
+      <section class="card" aria-labelledby="history-h">
+        <h2 id="history-h">Published versions</h2>
+        <div id="history"></div>
+      </section>
+
+      <section class="card" aria-labelledby="uploads-h">
+        <h2 id="uploads-h">Uploads</h2>
+        <div id="uploads"></div>
+      </section>
+    </div>
+
+    <dialog id="confirm-dialog" aria-labelledby="confirm-h">
+      <form method="dialog">
+        <h2 id="confirm-h"></h2>
+        <p id="confirm-text"></p>
+        <div class="row">
+          <button class="btn btn-primary" value="ok" type="submit" id="confirm-ok">Confirm</button>
+          <button class="btn" value="cancel" type="submit">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>

@@ -341,6 +341,8 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
       ? auditServed({ manifestText: manifest === null ? null : manifest.toString('utf8'), files, expectedVersion: election.currentVersion })
       : { ok: true, problems: [] };
     await audit(actor, 'auditLive', eid, result.ok ? 'ok' : result.problems.join('; '), { ok: result.ok });
+    // The admin page's red banner reads this one field instead of querying the audit log.
+    await db.update(paths.election(eid), { lastAudit: { ok: result.ok, at: iso(now()), problems: result.problems.slice(0, 20) } });
     return result;
   }
 
