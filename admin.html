@@ -107,7 +107,8 @@
 
       <section class="card" aria-labelledby="upload-h">
         <h2 id="upload-h">Upload results</h2>
-        <form id="upload-form" novalidate>
+        <!-- hidden until an election is selected (admin.js selectElection) -->
+        <form id="upload-form" novalidate hidden>
           <fieldset class="field" aria-describedby="kind-error">
             <legend>What is this file?</legend>
             <label class="choice" for="k-zero"><input id="k-zero" type="radio" name="kind" value="zero"> Zero report (before any votes)</label>

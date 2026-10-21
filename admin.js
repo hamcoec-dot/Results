@@ -134,6 +134,7 @@
     document.getElementById('file-error').textContent = file ? (/\.csv$/i.test(file.name) ? '' : 'Choose the .csv export (Custom Table Report).') : 'Choose the CSV file.';
     if (!kind) { f.querySelector('input[name=kind]').focus(); return; }
     if (!file || !/\.csv$/i.test(file.name)) { f.file.focus(); return; }
+    if (!current) { C.announce('Choose or save an election first.', { alert: true }); return; }
     var btn = f.querySelector('button[type=submit]');
     C.busy(btn, 'Processing file…', function () {
       return file.text().then(encode).then(function (payload) {
