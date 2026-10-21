@@ -344,6 +344,8 @@ window.ElectionApp = (function() {
       populateSlideJumpMenu();
       const menu = document.getElementById('slide-jump-menu');
       if (menu) menu.value = currentSlideIndex;
+      // A running slideshow shows the new data on its next slide; a paused one would stay stale.
+      if (isPaused) renderCurrentSlide();
     } else {
       renderDashboard();
       refreshOpenModal();
