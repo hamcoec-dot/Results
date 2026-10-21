@@ -66,7 +66,7 @@ Own JS (gzip, excluding the Firebase compat SDK from gstatic): 17.6 KB. All budg
 Most of the transfer is the Firebase SDK. The signed-in screens are not measured by Lighthouse; their
 accessibility is checked by `npm run a11y:admin`.
 
-## Not yet covered
+## Timing tests (run on request) and open items
 
 - Long tasks during a live refresh are measured by `a11y/refresh-longtasks.spec.js`. It is timing-dependent, so it
   runs only on request:
