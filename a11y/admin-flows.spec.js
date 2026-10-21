@@ -195,6 +195,37 @@ test.describe('admin flows (emulators)', () => {
     await expect(page.locator(`#drafts a[href*="${draftId}"]`)).toHaveCount(0, { timeout: 15000 });
     await expect.poll(async () => (await request.get(reviewUrl)).status(), { timeout: 15000 }).toBe(404);
   });
+
+  // Plan checklist: "toggle the precinct page off and check that precincts.html shows Currently
+  // Disabled". The setting reaches the public files through a settings draft (#4), reviewed and
+  // published like any other; this runs once that button exists.
+  test('precinct page off and back on, through a settings draft: precincts.html follows', async ({ page, browser }) => {
+    await signIn(page);
+    test.skip(await page.locator('#settings-draft-btn').count() === 0, 'needs "Create draft with these settings" (#4)');
+    const viewer = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
+    for (const on of [false, true]) {
+      await signIn(page);
+      await page.locator('#s-precinct-page').setChecked(on);
+      await page.click('#settings-form button[type="submit"]');
+      await expect(page.locator('#page-status')).toContainText('Settings saved', { timeout: 15000 });
+      await expect(page.locator('#settings-draft-btn')).toBeVisible();
+      await page.click('#settings-draft-btn');
+      await page.waitForURL(/review\.html\?/, { timeout: 120000 });
+      await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+      await publishFromReview(page);
+      await viewer.goto('precincts.html?emulator');
+      if (on) {
+        await expect(viewer.locator('#precinct-select option').nth(1)).toBeAttached({ timeout: 15000 });
+        await expect(viewer.locator('body')).not.toContainText('Currently Disabled');
+      } else {
+        await expect(viewer.locator('body')).toContainText('Precinct Results Currently Disabled', { timeout: 15000 });
+        await viewer.goto('index.html?emulator');
+        await expect(viewer.locator('#contests-container .reporting-btn').first()).toBeVisible({ timeout: 15000 });
+        for (const link of await viewer.locator('a[href^="precincts.html"]').all()) await expect(link).toBeHidden(); // nav links to it are hidden
+      }
+    }
+    await viewer.context().close();
+  });
 });
 
 test.describe('publish guard rails (emulators)', () => {
