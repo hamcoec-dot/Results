@@ -1223,10 +1223,15 @@ window.ElectionApp = (function() {
       .replace(/'/g, '&#039;');
   }
 
+  /**
+   * One quoted CSV cell. Text that starts with = + - @ or a tab/CR would run as a formula when the
+   * file is opened in a spreadsheet (CSV injection), so it gets a leading apostrophe.
+   */
   function formatCsvCell(val) {
     if (val === null || val === undefined) return '""';
-    const str = String(val).replace(/"/g, '""');
-    return `"${str}"`;
+    let str = String(val);
+    if (typeof val === 'string' && /^[=+\-@\t\r]/.test(str)) str = `'${str}`;
+    return `"${str.replace(/"/g, '""')}"`;
   }
 
   // Slideshow Presentation Engine State
