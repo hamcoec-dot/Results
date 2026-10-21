@@ -187,8 +187,9 @@ test.describe('publish guard rails (emulators)', () => {
   test('going backwards (an older ED file) is a warning that must be ticked', async ({ page }) => {
     await signIn(page);
     await upload(page, 'ed', SAMPLE('03-After 5 Reporting'));
-    // One warning for the county total and one per contest that went down (not grouped).
-    const warnings = page.locator('#checks .check', { hasText: 'Precincts reporting went down' });
+    // The county total, plus the contests that went down: one warning each, or one grouped warning
+    // ("Contests (n) with fewer precincts reporting") once #8 is merged.
+    const warnings = page.locator('#checks .check', { hasText: /Precincts reporting went down|with fewer precincts reporting/ });
     expect(await warnings.count()).toBeGreaterThan(1);
     const warning = warnings.first();
     await expect(warning).toBeVisible();
