@@ -76,18 +76,6 @@
   "refs": []
  },
  {
-  "key": "reporting-decreased:1",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Governor: 10 → 5.",
-  "refs": [
-   {
-    "contest": "Governor"
-   }
-  ]
- },
- {
   "key": "votes-decreased:1",
   "id": "votes-decreased",
   "severity": "warn",
@@ -295,18 +283,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:2",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Constitutional Amendment #1: 10 → 5.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #1"
-   }
-  ]
- },
- {
   "key": "votes-decreased:17",
   "id": "votes-decreased",
   "severity": "warn",
@@ -341,18 +317,6 @@
    {
     "contest": "Constitutional Amendment #1",
     "candidate": "No"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:3",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Constitutional Amendment #2: 10 → 5.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #2"
    }
   ]
  },
@@ -395,18 +359,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:4",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Constitutional Amendment #3: 10 → 5.",
-  "refs": [
-   {
-    "contest": "Constitutional Amendment #3"
-   }
-  ]
- },
- {
   "key": "votes-decreased:23",
   "id": "votes-decreased",
   "severity": "warn",
@@ -441,18 +393,6 @@
    {
     "contest": "Constitutional Amendment #3",
     "candidate": "No"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:5",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "United States Senate: 10 → 5.",
-  "refs": [
-   {
-    "contest": "United States Senate"
    }
   ]
  },
@@ -599,18 +539,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:6",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "United States House of Representatives, District 3: 10 → 5.",
-  "refs": [
-   {
-    "contest": "United States House of Representatives, District 3"
-   }
-  ]
- },
- {
   "key": "votes-decreased:37",
   "id": "votes-decreased",
   "severity": "warn",
@@ -714,18 +642,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:7",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee Senate, District 11: 7 → 3.",
-  "refs": [
-   {
-    "contest": "Tennessee Senate, District 11"
-   }
-  ]
- },
- {
   "key": "votes-decreased:45",
   "id": "votes-decreased",
   "severity": "warn",
@@ -764,18 +680,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:8",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee House of Representatives, District 26: 5 → 2.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 26"
-   }
-  ]
- },
- {
   "key": "votes-decreased:48",
   "id": "votes-decreased",
   "severity": "warn",
@@ -797,18 +701,6 @@
    {
     "contest": "Tennessee House of Representatives, District 26",
     "candidate": "Greg Martin"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:9",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee House of Representatives, District 27: 7 → 4.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 27"
    }
   ]
  },
@@ -851,18 +743,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:10",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Tennessee House of Representatives, District 30: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Tennessee House of Representatives, District 30"
-   }
-  ]
- },
- {
   "key": "votes-decreased:53",
   "id": "votes-decreased",
   "severity": "warn",
@@ -897,18 +777,6 @@
    {
     "contest": "Tennessee House of Representatives, District 30",
     "candidate": "Art Rymer"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:11",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Red Bank Commission Red Bank: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Red Bank Commission Red Bank"
    }
   ]
  },
@@ -977,18 +845,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:12",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Red Bank Charter Referendum Red Bank: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Red Bank Charter Referendum Red Bank"
-   }
-  ]
- },
- {
   "key": "votes-decreased:61",
   "id": "votes-decreased",
   "severity": "warn",
@@ -1023,18 +879,6 @@
    {
     "contest": "Red Bank Charter Referendum Red Bank",
     "candidate": "Against the amendment"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:13",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Soddy Daisy Commissioner: 3 → 2.",
-  "refs": [
-   {
-    "contest": "Soddy Daisy Commissioner"
    }
   ]
  },
@@ -1090,18 +934,6 @@
   ]
  },
  {
-  "key": "reporting-decreased:14",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Walden Alderman: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Walden Alderman"
-   }
-  ]
- },
- {
   "key": "votes-decreased:68",
   "id": "votes-decreased",
   "severity": "warn",
@@ -1123,18 +955,6 @@
    {
     "contest": "Walden Alderman",
     "candidate": "Angela Cassidy"
-   }
-  ]
- },
- {
-  "key": "reporting-decreased:15",
-  "id": "reporting-decreased",
-  "severity": "warn",
-  "title": "Precincts reporting went down",
-  "detail": "Walden Referendum: 1 → 0.",
-  "refs": [
-   {
-    "contest": "Walden Referendum"
    }
   ]
  },
@@ -1173,6 +993,60 @@
    {
     "contest": "Walden Referendum",
     "candidate": "Against"
+   }
+  ]
+ },
+ {
+  "key": "reporting-decreased:1",
+  "id": "reporting-decreased",
+  "severity": "warn",
+  "title": "Contests (15) with fewer precincts reporting",
+  "detail": "Governor: 10 → 5\nConstitutional Amendment #1: 10 → 5\nConstitutional Amendment #2: 10 → 5\nConstitutional Amendment #3: 10 → 5\nUnited States Senate: 10 → 5\nUnited States House of Representatives, District 3: 10 → 5\nTennessee Senate, District 11: 7 → 3\nTennessee House of Representatives, District 26: 5 → 2\nTennessee House of Representatives, District 27: 7 → 4\nTennessee House of Representatives, District 30: 1 → 0\nRed Bank Commission Red Bank: 1 → 0\nRed Bank Charter Referendum Red Bank: 1 → 0\nSoddy Daisy Commissioner: 3 → 2\nWalden Alderman: 1 → 0\nWalden Referendum: 1 → 0",
+  "refs": [
+   {
+    "contest": "Governor"
+   },
+   {
+    "contest": "Constitutional Amendment #1"
+   },
+   {
+    "contest": "Constitutional Amendment #2"
+   },
+   {
+    "contest": "Constitutional Amendment #3"
+   },
+   {
+    "contest": "United States Senate"
+   },
+   {
+    "contest": "United States House of Representatives, District 3"
+   },
+   {
+    "contest": "Tennessee Senate, District 11"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 26"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 27"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner"
+   },
+   {
+    "contest": "Walden Alderman"
+   },
+   {
+    "contest": "Walden Referendum"
    }
   ]
  },
