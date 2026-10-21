@@ -46,10 +46,13 @@ test('summary page by keyboard: party filter, search, precinct dialog in and out
 
   await tabTo(page, '#contest-search');
   await page.keyboard.type('governor');
-  await expect.poll(() => cards.count()).toBeLessThan(all);
+  // The search is debounced (150 ms); Firefox on CI runners fires that timer seconds late.
+  expect(await page.inputValue('#contest-search')).toBe('governor');
+  await expect.poll(() => cards.count(), { timeout: 20000 }).toBeLessThan(all);
   await page.keyboard.press('Control+A');
   await page.keyboard.press('Backspace');
-  await expect.poll(() => cards.count()).toBe(all);
+  expect(await page.inputValue('#contest-search')).toBe('');
+  await expect.poll(() => cards.count(), { timeout: 20000 }).toBe(all);
 
   await tabTo(page, '#contests-container .reporting-btn');
   await page.keyboard.press('Enter');
