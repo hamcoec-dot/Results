@@ -90,5 +90,42 @@ test.describe('signed in (emulators)', () => {
     }
     await page.setViewportSize({ width: 375, height: 800 });
     await noHorizontalScroll(page);
+
+    // Ready to publish: every warning ticked, every draft page opened (each opens in a new tab).
+    for (const box of await page.locator('#checks input[type="checkbox"]').all()) await box.check();
+    for (const link of await page.locator('#previews a').all()) {
+      const [tab] = await Promise.all([page.context().waitForEvent('page'), link.click()]);
+      await tab.close();
+    }
+    await expect(page.locator('#publish-btn')).toBeEnabled();
+    await audit(page);
+
+    // The publish dialog, open: native <dialog>, focus inside, typed count required.
+    await page.click('#publish-btn');
+    await expect(page.locator('#publish-dialog')).toBeVisible();
+    await audit(page);
+    // "… first publish, 0 of 92 precincts reporting …" or "… 5 → 10 of 92 …": type the draft's count.
+    const summary = await page.locator('#publish-summary').textContent();
+    const count = /(?:→|first publish,) (\d+) of \d+ precincts/.exec(summary);
+    expect(count, summary).not.toBeNull();
+    await page.fill('#confirm-count', count[1]);
+    await page.click('#publish-confirm');
+    await expect(page.locator('#publish-result')).toContainText('Published', { timeout: 60000 });
+    await audit(page);
+  });
+
+  test('review.html: a blocked draft (Election Day file uploaded as Zero)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page);
+    await page.check('#k-zero');
+    await page.setInputFiles('#u-file', path.join(__dirname, '..', 'Test_Files', 'Web Results Samples', '03-After 5 Reporting (92).csv'));
+    await page.click('#upload-form button[type="submit"]');
+    await page.waitForURL(/review\.html\?/, { timeout: 120000 });
+    await expect(page.locator('#checks')).toContainText('BLOCKED', { timeout: 30000 });
+    await expect(page.locator('#publish-btn')).toBeDisabled();
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: 800 });
+      await audit(page);
+    }
   });
 });
