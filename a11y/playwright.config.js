@@ -18,6 +18,8 @@ module.exports = defineConfig({
   testDir: __dirname,
   testMatch: '*.spec.js',
   fullyParallel: true,
+  // Screenshots are Chromium only, so their names carry the OS but not the project.
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{-platform}{ext}',
   reporter: process.env.CI ? 'github' : 'list',
   // Hamilton County's time zone and locale, so times like "Results updated 9:58 PM" read the same
   // on a UTC CI runner as on a county machine.

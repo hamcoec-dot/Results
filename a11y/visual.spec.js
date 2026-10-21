@@ -10,6 +10,8 @@ test.describe('visual regression', () => {
   test.skip(!process.env.VISUAL, 'screenshot comparison: run with VISUAL=1');
   test.use({ reducedMotion: 'reduce' });
 
+  // The plan's widths: 320 (smallest phone, reflow), 375 (phone), 768 (tablet), 1280 (desktop).
+  const SIZES = [[320, 640], [375, 812], [768, 1024], [1280, 800]];
   const shots = [
     ['index', 'index.html', '#contests-container article'],
     ['reporting', 'reporting.html', '#reporting-table-body tr'],
@@ -17,7 +19,7 @@ test.describe('visual regression', () => {
     ['scrolling', 'scrolling.html', '#slide-viewport .slide-card'],
   ];
   for (const [name, file, ready] of shots) {
-    for (const [w, h] of [[375, 812], [1280, 800]]) {
+    for (const [w, h] of SIZES) {
       test(`${name} @ ${w}px`, async ({ page }) => {
         await page.setViewportSize({ width: w, height: h });
         await page.goto(file);
@@ -27,6 +29,17 @@ test.describe('visual regression', () => {
         await expect(page).toHaveScreenshot(`${name}-${w}.png`, { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.002 });
       });
     }
+  }
+
+  // admin.html before sign-in (the signed-in screens hold live times and ids; a11y:admin audits them).
+  for (const [w, h] of SIZES) {
+    test(`admin signed out @ ${w}px`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: h });
+      await page.goto('admin.html?emulator');
+      await page.locator('#signin').waitFor();
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page).toHaveScreenshot(`admin-signin-${w}.png`, { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.002 });
+    });
   }
 
   test('index dark mode @ 375px', async ({ page }) => {
