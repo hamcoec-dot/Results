@@ -211,6 +211,40 @@ function generateElection(options = {}) {
   };
 }
 
+/**
+ * The Early/ABS file that preceded an ED election: the same precincts and contests, where every
+ * precinct that has not reported shows exactly its ED votes and every reported precinct shows
+ * fewer votes (the ED file is cumulative). A reported precinct whose ED votes in a contest are all
+ * zero cannot differ, which is the one case the reported-precinct inference cannot see.
+ */
+function deriveEarly(ed, seed = ed.seed + 1) {
+  const r = rng(seed);
+  const reported = new Set(ed.reported);
+  const contests = ed.contests.map((c) => {
+    const candidates = c.candidates.map((cand) => ({ ...cand, precinctVotes: { ...cand.precinctVotes } }));
+    for (const p of c.precincts) {
+      if (!reported.has(p)) continue;
+      const withVotes = candidates.filter((x) => x.precinctVotes[p] > 0);
+      if (!withVotes.length) continue;
+      const must = r.pick(withVotes);
+      for (const x of withVotes) {
+        if (x === must || r.chance(0.5)) x.precinctVotes[p] -= r.int(1, x.precinctVotes[p]);
+      }
+    }
+    for (const x of candidates) x.votes = Object.values(x.precinctVotes).reduce((a, b) => a + b, 0);
+    return { ...c, candidates, precinctsReporting: 0 };
+  });
+  return { ...ed, kind: 'early', reported: [], contests };
+}
+
+/** Per contest of an ED model: the reported precincts an export actually reveals (see deriveEarly). */
+function visibleReported(ed) {
+  const reported = new Set(ed.reported);
+  return new Map(ed.contests.map((c) => [c.title, c.precinctsReporting === c.precinctsTotal
+    ? c.precincts.slice()
+    : c.precincts.filter((p) => reported.has(p) && c.candidates.some((x) => x.precinctVotes[p] > 0))]));
+}
+
 // ---------- CSV ----------
 const fmt = (n) => n.toLocaleString('en-US');
 
@@ -308,7 +342,7 @@ function toCsv(model, csvOpts = {}) {
   return bom ? '﻿' + text : text;
 }
 
-module.exports = { generateElection, toCsv, rng, titleIsStable, DEFAULTS };
+module.exports = { generateElection, deriveEarly, visibleReported, toCsv, rng, titleIsStable, DEFAULTS };
 
 if (require.main === module) {
   const args = process.argv.slice(2);

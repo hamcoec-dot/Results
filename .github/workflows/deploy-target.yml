@@ -1,0 +1,88 @@
+name: deploy-target
+
+# One deploy target (called by deploy.yml): staging or production. The job runs in the named GitHub
+# environment, so production waits for its required reviewers before any step runs.
+on:
+  workflow_call:
+    inputs:
+      environment: { type: string, required: true }
+      project: { type: string, required: true }
+      bucket: { type: string, required: true }
+      service_account_var: { type: string, required: true }
+      smoke: { type: boolean, default: true }
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install function dependencies
+        working-directory: functions
+        run: npm ci --omit=dev
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars[inputs.service_account_var] }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Public bucket settings (CORS, drafts lifecycle)
+        run: |
+          gcloud storage buckets update "gs://${{ inputs.bucket }}" --cors-file=cors.json --project="${{ inputs.project }}"
+          gcloud storage buckets update "gs://${{ inputs.bucket }}" --lifecycle-file=lifecycle.json --project="${{ inputs.project }}"
+
+      - name: Deploy functions and rules
+        run: npx --yes firebase-tools@13.35.1 deploy --only functions,firestore:rules,storage --project "${{ inputs.project }}" --non-interactive --force
+
+      - name: Public invoker on the callables (the org policy blocks it by default)
+        # Callables check sign-in and admins/{uid} themselves; the scheduled auditLive is never made public.
+        run: |
+          for fn in $(grep -oP '^exports\.\K\w+(?= = (adminCall|onCall)\()' functions/src/index.js); do
+            service=$(echo "$fn" | tr '[:upper:]' '[:lower:]')
+            gcloud run services add-iam-policy-binding "$service" --region=us-east1 \
+              --member=allUsers --role=roles/run.invoker --project="${{ inputs.project }}" --quiet >/dev/null
+            echo "invoker: $service"
+          done
+
+      - name: Smoke test of what the public is served
+        if: ${{ inputs.smoke }}
+        run: node tools/smoke-public.js "${{ inputs.bucket }}" --origin https://govotehamiltontn.gov
+
+      # Layers 13-14 on staging only (plan: Environments and CI). Both need something published, like the smoke test.
+      - name: Load test of the manifest poll (p95 under 300 ms, no errors)
+        if: ${{ inputs.smoke && inputs.environment == 'staging' }}
+        run: node tools/load-manifest.js "https://storage.googleapis.com/${{ inputs.bucket }}/current/manifest.json" --requests 2000 --concurrency 200 --max-p95 300
+
+      # Passive scans only (spider + passive rules, no attacks). Warnings are reported, not failed: GitHub
+      # Pages' headers can't be changed. Rules marked FAIL in .zap/rules.tsv fail the run.
+      - name: ZAP baseline of the public pages
+        if: ${{ inputs.environment == 'staging' }}
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://govotehamiltontn.gov/Results/
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-I'
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-pages
+      - name: ZAP baseline of the staging bucket
+        if: ${{ inputs.smoke && inputs.environment == 'staging' }}
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://storage.googleapis.com/${{ inputs.bucket }}/current/manifest.json
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-I'
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-bucket

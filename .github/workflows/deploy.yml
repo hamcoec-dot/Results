@@ -1,0 +1,66 @@
+name: deploy
+
+# Phase 5 (plan: Environments and CI): deploy the functions, the Firestore/Storage rules and the public
+# bucket's CORS and lifecycle settings, to staging first and then, after a manual approval, to prod.
+# Run by hand from the Actions tab. Inert until the one-time setup in docs/DEPLOY.md is done:
+#   - GitHub environments "staging" and "production" (production with required reviewers = the approval);
+#   - repository variables GCP_WIF_PROVIDER, GCP_DEPLOY_SA_STAGING and GCP_DEPLOY_SA_PROD (Workload Identity
+#     Federation: no service-account keys are stored in GitHub).
+on:
+  workflow_dispatch:
+    inputs:
+      smoke:
+        description: 'Smoke-test the public bucket after each deploy (needs something published there)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Tests with coverage gates
+        run: npm run test:pr
+        env:
+          PYTHON: python
+
+  staging:
+    needs: test
+    uses: ./.github/workflows/deploy-target.yml
+    with:
+      environment: staging
+      project: hcec-election-results-staging
+      bucket: hcec-election-results-staging-results
+      service_account_var: GCP_DEPLOY_SA_STAGING
+      smoke: ${{ inputs.smoke }}
+
+  production:
+    needs: staging
+    uses: ./.github/workflows/deploy-target.yml
+    with:
+      environment: production
+      project: hcec-election-results
+      bucket: hcec-election-results-results
+      service_account_var: GCP_DEPLOY_SA_PROD
+      smoke: ${{ inputs.smoke }}

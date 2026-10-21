@@ -1,0 +1,70 @@
+[
+ {
+  "key": "verify-failed:0",
+  "id": "verify-failed",
+  "severity": "block",
+  "title": "Independent verification failed (23)",
+  "detail": "f0\nf1\nf2\nf3\nf4\nf5\nf6\nf7\nf8\nf9\nf10\nf11\nf12\nf13\nf14\nf15\nf16\nf17\nf18\nf19\n… and 3 more",
+  "refs": []
+ },
+ {
+  "key": "close-race:0",
+  "id": "close-race",
+  "severity": "warn",
+  "title": "Close races (17)",
+  "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 8 vote(s)\nTennessee House of Representatives, District 29: margin 8 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+  "refs": [
+   {
+    "contest": "Governor"
+   },
+   {
+    "contest": "United States Senate"
+   },
+   {
+    "contest": "United States House of Representatives, District 3"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 28"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 29"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30"
+   },
+   {
+    "contest": "Collegedale Commissioner"
+   },
+   {
+    "contest": "East Ridge City Council East Ridge"
+   },
+   {
+    "contest": "East Ridge City Court Clerk East Ridge"
+   },
+   {
+    "contest": "East Ridge Charter Amendment 1 East Ridge"
+   },
+   {
+    "contest": "Lakesite Commission"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank"
+   },
+   {
+    "contest": "Ridgeside Commission"
+   },
+   {
+    "contest": "Signal Mountain Town Council"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner"
+   },
+   {
+    "contest": "Walden Referendum"
+   }
+  ]
+ }
+]

@@ -1,7 +1,7 @@
 'use strict';
 // fast-check arbitraries for synthetic elections (plan "Test strategy", layer 3).
 const { fc } = require('./fc-config');
-const { generateElection } = require('../../../tools/gen-fixture');
+const { generateElection } = require(require('./fixtures').GEN_FIXTURE);
 
 const electionOptsArb = fc.record({
   seed: fc.integer({ min: 0, max: 0x7fffffff }),

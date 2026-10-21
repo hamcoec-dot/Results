@@ -1,0 +1,379 @@
+[
+ {
+  "key": "rollback:0",
+  "id": "rollback",
+  "severity": "warn",
+  "title": "This is a rollback",
+  "detail": "Republishing version 73f8afb7b23c (first published Nov 3 9:10 PM). Every number below reverts to it.",
+  "refs": []
+ },
+ {
+  "key": "reporting-decreased:0",
+  "id": "reporting-decreased",
+  "severity": "warn",
+  "title": "Precincts reporting went down",
+  "detail": "10 → 5.",
+  "refs": []
+ },
+ {
+  "key": "votes-decreased:0",
+  "id": "votes-decreased",
+  "severity": "warn",
+  "title": "Total ballots went down",
+  "detail": "1,700 → 1,516.",
+  "refs": []
+ },
+ {
+  "key": "reporting-decreased:1",
+  "id": "reporting-decreased",
+  "severity": "warn",
+  "title": "Contests (15) with fewer precincts reporting",
+  "detail": "Governor: 10 → 5\nConstitutional Amendment #1: 10 → 5\nConstitutional Amendment #2: 10 → 5\nConstitutional Amendment #3: 10 → 5\nUnited States Senate: 10 → 5\nUnited States House of Representatives, District 3: 10 → 5\nTennessee Senate, District 11: 7 → 3\nTennessee House of Representatives, District 26: 5 → 2\nTennessee House of Representatives, District 27: 7 → 4\nTennessee House of Representatives, District 30: 1 → 0\nRed Bank Commission Red Bank: 1 → 0\nRed Bank Charter Referendum Red Bank: 1 → 0\nSoddy Daisy Commissioner: 3 → 2\nWalden Alderman: 1 → 0\nWalden Referendum: 1 → 0",
+  "refs": [
+   {
+    "contest": "Governor"
+   },
+   {
+    "contest": "Constitutional Amendment #1"
+   },
+   {
+    "contest": "Constitutional Amendment #2"
+   },
+   {
+    "contest": "Constitutional Amendment #3"
+   },
+   {
+    "contest": "United States Senate"
+   },
+   {
+    "contest": "United States House of Representatives, District 3"
+   },
+   {
+    "contest": "Tennessee Senate, District 11"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 26"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 27"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner"
+   },
+   {
+    "contest": "Walden Alderman"
+   },
+   {
+    "contest": "Walden Referendum"
+   }
+  ]
+ },
+ {
+  "key": "votes-decreased:1",
+  "id": "votes-decreased",
+  "severity": "warn",
+  "title": "Contest totals that went down (15)",
+  "detail": "Governor: 1,606 → 1,430\nConstitutional Amendment #1: 219 → 195\nConstitutional Amendment #2: 219 → 195\nConstitutional Amendment #3: 219 → 195\nUnited States Senate: 1,095 → 975\nUnited States House of Representatives, District 3: 730 → 650\nTennessee Senate, District 11: 165 → 144\nTennessee House of Representatives, District 26: 19 → 16\nTennessee House of Representatives, District 27: 90 → 78\nTennessee House of Representatives, District 30: 24 → 21\nRed Bank Commission Red Bank: 48 → 42\nRed Bank Charter Referendum Red Bank: 24 → 21\nSoddy Daisy Commissioner: 52 → 44\nWalden Alderman: 8 → 7\nWalden Referendum: 24 → 21",
+  "refs": [
+   {
+    "contest": "Governor"
+   },
+   {
+    "contest": "Constitutional Amendment #1"
+   },
+   {
+    "contest": "Constitutional Amendment #2"
+   },
+   {
+    "contest": "Constitutional Amendment #3"
+   },
+   {
+    "contest": "United States Senate"
+   },
+   {
+    "contest": "United States House of Representatives, District 3"
+   },
+   {
+    "contest": "Tennessee Senate, District 11"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 26"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 27"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner"
+   },
+   {
+    "contest": "Walden Alderman"
+   },
+   {
+    "contest": "Walden Referendum"
+   }
+  ]
+ },
+ {
+  "key": "votes-decreased:2",
+  "id": "votes-decreased",
+  "severity": "warn",
+  "title": "Candidate totals that went down (57)",
+  "detail": "Governor / Marsha Blackburn: 73 → 65\nGovernor / Jerri Green: 146 → 130\nGovernor / Misam Abidi: 73 → 65\nGovernor / Dean Brewer: 146 → 130\nGovernor / Ray Brown: 73 → 65\nGovernor / David Hatley: 146 → 130\nGovernor / Wendell Jackson: 73 → 65\nGovernor / Charles Van Morgan: 146 → 130\nGovernor / Eddie Lee Murphy: 73 → 65\nGovernor / Lauren Pinkston: 146 → 130\nGovernor / Victor L. Scoggin: 73 → 65\nGovernor / Dave Seeman: 146 → 130\nGovernor / Karl Knox Smithson: 73 → 65\nGovernor / L. Webb Taylor: 146 → 130\nGovernor / Robert C. Vick: 73 → 65\nConstitutional Amendment #1 / Yes: 73 → 65\nConstitutional Amendment #1 / No: 146 → 130\nConstitutional Amendment #2 / Yes: 73 → 65\nConstitutional Amendment #2 / No: 146 → 130\nConstitutional Amendment #3 / Yes: 73 → 65\nConstitutional Amendment #3 / No: 146 → 130\nUnited States Senate / Bill Hagerty: 73 → 65\nUnited States Senate / Marquita Bradshaw: 146 → 130\nUnited States Senate / Tharon Chandler: 73 → 65\nUnited States Senate / Andrew Gerena: 146 → 130\nUnited States Senate / Jeremy Dean Hearn: 73 → 65\nUnited States Senate / Robert Jones: 146 → 130\nUnited States Senate / James William Macon III: 73 → 65\nUnited States Senate / Yoshi D. Matthews: 146 → 130\nUnited States Senate / David Sutman, Jr.: 73 → 65\nUnited States Senate / Catherine Barcel \"Barcy\" Whitson: 146 → 130\nUnited States House of Representatives, District 3 / Chuck Fleischmann: 73 → 65\nUnited States House of Representatives, District 3 / Anna Golladay: 146 → 130\nUnited States House of Representatives, District 3 / Dean Arnold: 73 → 65\nUnited States House of Representatives, District 3 / Jean Howard-Hill: 146 → 130\nUnited States House of Representatives, District 3 / Rodney Joe King: 73 → 65\nUnited States House of Representatives, District 3 / Donnie Lynn Ownby: 146 → 130\nUnited States House of Representatives, District 3 / Edward John Roland: 73 → 65\nTennessee Senate, District 11 / Bo Watson: 55 → 48\nTennessee Senate, District 11 / Tim Roberts: 110 → 96\nTennessee House of Representatives, District 26 / Greg Martin: 19 → 16\nTennessee House of Representatives, District 27 / Michele Reneau: 30 → 26\nTennessee House of Representatives, District 27 / Paige Quirin: 60 → 52\nTennessee House of Representatives, District 30 / Esther Helton Haynes: 8 → 7\nTennessee House of Representatives, District 30 / Art Rymer: 16 → 14\nRed Bank Commission Red Bank / Hollie Berry: 8 → 7\nRed Bank Commission Red Bank / Chad Bullard: 16 → 14\nRed Bank Commission Red Bank / Jamie Fairbanks-Harvey: 8 → 7\nRed Bank Commission Red Bank / David R. Smith: 16 → 14\nRed Bank Charter Referendum Red Bank / For the amendment: 8 → 7\nRed Bank Charter Referendum Red Bank / Against the amendment: 16 → 14\nSoddy Daisy Commissioner / Jay Branum: 13 → 11\nSoddy Daisy Commissioner / Marcus Keith: 26 → 22\nSoddy Daisy Commissioner / Mark Penney: 13 → 11\nWalden Alderman / Angela Cassidy: 8 → 7\nWalden Referendum / For: 8 → 7\nWalden Referendum / Against: 16 → 14",
+  "refs": [
+   {
+    "contest": "Governor",
+    "candidate": "Marsha Blackburn"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Jerri Green"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Misam Abidi"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Dean Brewer"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Ray Brown"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "David Hatley"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Wendell Jackson"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Charles Van Morgan"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Eddie Lee Murphy"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Lauren Pinkston"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Victor L. Scoggin"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Dave Seeman"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Karl Knox Smithson"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "L. Webb Taylor"
+   },
+   {
+    "contest": "Governor",
+    "candidate": "Robert C. Vick"
+   },
+   {
+    "contest": "Constitutional Amendment #1",
+    "candidate": "Yes"
+   },
+   {
+    "contest": "Constitutional Amendment #1",
+    "candidate": "No"
+   },
+   {
+    "contest": "Constitutional Amendment #2",
+    "candidate": "Yes"
+   },
+   {
+    "contest": "Constitutional Amendment #2",
+    "candidate": "No"
+   },
+   {
+    "contest": "Constitutional Amendment #3",
+    "candidate": "Yes"
+   },
+   {
+    "contest": "Constitutional Amendment #3",
+    "candidate": "No"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Bill Hagerty"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Marquita Bradshaw"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Tharon Chandler"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Andrew Gerena"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Jeremy Dean Hearn"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Robert Jones"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "James William Macon III"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Yoshi D. Matthews"
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "David Sutman, Jr."
+   },
+   {
+    "contest": "United States Senate",
+    "candidate": "Catherine Barcel \"Barcy\" Whitson"
+   },
+   {
+    "contest": "United States House of Representatives, District 3",
+    "candidate": "Chuck Fleischmann"
+   },
+   {
+    "contest": "United States House of Representatives, District 3",
+    "candidate": "Anna Golladay"
+   },
+   {
+    "contest": "United States House of Representatives, District 3",
+    "candidate": "Dean Arnold"
+   },
+   {
+    "contest": "United States House of Representatives, District 3",
+    "candidate": "Jean Howard-Hill"
+   },
+   {
+    "contest": "United States House of Representatives, District 3",
+    "candidate": "Rodney Joe King"
+   },
+   {
+    "contest": "United States House of Representatives, District 3",
+    "candidate": "Donnie Lynn Ownby"
+   },
+   {
+    "contest": "United States House of Representatives, District 3",
+    "candidate": "Edward John Roland"
+   },
+   {
+    "contest": "Tennessee Senate, District 11",
+    "candidate": "Bo Watson"
+   },
+   {
+    "contest": "Tennessee Senate, District 11",
+    "candidate": "Tim Roberts"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 26",
+    "candidate": "Greg Martin"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 27",
+    "candidate": "Michele Reneau"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 27",
+    "candidate": "Paige Quirin"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30",
+    "candidate": "Esther Helton Haynes"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30",
+    "candidate": "Art Rymer"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank",
+    "candidate": "Hollie Berry"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank",
+    "candidate": "Chad Bullard"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank",
+    "candidate": "Jamie Fairbanks-Harvey"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank",
+    "candidate": "David R. Smith"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank",
+    "candidate": "For the amendment"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank",
+    "candidate": "Against the amendment"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner",
+    "candidate": "Jay Branum"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner",
+    "candidate": "Marcus Keith"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner",
+    "candidate": "Mark Penney"
+   },
+   {
+    "contest": "Walden Alderman",
+    "candidate": "Angela Cassidy"
+   },
+   {
+    "contest": "Walden Referendum",
+    "candidate": "For"
+   },
+   {
+    "contest": "Walden Referendum",
+    "candidate": "Against"
+   }
+  ]
+ },
+ {
+  "key": "summary:0",
+  "id": "summary",
+  "severity": "info",
+  "title": "Size of this update",
+  "detail": "15 of 25 contests changed; precincts reporting 10 → 5 of 92; ballots 1,700 → 1,516.",
+  "refs": []
+ }
+]

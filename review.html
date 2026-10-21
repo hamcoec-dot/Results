@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app http://127.0.0.1:* http://localhost:*; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="robots" content="noindex">
+  <title>Review draft – Election Admin</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin.css">
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-functions-compat.js"></script>
+  <script defer src="firebase-config.js"></script>
+  <script defer src="admin-common.js"></script>
+  <script defer src="review.js"></script>
+</head>
+<body class="admin">
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+  <header class="navbar">
+    <a href="index.html" class="navbar-brand"><span class="navbar-title">Hamilton County Election Commission</span></a>
+    <nav class="navbar-controls" aria-label="Admin">
+      <a class="nav-btn" id="back-admin" href="admin.html">Election admin</a>
+      <a class="nav-btn" href="#" aria-current="page">Review draft</a>
+    </nav>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <h1>Review draft</h1>
+    <p id="page-status" class="status-line" role="status" aria-live="polite"></p>
+    <div id="page-alert" class="alert" role="alert"></div>
+
+    <section id="signin" class="card" aria-labelledby="signin-h" hidden>
+      <h2 id="signin-h">Sign in</h2>
+      <form id="signin-form" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required aria-describedby="signin-error">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required aria-describedby="signin-error">
+        </div>
+        <p id="signin-error" class="field-error"></p>
+        <button class="btn btn-primary" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <section id="not-admin" class="card" aria-labelledby="not-admin-h" hidden>
+      <h2 id="not-admin-h">Not authorised</h2>
+      <p>This account is signed in but is not an election administrator.</p>
+      <button class="btn sign-out" type="button">Sign out</button>
+    </section>
+
+    <div id="app" hidden>
+      <div id="status-bar" class="status-bar" role="group" aria-label="Draft status"></div>
+      <p id="expiry-note" class="status-line" role="status" aria-live="polite"></p>
+
+      <section class="card" aria-labelledby="checks-h">
+        <h2 id="checks-h">Checks</h2>
+        <div id="checks"></div>
+      </section>
+
+      <section class="card" aria-labelledby="headline-h">
+        <h2 id="headline-h">Headline: published → draft → change</h2>
+        <dl id="headline" class="headline"></dl>
+      </section>
+
+      <section class="card" aria-labelledby="file-h">
+        <h2 id="file-h">File</h2>
+        <div id="file-identity"></div>
+      </section>
+
+      <section class="card" aria-labelledby="preview-h">
+        <h2 id="preview-h">Look at the pages the public will see</h2>
+        <p>Open each page. Publish stays off until every page has been opened. Each shows a red DRAFT banner.</p>
+        <ul id="previews" class="preview-list"></ul>
+        <details>
+          <summary>Compare the summary page side by side: draft and live</summary>
+          <div class="compare" id="compare"></div>
+        </details>
+      </section>
+
+      <section class="card" aria-labelledby="contests-h">
+        <h2 id="contests-h">Every contest</h2>
+        <div class="filters">
+          <div class="field">
+            <label for="contest-search">Search contests and candidates</label>
+            <input id="contest-search" type="search" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="contest-filter">Show</label>
+            <select id="contest-filter">
+              <option value="changed">Changed contests</option>
+              <option value="leader">Leader changes</option>
+              <option value="down">Decreases</option>
+              <option value="close">Close races</option>
+              <option value="all">All contests</option>
+            </select>
+          </div>
+        </div>
+        <p id="contest-count" role="status" aria-live="polite"></p>
+        <div id="contests"></div>
+      </section>
+
+      <section class="card" aria-labelledby="precincts-h">
+        <h2 id="precincts-h">Precincts</h2>
+        <div id="precincts"></div>
+      </section>
+
+      <section class="card" aria-labelledby="publish-h">
+        <h2 id="publish-h">Publish</h2>
+        <ul id="publish-needs"></ul>
+        <div class="row">
+          <button id="publish-btn" class="btn btn-primary" type="button" aria-describedby="publish-needs">Publish…</button>
+          <button id="extend-btn" class="btn" type="button">Extend draft 2 hours</button>
+          <button id="discard-btn" class="btn btn-danger" type="button">Discard draft</button>
+        </div>
+        <div id="publish-result" tabindex="-1"></div>
+      </section>
+    </div>
+
+    <dialog id="publish-dialog" aria-labelledby="publish-dialog-h">
+      <form id="publish-form" method="dialog" novalidate>
+        <h2 id="publish-dialog-h">Publish this draft?</h2>
+        <p id="publish-summary"></p>
+        <div class="field">
+          <label for="confirm-count">Type the number of precincts reporting shown above</label>
+          <input id="confirm-count" type="text" inputmode="numeric" autocomplete="off" aria-describedby="confirm-error">
+          <p id="confirm-error" class="field-error"></p>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" id="publish-confirm" value="ok" type="submit">Publish now</button>
+          <button class="btn" value="cancel" type="submit" formnovalidate>Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="confirm-dialog" aria-labelledby="confirm-h">
+      <form method="dialog">
+        <h2 id="confirm-h"></h2>
+        <p id="confirm-text"></p>
+        <div class="row">
+          <button class="btn btn-primary" value="ok" type="submit" id="confirm-ok">Confirm</button>
+          <button class="btn" value="cancel" type="submit">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>

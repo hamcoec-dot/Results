@@ -10,9 +10,8 @@
     window.onerror = function(msg, src, line, col, err) {
       var d = document.createElement('div');
       d.style.cssText = 'background:#fef2f2; border:2px solid #dc2626; color:#991b1b; padding:20px; margin:20px; font-family:sans-serif; font-size:14px; border-radius:8px; z-index:9999; position:relative;';
-      d.innerHTML = '<h3>&#x26A0;&#xFE0F; JavaScript Runtime Error:</h3>' +
-                    '<p><strong>Message:</strong> ' + msg + '</p>' +
-                    '<p><strong>Source:</strong> ' + src + ' (Line ' + line + ', Col ' + col + ')</p>';
+      d.setAttribute('role', 'alert');
+      d.textContent = '\u26A0\uFE0F JavaScript runtime error: ' + msg + ' (' + src + ', line ' + line + ', col ' + col + ')';
       document.body.insertBefore(d, document.body.firstChild);
       return false;
     };
@@ -20,17 +19,20 @@
 
   <!-- CSS Design System -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
+  <script src="./results-config.js" data-files="summary.json"></script>
 </head>
 <body>
 
   <!-- Screen Reader Skip Link (WCAG 2.1 AA SC 1.3.2) -->
-  <a href="#main-content" class="sr-only">Skip to main content</a>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <!-- Top Navigation & Header Banner -->
   <nav class="navbar" role="navigation" aria-label="Main Navigation">
     <a href="index.html" class="navbar-brand" aria-label="Hamilton County Election Commission Home">
       <div class="navbar-seal" aria-hidden="true">
-        <svg class="tn-seal-svg" viewBox="0 0 100 100" width="100%" height="100%" aria-label="Tennessee Three Grand Divisions Logo">
+        <svg class="tn-seal-svg" viewBox="0 0 100 100" width="100%" height="100%" focusable="false">
           <circle cx="50" cy="50" r="50" fill="#CC0000" />
           <circle cx="50" cy="50" r="43" fill="none" stroke="#FFFFFF" stroke-width="4" />
           <circle cx="50" cy="50" r="41" fill="#002147" />
@@ -52,7 +54,7 @@
       <a href="reporting.html" class="nav-btn">Reporting Status</a>
       <a href="precincts.html" class="nav-btn">Precinct Results</a>
       <a href="scrolling.html" class="nav-btn">&#x1F4FA; Scrolling Results</a>
-      <button type="button" class="nav-btn" onclick="ElectionApp.refreshResults()" aria-label="Refresh Election Results">
+      <button type="button" class="nav-btn" onclick="ElectionApp.refreshResults()">
         &#x21BB; Refresh
       </button>
       <button type="button" id="dark-mode-toggle" class="nav-btn" onclick="ElectionApp.toggleDarkMode()" aria-label="Toggle Dark Mode Theme">
@@ -67,6 +69,12 @@
   <!-- Main Content Container -->
   <main id="main-content" class="app-container">
 
+    <!-- Live updates (WCAG 2.2.2): pause control and a polite "Results updated" status -->
+    <div class="live-bar">
+      <p id="live-status" class="live-status" role="status">Loading results…</p>
+      <button type="button" id="live-toggle" class="live-toggle" aria-pressed="false" onclick="ElectionApp.toggleLiveUpdates()">Pause live updates</button>
+    </div>
+
     <!-- Hero Turnout Summary Banner -->
     <header class="hero-banner" aria-labelledby="hero-title">
       <div class="hero-header">
@@ -75,13 +83,13 @@
           <div id="hero-date" class="hero-subtitle">November 5, 2024</div>
         </div>
         <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <button type="button" class="export-btn" onclick="ElectionApp.refreshResults()" aria-label="Refresh Election Results Data" style="background:var(--secondary) !important;">
+          <button type="button" class="export-btn" onclick="ElectionApp.refreshResults()" style="background:var(--secondary) !important;">
             &#x21BB; Refresh Results
           </button>
-          <button type="button" class="export-btn" onclick="ElectionApp.exportCSV()" aria-label="Export Summary Election Results as CSV">
+          <button type="button" class="export-btn" onclick="ElectionApp.exportCSV()">
             &#x1F4E5; Export CSV
           </button>
-          <div class="status-badge" aria-label="Election Status">
+          <div class="status-badge" role="group" aria-label="Election Status">
             <span class="pulse-dot" aria-hidden="true"></span>
             <span id="status-text">UNOFFICIAL RESULTS</span>
           </div>
@@ -99,7 +107,7 @@
         <div class="metric-card" style="flex: 2 1 320px !important;">
           <div class="metric-label">Total Ballots Cast</div>
           <div id="stat-ballots" class="metric-value">--</div>
-          <div class="ballot-breakdown-pills" aria-label="Party Ballot Breakdown">
+          <div class="ballot-breakdown-pills" role="group" aria-label="Party Ballot Breakdown">
             <span class="ballot-pill ballot-pill-rep">REP: <strong id="stat-ballots-rep">--</strong></span>
             <span class="ballot-pill ballot-pill-dem">DEM: <strong id="stat-ballots-dem">--</strong></span>
             <span class="ballot-pill ballot-pill-gen">GEN: <strong id="stat-ballots-gen">--</strong></span>
@@ -127,11 +135,11 @@
 
     <!-- Filter Bar & Search Controls -->
     <section class="filter-bar" aria-label="Contest Filters and Search">
-      <div class="filter-tabs" role="tablist" aria-label="Party Filter Tabs">
-        <button type="button" class="tab-btn active" data-party="ALL" role="tab" aria-selected="true" onclick="ElectionApp.setPartyFilter('ALL')">All Contests</button>
-        <button type="button" class="tab-btn" data-party="REP" role="tab" aria-selected="false" onclick="ElectionApp.setPartyFilter('REP')">Republican</button>
-        <button type="button" class="tab-btn" data-party="DEM" role="tab" aria-selected="false" onclick="ElectionApp.setPartyFilter('DEM')">Democratic</button>
-        <button type="button" class="tab-btn" data-party="IND" role="tab" aria-selected="false" onclick="ElectionApp.setPartyFilter('IND')">Non-Partisan / Independent</button>
+      <div class="filter-tabs" role="group" aria-label="Party Filter">
+        <button type="button" class="tab-btn active" data-party="ALL" aria-pressed="true" onclick="ElectionApp.setPartyFilter('ALL')">All Contests</button>
+        <button type="button" class="tab-btn" data-party="REP" aria-pressed="false" onclick="ElectionApp.setPartyFilter('REP')">Republican</button>
+        <button type="button" class="tab-btn" data-party="DEM" aria-pressed="false" onclick="ElectionApp.setPartyFilter('DEM')">Democratic</button>
+        <button type="button" class="tab-btn" data-party="IND" aria-pressed="false" onclick="ElectionApp.setPartyFilter('IND')">Non-Partisan / Independent</button>
       </div>
 
       <div class="controls-right-group">
@@ -159,7 +167,7 @@
   </button>
 
   <!-- Precinct Reporting Visual Modal Dialog -->
-  <div id="precinct-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
+  <div id="precinct-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card">
       <header class="modal-header">
         <div>
@@ -170,10 +178,10 @@
       </header>
 
       <div class="modal-subnav">
-        <div style="display:flex; gap:6px;">
-          <button type="button" class="tab-btn modal-filter-btn active" data-mfilter="ALL" onclick="ElectionApp.setModalFilter('ALL')">All Precincts</button>
-          <button type="button" class="tab-btn modal-filter-btn" data-mfilter="REPORTED" onclick="ElectionApp.setModalFilter('REPORTED')">&#x2705; Reported</button>
-          <button type="button" class="tab-btn modal-filter-btn" data-mfilter="PENDING" onclick="ElectionApp.setModalFilter('PENDING')">&#x23F3; Pending</button>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;" role="group" aria-label="Show precincts">
+          <button type="button" class="tab-btn modal-filter-btn active" data-mfilter="ALL" aria-pressed="true" onclick="ElectionApp.setModalFilter('ALL')">All Precincts</button>
+          <button type="button" class="tab-btn modal-filter-btn" data-mfilter="REPORTED" aria-pressed="false" onclick="ElectionApp.setModalFilter('REPORTED')">&#x2705; Reported</button>
+          <button type="button" class="tab-btn modal-filter-btn" data-mfilter="PENDING" aria-pressed="false" onclick="ElectionApp.setModalFilter('PENDING')">&#x23F3; Pending</button>
         </div>
 
         <div style="flex:1; max-width:260px;">
@@ -181,7 +189,7 @@
         </div>
       </div>
 
-      <div class="modal-body">
+      <div class="modal-body" tabindex="0" role="region" aria-label="Precinct list">
         <div id="modal-precinct-grid" class="precinct-grid">
           <!-- Dynamically populated precinct status chips -->
         </div>
@@ -207,10 +215,11 @@
   <footer class="footer" role="contentinfo">
     <p>&copy; Hamilton County Election Commission &bull; Unofficial Election Night Results &bull; Compliant with WCAG 2.1 AA Standards</p>
     <p style="margin-top: 4px; font-size: 11px;">Addresses and Maps Link: <a href="https://maps.google.com/?q=700+River+Terminal+Road,+Chattanooga,+TN+37406" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:600;">Hamilton County Election Commission Office</a></p>
+    <p style="margin-top: 4px; font-size: 11px;"><a href="admin.html" style="color:var(--primary);">Admin</a></p>
   </footer>
 
   <!-- Election Data & Application Controller Scripts -->
-  <script src="./data.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="./functions/src/validate.js" defer></script>
+  <script src="./app.js" defer></script>
 </body>
 </html>

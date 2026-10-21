@@ -3,8 +3,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const REPO = path.resolve(__dirname, '..', '..', '..');
-const GOLDEN_DIR = path.join(__dirname, '..', 'golden');
+// The repo root holds Test_Files/. Found by walking up, so the suite also runs from a copy of
+// functions/ (Stryker's sandbox, functions/.stryker-tmp/sandbox-*/).
+const REPO = (() => {
+  for (let d = __dirname; d !== path.dirname(d); d = path.dirname(d)) {
+    if (fs.existsSync(path.join(d, 'Test_Files')) && fs.existsSync(path.join(d, 'tools'))) return d;
+  }
+  throw new Error('repo root (with Test_Files/) not found');
+})();
+const GEN_FIXTURE = path.join(REPO, 'tools', 'gen-fixture');
+const GOLDEN_DIR = path.join(REPO, 'functions', 'test', 'golden');
 const PYTHON = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
 
 function goldenCases() {
@@ -37,4 +45,30 @@ function pyParse(inputs) {
   return JSON.parse(res.stdout);
 }
 
-module.exports = { REPO, GOLDEN_DIR, goldenCases, readGolden, pythonAvailable, pyParse };
+/** Batch call into tools/py_bridge.py: one result ({ok} or {error}) per input. */
+function pyBridge(op, inputs) {
+  const res = spawnSync(PYTHON, [path.join(REPO, 'tools', 'py_bridge.py')], {
+    input: JSON.stringify({ op, inputs }), encoding: 'utf8', maxBuffer: 512 * 1024 * 1024,
+  });
+  if (res.status !== 0) throw new Error(`py_bridge ${op} failed: ${res.stderr}`);
+  return JSON.parse(res.stdout);
+}
+
+/** Maps -> plain objects (recursively), for comparing with JSON. */
+function toPlain(v) {
+  if (v instanceof Map) return Object.fromEntries([...v].map(([k, x]) => [k, toPlain(x)]));
+  if (Array.isArray(v)) return v.map(toPlain);
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, toPlain(x)]));
+  return v;
+}
+
+/** A golden case's input CSVs as bytes ({early, ed}, null where the slot is empty). */
+function caseInputs(caseId) {
+  const c = readGolden(caseId, 'case.json');
+  const read = (rel) => (rel ? fs.readFileSync(path.join(REPO, rel)) : null);
+  return { meta: c, early: read(c.early), ed: read(c.ed) };
+}
+
+module.exports = {
+  REPO, GEN_FIXTURE, GOLDEN_DIR, goldenCases, readGolden, pythonAvailable, pyParse, pyBridge, toPlain, caseInputs,
+};

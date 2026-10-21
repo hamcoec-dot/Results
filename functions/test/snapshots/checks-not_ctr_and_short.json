@@ -1,0 +1,18 @@
+[
+ {
+  "key": "not-custom-table-report:0",
+  "id": "not-custom-table-report",
+  "severity": "block",
+  "title": "Not a Custom Table Report",
+  "detail": "Row 1 starts with \"Summary\", expected \"Custom Table Report\". Export the Custom Table Report from the tally system.",
+  "refs": []
+ },
+ {
+  "key": "unreadable:0",
+  "id": "unreadable",
+  "severity": "block",
+  "title": "File could not be read",
+  "detail": "The file has fewer than 5 rows.",
+  "refs": []
+ }
+]

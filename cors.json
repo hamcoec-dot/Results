@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://govotehamiltontn.gov", "https://hamcoec-dot.github.io", "http://127.0.0.1:8123", "http://localhost:8123"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Cache-Control", "Content-Encoding", "ETag"],
+    "maxAgeSeconds": 300
+  }
+]

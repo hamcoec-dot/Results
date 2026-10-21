@@ -1,0 +1,10 @@
+{
+  "name": "hcec-election-results-perf",
+  "private": true,
+  "description": "Local Lighthouse runner for the public pages (npm run perf at the repo root). Not shipped; kept apart so its audit advisories (puppeteer's download helpers) don't touch the page tooling.",
+  "type": "module",
+  "devDependencies": {
+    "chrome-launcher": "1.2.0",
+    "lighthouse": "12.8.2"
+  }
+}

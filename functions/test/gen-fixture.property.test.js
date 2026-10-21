@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const { parse } = require('csv-parse/sync');
 const { fc, fcParams } = require('./helpers/fc-config');
 const { electionArb, electionOptsArb, csvOptsArb } = require('./helpers/arbitraries');
-const { generateElection, toCsv } = require('../../tools/gen-fixture');
+const { generateElection, toCsv } = require(require('./helpers/fixtures').GEN_FIXTURE);
 
 // Generator self-tests stay at PR depth even nightly; the 100k-run depth is for the parser round trip.
 const selfTestParams = (cap = 1000) => fcParams({ numRuns: Math.min(fcParams().numRuns, cap) });

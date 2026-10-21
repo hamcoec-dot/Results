@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same PR branch cancels the older run; pushes to main always run in full.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -41,6 +46,90 @@ jobs:
           path: functions/coverage
           if-no-files-found: ignore
 
+  emulator:
+    # Layers 6-7: security rules and the callables on the Firebase emulators.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci
+      - name: Rules + callables on the emulators
+        run: npm run test:emulator
+      - name: Admin and review pages, signed in (axe on the emulators)
+        working-directory: .
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium firefox
+          npm run a11y:admin
+      - name: Admin flows in Firefox (on fresh emulators)
+        working-directory: .
+        run: npm run a11y:admin:firefox
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-admin-results
+          path: test-results
+          if-no-files-found: ignore
+
+  pages:
+    # Layers 10 and 12: axe (WCAG 2.1 AA) and live-update tests on the public pages.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: HTML validity (npm run lint:html)
+        run: npm run lint:html
+      - run: npx playwright install --with-deps chromium
+      - name: Accessibility and live updates (npm run a11y)
+        run: npm run a11y
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: test-results
+          if-no-files-found: ignore
+
+  browsers:
+    # Layer 8 on the other profiles: the behaviour tests (DOM oracle, features, live updates,
+    # resilience, hostile names) in Firefox, WebKit, and on emulated Pixel 7 and iPhone 14.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Behaviour tests in other browsers (npm run e2e:browsers)
+        run: npm run e2e:browsers
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-browsers-results
+          path: test-results
+          if-no-files-found: ignore
+
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -54,6 +143,8 @@ jobs:
       - name: npm audit (high+)
         working-directory: functions
         run: npm audit --audit-level=high
+      - name: npm audit, page tooling (high+)
+        run: npm audit --audit-level=high
       - name: gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -61,4 +152,5 @@ jobs:
       - name: osv-scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
         with:
-          scan-args: --lockfile=functions/package-lock.json
+          # functions and the page tooling; perf/ (local Lighthouse runner, not shipped) is left out on purpose.
+          scan-args: --lockfile=functions/package-lock.json --lockfile=package-lock.json

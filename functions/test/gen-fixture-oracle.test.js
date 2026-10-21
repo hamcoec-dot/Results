@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { generateElection, toCsv } = require('../../tools/gen-fixture');
+const { generateElection, toCsv } = require(require('./helpers/fixtures').GEN_FIXTURE);
 const { pythonAvailable, pyParse } = require('./helpers/fixtures');
 
 const CASES = [];
