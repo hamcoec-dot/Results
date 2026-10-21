@@ -49,6 +49,10 @@ The manual deploy in README › Deploy still works as before.
    - CORS allows `https://govotehamiltontn.gov`;
    - listing the bucket is denied.
 
+## Monitoring and alerts
+Once per project, after the first deploy: `node tools/setup-monitoring.js` (uptime check, the auditLive
+mismatch alert, the failed-action alert, email and SMS). See docs/MONITORING.md, which also covers testing them.
+
 ## Checks to run by hand
 ```bash
 node tools/smoke-public.js hcec-election-results-results        # what the public is served, right now

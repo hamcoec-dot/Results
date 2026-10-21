@@ -11,7 +11,7 @@ Design: [plans/cloud-admin-upload.md](plans/cloud-admin-upload.md). Tests and tr
 | Checks, review payload, validation, publish rules, callables (`functions/src/`) | done: tested on in-memory fakes and on the emulators |
 | `admin.html` / `review.html` | not built yet (Phase 3) |
 | Public pages reading the cloud bucket (`RESULTS_BASE_URL`, `?draft`, pause control) | not built yet (Phase 4) |
-| GCP projects, deploy, monitoring | not done yet (Phase 5) |
+| GCP projects, deploy, monitoring | tooling ready (docs/DEPLOY.md, docs/MONITORING.md); the GCP setup itself is not done yet (Phase 5) |
 
 Until Phases 3–5 land, results publish the legacy way (see **Offline fallback**).
 

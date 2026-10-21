@@ -34,6 +34,8 @@ election-night assurance). It must pass before election night. Copy the record t
    - [ ] Upload a file with lower totals: a warning that must be acknowledged.
    - [ ] Create draft A, publish draft B, then try to publish A: refused as stale.
 7. `node tools/smoke-public.js hcec-election-results-results` after the last publish.
+8. **Alerts (staging):** trigger the mismatch and uptime alerts as in docs/MONITORING.md › Test the alerts.
+   Record when the email and the SMS arrived.
 
 ## After
 - [ ] Discard or let expire any open drafts; clear the test election's active flag if it was set.
@@ -41,6 +43,6 @@ election-night assurance). It must pass before election night. Copy the record t
 - [ ] Note anything slow or confusing, and fix it before election night.
 
 ## Record
-| Date | Operator | Checker | Files | Step timings (upload → public) | Rollback OK | Numbers match | Issues | Sign-off |
-|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | |
+| Date | Operator | Checker | Files | Step timings (upload → public) | Rollback OK | Numbers match | Alerts arrived | Issues | Sign-off |
+|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | |
