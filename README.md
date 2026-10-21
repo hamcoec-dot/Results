@@ -40,7 +40,14 @@ contest where it does not is flagged before publishing.
    4. Wait for the green "Live check passed".
 4. Order on the night: Zero → Early/ABS → Election Day updates.
 5. Wrong file published? History → "Roll back to this" on the earlier version → review → publish.
-6. After the night: set `ELECTION_NIGHT_MIN_INSTANCES=0` and redeploy.
+6. Settings changed mid-night (max precincts, Precinct Results page on/off)? Save them, then
+   **Create draft with these settings**. It rebuilds what is published from the same files, with no re-upload.
+   Review it like any draft (an info check lists exactly what changed) and publish.
+7. Spot-check what the public is served at any time: `node tools/smoke-public.js hcec-election-results-results`.
+   It must print OK. See docs/DEPLOY.md.
+8. After the night: set `ELECTION_NIGHT_MIN_INSTANCES=0` and redeploy.
+
+Before each election, hold a mock-election rehearsal ([docs/REHEARSAL.md](docs/REHEARSAL.md)).
 
 ## Setup (one time)
 ### Google Cloud / Firebase
@@ -102,3 +109,9 @@ Public trust depends on this: every displayed number is proven equal to the sour
 - "permission-denied": the user is not in `admins`.
 - Callable 403 / CORS error: missing `run.invoker` grant.
 - Public page stale: check `Cache-Control` on `current/*` (15 s); hard refresh.
+- Public page says "Live updates delayed — retrying": the files it fetched failed validation or don't match the
+  manifest's version (a partly copied publish, or a CDN edge still serving the old file). The page keeps showing
+  the last good results and retries every 15 s. If it lasts more than a minute, run `tools/smoke-public.js`:
+  it names the file and the problem.
+- Admin "LIVE CHECK FAILED" banner: `auditLive` found the served bytes differ from the published version.
+  Re-publish or roll back, and run the smoke test.
