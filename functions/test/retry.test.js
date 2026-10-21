@@ -13,7 +13,7 @@ test('isTransient: network drops and busy servers, not real answers', () => {
     assert.equal(isTransient(e), true, e.message + JSON.stringify(e));
   }
   for (const e of [null, undefined, err({ code: 404 }), err({ code: 412 }), err({ code: 403 }), err({ code: 'ENOENT' }),
-    err({ response: { status: 400 } }), err({}, 'No such object')]) {
+    err({ response: { status: 400 } }), err({}, 'No such object'), err({ code: 400 }, 'Bad request: ECONNRESET in field')]) {
     assert.equal(isTransient(e), false, String(e?.message));
   }
 });

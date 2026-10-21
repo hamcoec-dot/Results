@@ -430,3 +430,15 @@ test('precinct page turned back on by a later publish: it appears without a relo
   await expect(page.locator('#main-content')).toContainText('Precinct Results Currently Disabled');
   await expect(page.locator('#precinct-results-container')).toBeHidden();
 });
+
+test('a precinct dialog opened just after a publish fetches the new version at once and shows its precincts', async ({ page }) => {
+  const state = { dir: V02, updatedAt: '2026-11-03T21:42:00-05:00' };
+  await fakeBucket(page, state);
+  await page.goto('index.html?emulator');
+  await expect(firstCard(page)).toContainText('0 of 92');
+  state.dir = V03; // published; the page has not polled yet
+  state.updatedAt = '2026-11-03T21:58:00-05:00';
+  await firstCard(page).click(); // reporting.json is now newer than the summary on screen
+  await expect(firstCard(page)).toContainText('92 of 92', { timeout: 5000 }); // no 60 s wait
+  await expect(page.locator('#modal-precinct-grid .precinct-chip').first()).toBeVisible();
+});

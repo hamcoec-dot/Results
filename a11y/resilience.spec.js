@@ -248,3 +248,15 @@ test('a failed first load while paused says how to retry; resuming loads the res
   await expect(firstCard(page)).toContainText('92 of 92');
   await expect(status(page)).toHaveText(/^Results updated /);
 });
+
+test('a draft whose files fail the checks says so, not that it is gone', async ({ page }) => {
+  const bad = JSON.parse(read(V03, 'summary.json'));
+  bad.latest.contests[0].candidates[0].votes = -1;
+  await page.route('http://127.0.0.1:9199/**', (route) => {
+    const file = decodeURIComponent(new URL(route.request().url()).pathname).split('/').pop();
+    if (file === 'summary.json') return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(bad) });
+    return route.fulfill({ status: 404, body: '' });
+  });
+  await page.goto('index.html?emulator&draft=0123456789abcdef0123456789abcdef');
+  await expect(status(page)).toHaveText(/^This draft could not be loaded \(its files failed a check/);
+});

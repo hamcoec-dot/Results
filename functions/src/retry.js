@@ -14,6 +14,8 @@ function isTransient(e) {
   if (NETWORK.has(e.code) || NETWORK.has(e.cause?.code)) return true;
   const status = typeof e.code === 'number' ? e.code : e.response?.status ?? e.status;
   if (STATUS.has(status)) return true;
+  // A server's answer (any HTTP status) is final even if its text quotes a network error.
+  if (typeof status === 'number') return false;
   return /\b(ECONNRESET|socket hang up)\b/.test(e.message ?? '');
 }
 

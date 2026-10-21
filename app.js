@@ -44,6 +44,7 @@ window.ElectionApp = (function() {
   let updatesDelayed = false;
   let livePaused = readSessionFlag(LIVE_PAUSED_KEY);
   let lastUpdatedText = '';
+  let firstLoadGone = false; // the first load failed with 404 (a draft that no longer exists)
 
   // One formatter for every vote count: Number#toLocaleString builds a new one per call, which made a
   // full refresh (hundreds of numbers) a long task.
@@ -340,6 +341,7 @@ window.ElectionApp = (function() {
     loadLatest(true)
       .catch(err => {
         if (electionData) throw err; // already showing the preloaded data: no need for data.js
+        firstLoadGone = /HTTP 404\b/.test(err && err.message);
         console.warn(`Could not load ${PAGE_FILES.join(' + ')}; trying data.js.`, err);
         return loadDataJsFallback();
       })
@@ -421,7 +423,7 @@ window.ElectionApp = (function() {
       if (isPaused) renderCurrentSlide();
     } else {
       renderDashboard();
-      refreshOpenModal();
+      refreshOpenModal(true); // new data
     }
   }
 
@@ -504,7 +506,11 @@ window.ElectionApp = (function() {
       text = 'Loading results…';
     } else if (!electionData) {
       // Only say "Retrying" when a retry is scheduled: a draft never polls, and a paused page waits.
-      if (RESULTS.draft) text = 'This draft could not be loaded. It may have been published, discarded or expired: open it again from its review page.';
+      if (RESULTS.draft) {
+        text = firstLoadGone
+          ? 'This draft could not be loaded. It may have been published, discarded or expired: open it again from its review page.'
+          : 'This draft could not be loaded (its files failed a check, or the connection failed). Reload to try again; details are in the browser console.';
+      }
       else if (livePaused) text = 'Results could not be loaded. Live updates are paused: resume them to try again.';
       else text = 'Results could not be loaded. Retrying…';
     } else if (RESULTS.draft) {
@@ -986,7 +992,12 @@ window.ElectionApp = (function() {
       statusesPromise = fetchJson('reporting.json').then(rep => {
         checkFiles({ 'reporting.json': rep }, null);
         const repVersion = (rep.metadata || {}).dataVersion || null;
-        if (!RESULTS.local && version && repVersion !== version) throw new Error(`reporting.json is version ${repVersion}, the page shows ${version}`);
+        if (!RESULTS.local && version && repVersion !== version) {
+          // Usually a publish landed since the last poll: fetch it now rather than in up to a minute;
+          // the open dialog is refreshed with the new data (refreshOpenModal).
+          if (liveUpdatesOn()) checkForUpdates();
+          throw new Error(`reporting.json is version ${repVersion}, the page shows ${version}`);
+        }
         if (electionData === target) attachStatuses(target, rep);
       }).finally(() => { statusesPromise = null; });
     }
@@ -1046,7 +1057,7 @@ window.ElectionApp = (function() {
   }
 
   /** After a live update, point the open dialog at the same contest in the new data. */
-  function refreshOpenModal() {
+  function refreshOpenModal(newData) {
     if (!currentModalContest) return;
     const data = getCurrentDataset();
     const contest = data && data.contests ? data.contests.find(c => c.title === currentModalContest.title) : null;
@@ -1055,7 +1066,9 @@ window.ElectionApp = (function() {
       return;
     }
     currentModalContest = contest;
-    if (modalStatusState === 'ready' && !electionData.hasPrecinctStatuses) loadModalStatuses();
+    // Data without statuses: load them. After a failed try, only when new data arrived (e.g.
+    // reporting.json was newer than the summary), so a lasting failure does not retry in a loop.
+    if (!electionData.hasPrecinctStatuses && (modalStatusState === 'ready' || (newData && modalStatusState === 'failed'))) loadModalStatuses();
     renderModalHeading();
     renderModalPrecinctGrid();
   }

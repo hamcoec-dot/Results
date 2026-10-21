@@ -157,7 +157,8 @@
     var token = {};
     el.loadToken = token;
     C.clear(el).appendChild(h('p', null, 'Loading ' + what + '…'));
-    setTimeout(function () {
+    clearTimeout(el.loadTimer); // a reload replaces the previous load's timer
+    el.loadTimer = setTimeout(function () {
       if (el.loadToken !== token || !el.textContent.startsWith('Loading')) return;
       var again = h('button', { class: 'btn', type: 'button' }, 'Retry');
       again.addEventListener('click', retry);
