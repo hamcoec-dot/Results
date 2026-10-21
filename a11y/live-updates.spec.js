@@ -247,3 +247,39 @@ test('precinct page: switching views rebuilds; a live update swaps only the chan
   const marks = await cards.evaluateAll((els) => els.map((el) => el.dataset.mark ?? null));
   expect(marks.filter((m) => m === null)).toHaveLength(1);
 });
+
+test('the 60 s poll: an unchanged poll moves under 1 KB; a hidden tab makes no requests; return checks at once', async ({ page }) => {
+  await page.clock.install();
+  const state = { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' };
+  const log = await fakeBucket(page, state);
+  const sizes = [];
+  page.on('response', async (r) => { if (r.url().includes('9199')) sizes.push((await r.body()).length); });
+  await page.goto('index.html?emulator');
+  await expect(firstCard(page)).toBeVisible();
+
+  log.length = 0; sizes.length = 0;
+  await page.clock.runFor(61000);
+  await expect.poll(() => log.length).toBe(1);
+  expect(log).toEqual(['current/manifest.json']);
+  await expect.poll(() => sizes.length).toBe(1);
+  expect(sizes[0]).toBeLessThanOrEqual(1024);
+
+  // Hidden: no timer, no requests, however long.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  log.length = 0;
+  await page.clock.runFor(10 * 60000);
+  await page.waitForTimeout(200);
+  expect(log).toEqual([]);
+
+  // Visible again: one immediate check, then every 60 s.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect.poll(() => log.length).toBe(1);
+  await page.clock.runFor(61000);
+  await expect.poll(() => log.length).toBe(2);
+});
