@@ -35,6 +35,10 @@ the slide down). Served **without** compression, LCP was 2.85 s on every page (`
 
 Own JS (gzip): 24.3 KB (`app.js`, `results-config.js`, `functions/src/validate.js`). All budgets met.
 
+Re-run 2026-10-21 after the fetch timeout, CSV-injection guard and keyed updates (commit d3c47d6): every page
+still scores 100. FCP was 0.90–1.06 s, LCP 1.35–1.36 s, TBT 0 ms, CLS ≤ 0.030 and transfer 60–65 KB. Own JS
+is 26.3 KB. All budgets met.
+
 What changed for performance:
 - `data.js` (271 KB raw) is no longer loaded; each page fetches only its file(s). It stays as the error fallback.
 - `results-config.js` runs in `<head>` and starts the data requests (and `manifest.json`) before `app.js` arrives.
