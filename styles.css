@@ -1565,7 +1565,8 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
     scroll-behavior: auto !important;
   }
 
-  *, *::before, *::after {
+  /* :root x3 outranks the component rules (class selectors, also !important) */
+  :root:root:root *, :root:root:root *::before, :root:root:root *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

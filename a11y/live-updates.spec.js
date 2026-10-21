@@ -300,3 +300,28 @@ test('precinct page turned off in the settings: the page says so, and its nav li
   await expect(firstCard(page)).toBeVisible();
   await expect(page.locator('a[href="precincts.html"]')).toBeHidden();
 });
+
+test('slideshow: pause is remembered for the session; slides are announced only while paused', async ({ page }) => {
+  await page.goto('scrolling.html');
+  const btn = page.locator('#btn-playpause');
+  await expect(btn).toHaveText(/Pause slideshow/);
+  await expect(page.locator('#slide-viewport')).toHaveAttribute('aria-live', 'off');
+  await btn.click();
+  await expect(btn).toHaveText(/Play slideshow/);
+  await expect(page.locator('#slide-viewport')).toHaveAttribute('aria-live', 'polite');
+  await page.reload();
+  await expect(page.locator('#btn-playpause')).toHaveText(/Play slideshow/);
+  await expect(page.locator('#slide-viewport')).toHaveAttribute('aria-live', 'polite');
+});
+
+test('prefers-reduced-motion: no transitions or smooth scrolling', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('index.html');
+  await expect(firstCard(page)).toBeVisible();
+  const motion = await page.evaluate(() => ({
+    scroll: getComputedStyle(document.documentElement).scrollBehavior,
+    bar: getComputedStyle(document.querySelector('.progress-fill')).transitionDuration,
+  }));
+  expect(motion.scroll).toBe('auto');
+  expect(parseFloat(motion.bar)).toBeLessThan(0.001);
+});
