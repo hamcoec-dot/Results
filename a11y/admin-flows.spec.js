@@ -343,6 +343,26 @@ test.describe('publish guard rails (emulators)', () => {
     await expect(page.locator('#publish-btn')).toBeDisabled();
   });
 
+  test('signed out (e.g. in another tab) and back in on the review page, then publishing, sends one publishDraft', async ({ page }) => {
+    await signIn(page);
+    await upload(page, 'ed', SAMPLE('03-After 5 Reporting'));
+    await page.evaluate(() => firebase.auth().signOut()); // as from another tab: auth state is shared
+    await expect(page.locator('#signin')).toBeVisible({ timeout: 15000 });
+    await page.fill('#email', ADMIN.email);
+    await page.fill('#password', ADMIN.password);
+    await page.click('#signin-form button[type="submit"]');
+    await expect(page.locator('#page-status')).toContainText('Draft loaded', { timeout: 30000 });
+    const calls = [];
+    page.on('request', (r) => { if (/\/publishDraft$/.test(new URL(r.url()).pathname)) calls.push(r.url()); });
+    await tickAll(page);
+    await openAll(page);
+    await publish(page);
+    await expect(page.locator('#publish-result')).toContainText('Published', { timeout: 60000 });
+    await page.waitForTimeout(1000);
+    expect(calls.length, 'publishDraft calls').toBe(1);
+    await expect(page.locator('#page-alert')).toBeEmpty(); // no error from a second call
+  });
+
   test('a signed-in user who is not an admin is refused', async ({ browser, request }) => {
     const email = `clerk${Date.now()}@example.test`;
     const signUp = await request.post('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-key',

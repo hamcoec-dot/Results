@@ -53,11 +53,19 @@
         });
       }
       updatePublish();
-      startCountdown();
-      document.getElementById('publish-btn').addEventListener('click', openPublish);
-      document.getElementById('publish-form').addEventListener('submit', submitPublish);
-      document.getElementById('extend-btn').addEventListener('click', extend);
-      document.getElementById('discard-btn').addEventListener('click', discard);
+      // load() runs again when the reviewer signs out and back in. Bind once: the named handlers
+      // would be deduplicated anyway, but the search/filter closures and the countdown would pile up.
+      if (!S.bound) {
+        S.bound = true;
+        startCountdown();
+        document.getElementById('publish-btn').addEventListener('click', openPublish);
+        document.getElementById('publish-form').addEventListener('submit', submitPublish);
+        document.getElementById('extend-btn').addEventListener('click', extend);
+        document.getElementById('discard-btn').addEventListener('click', discard);
+        var timer;
+        document.getElementById('contest-search').addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(applyFilter, 150); });
+        document.getElementById('contest-filter').addEventListener('change', applyFilter);
+      }
       C.announce('Draft loaded.');
     }, function (e) { C.announce('Could not load the draft: ' + C.errorText(e), { alert: true }); });
   }
@@ -219,11 +227,7 @@
       applyFilter();
       return null;
     };
-    var search = document.getElementById('contest-search');
     var filter = document.getElementById('contest-filter');
-    var timer;
-    search.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(applyFilter, 150); });
-    filter.addEventListener('change', applyFilter);
     if (!list.some(function (c) { return c.changed; })) filter.value = 'all';
     return chunk();
   }
