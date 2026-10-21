@@ -50,6 +50,20 @@ LCP is now the hero heading, painted when the data arrives, so it moved from 1.2
 inside the 2.5 s budget. Served **without** compression (a plain local server), LCP is 2.40–2.56 s, so
 `reporting.html` (two files) and `precincts.html` (150 KB raw) would miss the budget there. Production serves gzip.
 
+## admin.html / review.html (signed-out first paint, `npm run perf:admin`)
+
+Budgets: LCP < 3.0 s, TBT < 300 ms, CLS < 0.1, own JS <= 80 KB gzip, plus the Firebase SDK.
+
+| Page | Score | FCP | LCP | TBT | CLS | Transfer |
+|---|---|---|---|---|---|---|
+| admin.html | 98 | 0.90 s | 2.41 s | 0 ms | 0.000 | 171 KB |
+| review.html | 98 | 0.90 s | 2.41 s | 0 ms | 0.000 | 174 KB |
+
+Own JS (gzip, excluding the Firebase compat SDK from gstatic): 17.6 KB. All budgets met.
+
+Most of the transfer is the Firebase SDK. The signed-in screens are not measured by Lighthouse; their
+accessibility is checked by `npm run a11y:admin`.
+
 ## Not yet covered
 
 - Long tasks during a live refresh are measured by `a11y/refresh-longtasks.spec.js`. It is timing-dependent, so it

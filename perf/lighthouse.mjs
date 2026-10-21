@@ -1,7 +1,8 @@
 // npm run perf: Lighthouse on the public pages with the plan's reference profile (mobile, 4x CPU
 // slowdown, Slow 4G: Lighthouse's default mobile settings), checked against the release budgets.
 //
-//   node perf/lighthouse.mjs [dir] [--runs N] [--json out.json]
+//   node perf/lighthouse.mjs [dir] [--runs N] [--json out.json] [--pages a.html,b.html]
+//   --pages admin.html,review.html   the admin pages (signed-out first paint), with their own budgets
 //
 // dir defaults to the repo root and is served on a free local port; pages read ./ data there, as
 // the live site does until Phase 5. Each page is run N times (default 3) and the median is kept.
@@ -17,12 +18,19 @@ import * as chromeLauncher from 'chrome-launcher';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGES = ['index.html', 'reporting.html', 'precincts.html', 'scrolling.html'];
 const OWN_JS = ['app.js', 'results-config.js', 'functions/src/validate.js'];
+// admin.html / review.html own code (the Firebase compat SDK from gstatic is not counted): <= 80 KB gzip.
+const ADMIN_JS = ['admin.js', 'admin-common.js', 'review.js', 'firebase-config.js', 'functions/src/validate.js'];
 const BUDGET = { lcp: 2500, tbt: 200, cls: 0.1, jsKb: 60 };
+// admin.html / review.html: LCP < 3.0 s, TBT < 300 ms (plan: Performance requirements).
+const ADMIN_BUDGET = { lcp: 3000, tbt: 300, cls: 0.1 };
+const ADMIN_PAGES = new Set(['admin.html', 'review.html']);
+const budgetOf = (page) => (ADMIN_PAGES.has(page) ? ADMIN_BUDGET : BUDGET);
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args.splice(i, 2)[1] : dflt; };
 const runs = Number(opt('--runs', 3));
 const jsonOut = opt('--json', null);
+const pages = (opt('--pages', null)?.split(',').filter(Boolean)) ?? PAGES;
 const dir = path.resolve(args[0] || ROOT) + path.sep;
 
 // A static server that gzips text like GitHub Pages and GCS (gzip transcoding) do, so transfer
@@ -57,7 +65,7 @@ const base = `http://127.0.0.1:${server.server.address().port}/`;
 const chrome = await chromeLauncher.launch({ chromeFlags: ['--headless=new', '--no-sandbox'] });
 const results = [];
 try {
-  for (const page of PAGES) {
+  for (const page of pages) {
     const samples = [];
     for (let i = 0; i < runs; i++) {
       const { lhr } = await lighthouse(base + page, { port: chrome.port, onlyCategories: ['performance'], logLevel: 'error' });
@@ -79,8 +87,10 @@ try {
   server.close();
 }
 
+const gzipKb = (list) => list.filter((f) => fs.existsSync(path.join(dir, f))).reduce((n, f) => n + zlib.gzipSync(fs.readFileSync(path.join(dir, f))).length, 0) / 1024;
 const ownJs = OWN_JS.filter((f) => fs.existsSync(path.join(dir, f)));
-const jsKb = ownJs.reduce((n, f) => n + zlib.gzipSync(fs.readFileSync(path.join(dir, f))).length, 0) / 1024;
+const jsKb = gzipKb(OWN_JS);
+const adminJsKb = gzipKb(ADMIN_JS);
 
 console.log(`Lighthouse mobile (4x CPU, Slow 4G), median of ${runs}, ${dir}`);
 console.log('| Page | Score | FCP | LCP | TBT | CLS | Transfer |');
@@ -88,12 +98,17 @@ console.log('|---|---|---|---|---|---|---|');
 const misses = [];
 for (const r of results) {
   console.log(`| ${r.page} | ${r.score} | ${(r.fcp / 1000).toFixed(2)} s | ${(r.lcp / 1000).toFixed(2)} s | ${Math.round(r.tbt)} ms | ${r.cls.toFixed(3)} | ${Math.round(r.kb)} KB |`);
-  if (r.lcp >= BUDGET.lcp) misses.push(`${r.page}: LCP ${(r.lcp / 1000).toFixed(2)} s >= 2.5 s`);
-  if (r.tbt >= BUDGET.tbt) misses.push(`${r.page}: TBT ${Math.round(r.tbt)} ms >= 200 ms`);
-  if (r.cls >= BUDGET.cls) misses.push(`${r.page}: CLS ${r.cls.toFixed(3)} >= 0.1`);
+  const b = budgetOf(r.page);
+  if (r.lcp >= b.lcp) misses.push(`${r.page}: LCP ${(r.lcp / 1000).toFixed(2)} s >= ${b.lcp / 1000} s`);
+  if (r.tbt >= b.tbt) misses.push(`${r.page}: TBT ${Math.round(r.tbt)} ms >= ${b.tbt} ms`);
+  if (r.cls >= b.cls) misses.push(`${r.page}: CLS ${r.cls.toFixed(3)} >= ${b.cls}`);
 }
 console.log(`Own JS (gzip): ${jsKb.toFixed(1)} KB (${ownJs.join(', ')})`);
 if (jsKb > BUDGET.jsKb) misses.push(`own JS ${jsKb.toFixed(1)} KB > 60 KB`);
+if (pages.some((p) => ADMIN_PAGES.has(p))) {
+  console.log(`Admin own JS (gzip, excl. Firebase SDK): ${adminJsKb.toFixed(1)} KB (${ADMIN_JS.join(', ')})`);
+  if (adminJsKb > 80) misses.push(`admin own JS ${adminJsKb.toFixed(1)} KB > 80 KB`);
+}
 if (jsonOut) fs.writeFileSync(jsonOut, JSON.stringify({ dir, runs, results, jsKb }, null, 2));
 if (misses.length) {
   console.log(`\nBudget misses:\n  ${misses.join('\n  ')}`);
