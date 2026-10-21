@@ -288,9 +288,29 @@ window.ElectionApp = (function() {
     });
   }
 
+  /**
+   * A page that still preloads data.js (an older copy, or a CMS embed) is drawn from it at once, as
+   * before Phase 4; the page's JSON then loads and polls as usual.
+   */
+  function renderPreloaded() {
+    const data = window.ELECTION_DATA;
+    if (!isValidPayload(data) || !data.latest) return;
+    try {
+      checkFiles({ 'summary.json': data }, null);
+    } catch (e) {
+      console.warn('The preloaded data.js failed validation; waiting for the JSON instead.', e);
+      return;
+    }
+    expandStatuses(data.latest.contests, data.latest.masterPrecincts || data.masterPrecincts);
+    data.hasPrecinctStatuses = true;
+    applyData(data, null);
+  }
+
   function loadInitialData() {
+    renderPreloaded();
     loadLatest(true)
       .catch(err => {
+        if (electionData) throw err; // already showing the preloaded data: no need for data.js
         console.warn(`Could not load ${PAGE_FILES.join(' + ')}; trying data.js.`, err);
         return loadDataJsFallback();
       })

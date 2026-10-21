@@ -359,3 +359,20 @@ test('offline fallback: a page opened from disk (file://) shows data.js and pick
   await expect(votes).not.toHaveText(before);
   await expect(page.locator('#live-status')).not.toContainText('delayed');
 });
+
+test('an older page that preloads data.js (no results-config.js) still renders at once, then loads as usual', async ({ page }) => {
+  // Serve index.html as it was before Phase 4: data.js preloaded, no results-config.js or validator.
+  await page.route('**/legacy-index.html', async (route) => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+      .replace(/<script src="\.\/results-config\.js"[^>]*><\/script>/, '')
+      .replace('<script src="./functions/src/validate.js" defer></script>', '<script src="./data.js" defer></script>');
+    await route.fulfill({ status: 200, contentType: 'text/html', body: html });
+  });
+  const urls = [];
+  page.on('request', (r) => urls.push(new URL(r.url()).pathname));
+  await page.goto('legacy-index.html');
+  await expect(firstCard(page)).toBeVisible();
+  await expect(status(page)).toHaveText(/^Results updated /);
+  expect(urls).toContain('/data.js');
+  expect(urls).toContain('/summary.json');
+});
