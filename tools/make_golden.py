@@ -79,7 +79,8 @@ def parse_verify_log(log):
     return {
         'passed': int(m.group(1)) if m else None,
         'failed': int(m.group(2)) if m else None,
-        'checks': checks,
+        # verify.py walks a set of contest titles, so its check order varies with hash seed.
+        'checks': sorted(checks, key=lambda c: (c['detail'], c['pass'])),
     }
 
 
@@ -113,6 +114,11 @@ def run_case(case_id, early_rel, ed_rel):
         early_parsed = convert_data.parse_election_csv(os.path.join(results, 'EARLY.csv'), is_ed=False) if early_rel else None
         ed_parsed = convert_data.parse_election_csv(os.path.join(results, 'ED.csv'), is_ed=True) if ed_rel else None
 
+    # file_path is the temp copy; record the fixture path so goldens are machine-independent.
+    if early_parsed is not None:
+        early_parsed['file_path'] = early_rel.replace(os.sep, '/')
+    if ed_parsed is not None:
+        ed_parsed['file_path'] = ed_rel.replace(os.sep, '/')
     if early_parsed is not None:
         write_json(os.path.join(out_dir, 'parsed-early.json'), early_parsed)
     if ed_parsed is not None:
