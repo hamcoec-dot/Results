@@ -22,6 +22,7 @@ Public pages (from the repo root):
 ```bash
 npm ci && npx playwright install chromium
 npm run a11y             # axe + live-update tests on the four public pages (Playwright serves the repo on :8124)
+npm run a11y:admin       # admin + review pages signed in: starts the emulators, seeds them, runs a11y/admin.spec.js
 npm run perf             # Lighthouse mobile on the four pages vs the budgets (needs Chrome); see perf/BASELINE.md
 node tools/emulator-drafts.js   # emulators running + seeded: publish sample 02, draft 03, print the ?emulator&draft= links
 ```
@@ -42,7 +43,7 @@ Generate a fixture by hand: `node tools/gen-fixture.js --seed 42 --kind ed --lay
 | 7 | Function integration | **done**: full contract on in-memory fakes; refusals, publish, tamper and race on the emulators | `service.test.js`; `test/emulator/integration.test.js` |
 | 8 | E2E + DOM oracle | Phase 4 | — |
 | 9 | Visual regression | Phase 3/4 | — |
-| 10 | Accessibility | **public pages done** (Phase 4): axe WCAG 2.1 A+AA at 320/375/1280 px, dark and high-contrast themes, the precinct dialog, the by-contest table, every `?draft` view; no horizontal page scroll. admin/review: Phase 3 follow-up | `a11y/public-pages.spec.js` (`npm run a11y`, CI job `pages`) |
+| 10 | Accessibility | **public pages done** (Phase 4): axe WCAG 2.1 A+AA at 320/375/1280 px, dark and high-contrast themes, the precinct dialog, the by-contest table, every `?draft` view; no horizontal page scroll. admin.html / review.html signed out and signed in (dashboard, field errors, upload → review checks) at the same widths | `a11y/public-pages.spec.js` (`npm run a11y`, CI job `pages`); `a11y/admin.spec.js` (`npm run a11y:admin` on the emulators, CI job `emulator`) |
 | 11 | Performance | **public pages measured** (Phase 4): Lighthouse mobile, budgets checked; baseline and results in `perf/BASELINE.md` | `perf/lighthouse.mjs` (`npm run perf`, local; needs Chrome) |
 | 12 | Resilience / chaos | **live updates done**: manifest-only polls, invalid data kept off screen ("delayed — retrying"), pause toggle, draft never polls, lazy reporting.json | `a11y/live-updates.spec.js` (Storage emulator URLs answered from goldens, no emulator needed) |
 | 13 | Dependency & secret security | `npm audit` + gitleaks + osv-scanner in CI (Phase 0); ZAP in Phase 5 | `.github/workflows/ci.yml` |

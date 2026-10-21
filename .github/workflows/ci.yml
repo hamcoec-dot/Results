@@ -62,6 +62,12 @@ jobs:
       - run: npm ci
       - name: Rules + callables on the emulators
         run: npm run test:emulator
+      - name: Admin and review pages, signed in (axe on the emulators)
+        working-directory: .
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run a11y:admin
 
   pages:
     # Layers 10 and 12: axe (WCAG 2.1 AA) and live-update tests on the public pages.
