@@ -9,11 +9,11 @@ Design: [plans/cloud-admin-upload.md](plans/cloud-admin-upload.md). Tests and tr
 |---|---|
 | Node port of the parser, merge, outputs and verify (`functions/src/`) | done: byte-identical to the Python pipeline, legacy defects D1–D4 fixed |
 | Checks, review payload, validation, publish rules, callables (`functions/src/`) | done: tested on in-memory fakes and on the emulators |
-| `admin.html` / `review.html` | not built yet (Phase 3) |
-| Public pages reading the cloud bucket (`RESULTS_BASE_URL`, `?draft`, pause control) | not built yet (Phase 4) |
+| `admin.html` / `review.html` | first pass done (Phase 3), signed-in pages checked with axe on the emulators |
+| Public pages reading the cloud bucket (`results-config.js`, `?draft`, pause control) | done (Phase 4); they keep reading `./` until Phase 5 sets `PUBLIC_BASE` |
 | GCP projects, deploy, monitoring | not done yet (Phase 5) |
 
-Until Phases 3–5 land, results publish the legacy way (see **Offline fallback**).
+Until Phase 5 deploys the cloud side, results publish the legacy way (see **Offline fallback**).
 
 ## How it works
 An admin uploads a tally-system "Custom Table Report" CSV and picks its kind (Zero, Early/ABS or Election Day).
@@ -80,7 +80,26 @@ npm test                 # unit, parity, property, fuzz, checks, review, service
 npm run test:emulator    # rules + callables on the emulators (Java 11+)
 ```
 Emulators by hand: `npx firebase-tools@13.35.1 emulators:start --only auth,firestore,functions,storage --project demo-hcec`
-(ports 9099, 8181, 9199, 5001).
+(ports 9099, 8181, 9199, 5001). Then `node tools/seed-emulator.js` (admin `admin@example.test`) and
+`node tools/emulator-drafts.js`, which publishes a sample file and prints `?emulator&draft=…` links.
+
+Every copy of the public site (GitHub Pages, the county IIS server) must include `results-config.js`, `app.js`,
+`styles.css` and `functions/src/validate.js` next to the four pages. Without the validator the pages still work,
+but they show bucket and draft data unvalidated, and log an error in the console.
+
+Public pages: serve the repo root (`npx http-server -p 8123 -c-1`) and open a page with
+- no parameter: the files next to the pages (`./`), as the live site does until `PUBLIC_BASE` is set in `results-config.js`;
+- `?local`: always `./` (the offline fallback);
+- `?emulator`: the Storage emulator's published `current/` files (localhost only);
+- `?draft=<32-hex id>`: a draft, with a red DRAFT banner, no live updates and `DRAFT_` export names.
+
+```bash
+npm ci && npx playwright install chromium   # repo root: page tooling
+npm run a11y             # axe (WCAG 2.1 AA) at 320/375/1280 px, live updates, DOM oracle
+npm run e2e:browsers     # behaviour tests in Firefox, WebKit, Pixel 7, iPhone 14
+npm run a11y:admin       # admin + review signed in, on the emulators
+npm run perf             # Lighthouse mobile vs the budgets (needs Chrome); see perf/BASELINE.md
+```
 
 ## Offline fallback
 No internet? Drop CSVs in `Results/`, run `Run_Monitor.bat`, open the pages. The legacy Python pipeline
@@ -95,7 +114,7 @@ No internet? Drop CSVs in `Results/`, run `Run_Monitor.bat`, open the pages. The
 ## Testing
 Public trust depends on this: every displayed number is proven equal to the source CSV. See [TESTING.md](TESTING.md).
 - `npm test` and `npm run test:pr` (with coverage gates) run on every PR, with `npm audit`, gitleaks and osv-scanner.
-- `npm run test:emulator` runs on every PR (CI job `emulator`).
+- `npm run test:emulator` and `npm run a11y:admin` run on every PR (CI job `emulator`); `npm run a11y` in CI job `pages`; `npm run e2e:browsers` in CI job `browsers`.
 - Nightly: property tests at 100,000 runs and Stryker mutation testing (≥ 85 %).
 
 ## Troubleshooting

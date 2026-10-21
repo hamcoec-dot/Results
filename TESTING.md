@@ -17,6 +17,18 @@ npm run test:emulator    # layers 6-7 on the Auth/Firestore/Storage/Functions em
 npm run golden           # regenerate Python golden outputs (needs Python 3)
 ```
 
+Public pages (from the repo root):
+
+```bash
+npm ci && npx playwright install chromium
+npm run a11y             # axe + live-update tests on the four public pages (Playwright serves the repo on :8124)
+npm run e2e:browsers     # the behaviour tests in Firefox, WebKit, Pixel 7 and iPhone 14 (needs: npx playwright install firefox webkit)
+npm run a11y:admin       # admin + review pages signed in: starts the emulators, seeds them, runs the admin specs (axe, flows, keyboard)
+npm run a11y:admin:firefox  # the same admin specs in Firefox
+npm run perf             # Lighthouse mobile on the four pages vs the budgets (needs Chrome); see perf/BASELINE.md
+node tools/emulator-drafts.js   # emulators running + seeded: publish sample 02, draft 03, print the ?emulator&draft= links
+```
+
 Replay a fast-check failure: `FC_SEED=<seed> FC_PATH=<path> npm test` (both are printed on failure).
 Generate a fixture by hand: `node tools/gen-fixture.js --seed 42 --kind ed --layout wide --names wild --out x.csv`.
 
@@ -31,11 +43,11 @@ Generate a fixture by hand: `node tools/gen-fixture.js --seed 42 --kind ed --lay
 | 5 | Mutation (Stryker) | configured: csv, pycompat, parse, merge, verify, checks, validate; break < 85 %; nightly, one shard per file | `functions/stryker.config.json`, `.github/workflows/nightly.yml` |
 | 6 | Security rules | **done** (emulator, CI job `emulator`) | `test/emulator/rules.test.js` (`npm run test:emulator`) |
 | 7 | Function integration | **done**: full contract on in-memory fakes; refusals, publish, tamper and race on the emulators | `service.test.js`; `test/emulator/integration.test.js` |
-| 8 | E2E + DOM oracle | Phase 4 | — |
-| 9 | Visual regression | Phase 3/4 | — |
-| 10 | Accessibility | Phase 3/4 | — |
-| 11 | Performance | Phase 3/4 | — |
-| 12 | Resilience / chaos | Phase 4 | — |
+| 8 | E2E + DOM oracle | **public pages done**: every contest, candidate, vote, percentage and R-of-T on the summary page; every reporting row and the exact Reported/Pending precinct lists; the precinct page by contest (every precinct × candidate, status, total) and by precinct — all equal to the golden JSON the page read; hostile names (`<script>`, `onerror`, `onload`) render as text on every page, and formula-like names export as text (CSV injection); admin flows on the emulators (publish, rollback, discard, guard rails). Runs in Chromium, Firefox, WebKit, Pixel 7 and iPhone 14 | `a11y/dom-oracle.spec.js`, `a11y/xss.spec.js` (`npm run a11y`; `npm run e2e:browsers`, CI job `browsers`); `a11y/admin-flows.spec.js` (`npm run a11y:admin`) |
+| 9 | Visual regression | **public pages, local only**: screenshots of the four pages and the admin sign-in page at 320, 375, 768 and 1280 px, dark mode, forced colors (summary, slideshow, admin sign-in) and the precinct dialog, against committed Windows baselines (fonts differ by OS, so not in CI); `VISUAL=1 … visual`, `--update-snapshots` after an intended change | `a11y/visual.spec.js`, `a11y/visual.spec.js-snapshots/` |
+| 10 | Accessibility | **public pages done** (Phase 4): axe WCAG 2.1 A+AA at 320/375/1280 px, dark and high-contrast themes, the precinct dialog, the by-contest table, every `?draft` view; no horizontal page scroll. admin.html / review.html signed out and signed in at the same widths: dashboard, field errors, review with warnings, ready to publish, the open publish dialog, published, and a blocked draft; keyboard only: every public control, and the admin path sign-in → upload → review → acknowledge → publish → rollback (focus into and out of each dialog) | `a11y/keyboard.spec.js`, `a11y/admin-keyboard.spec.js`, `a11y/public-pages.spec.js` (`npm run a11y`, CI job `pages`); `a11y/admin.spec.js` (`npm run a11y:admin` on the emulators, CI job `emulator`) |
+| 11 | Performance | **public pages measured** (Phase 4): Lighthouse mobile, budgets checked; no long task over 50 ms during a full live refresh at 4× CPU; review filters, keystrokes and warning ticks < 100 ms at 4× CPU (worst 48 ms, Event Timing); an unchanged poll under 1 KB; a hidden tab makes no requests. Baseline and results in `perf/BASELINE.md` | `perf/lighthouse.mjs` (`npm run perf`, local; needs Chrome); `a11y/refresh-longtasks.spec.js` (`PERF=1`); `a11y/admin-review-timing.spec.js` (`PERF=1 npm run a11y:admin`); `a11y/live-updates.spec.js` |
+| 12 | Resilience / chaos | **live updates done**: manifest-only polls, invalid data kept off screen ("delayed — retrying"), pause toggle, draft never polls, lazy reporting.json; 500/503/404, truncated, empty and HTML-error bodies, a manifest whose dataVersion disagrees, a half-finished publish, a stalled request (20 s timeout) and a slow one, an aborted request, a skewed clock, a tab hidden for 2 h, a failed first load | `a11y/resilience.spec.js`, `a11y/live-updates.spec.js` (Storage emulator URLs answered from goldens, no emulator needed) |
 | 13 | Dependency & secret security | `npm audit` + gitleaks + osv-scanner in CI (Phase 0); ZAP in Phase 5 | `.github/workflows/ci.yml` |
 | 14 | Load (k6) | Phase 5 | — |
 | 15 | Staging smoke | Phase 5 | — |

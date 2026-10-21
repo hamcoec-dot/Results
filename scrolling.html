@@ -10,9 +10,8 @@
     window.onerror = function(msg, src, line, col, err) {
       var d = document.createElement('div');
       d.style.cssText = 'background:#fef2f2; border:2px solid #dc2626; color:#991b1b; padding:20px; margin:20px; font-family:sans-serif; font-size:14px; border-radius:8px; z-index:9999; position:relative;';
-      d.innerHTML = '<h3>&#x26A0;&#xFE0F; JavaScript Runtime Error:</h3>' +
-                    '<p><strong>Message:</strong> ' + msg + '</p>' +
-                    '<p><strong>Source:</strong> ' + src + ' (Line ' + line + ', Col ' + col + ')</p>';
+      d.setAttribute('role', 'alert');
+      d.textContent = '\u26A0\uFE0F JavaScript runtime error: ' + msg + ' (' + src + ', line ' + line + ', col ' + col + ')';
       document.body.insertBefore(d, document.body.firstChild);
       return false;
     };
@@ -20,17 +19,20 @@
 
   <!-- CSS Design System -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
+  <script src="./results-config.js" data-files="summary.json"></script>
 </head>
 <body class="scrolling-body">
 
   <!-- Screen Reader Skip Link (WCAG 2.1 AA SC 1.3.2) -->
-  <a href="#main-content" class="sr-only">Skip to main content</a>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <!-- Top Navigation Bar -->
   <nav class="navbar" role="navigation" aria-label="Main Navigation">
     <a href="index.html" class="navbar-brand" aria-label="Hamilton County Election Commission Home">
       <div class="navbar-seal" aria-hidden="true">
-        <svg class="tn-seal-svg" viewBox="0 0 100 100" width="100%" height="100%" aria-label="Tennessee Three Grand Divisions Logo">
+        <svg class="tn-seal-svg" viewBox="0 0 100 100" width="100%" height="100%" focusable="false">
           <circle cx="50" cy="50" r="50" fill="#CC0000" />
           <circle cx="50" cy="50" r="43" fill="none" stroke="#FFFFFF" stroke-width="4" />
           <circle cx="50" cy="50" r="41" fill="#002147" />
@@ -52,7 +54,7 @@
       <a href="reporting.html" class="nav-btn">Reporting Status</a>
       <a href="precincts.html" class="nav-btn">Precinct Results</a>
       <a href="scrolling.html" class="nav-btn active" aria-current="page">&#x1F4FA; Scrolling Results</a>
-      <button type="button" class="nav-btn" onclick="ElectionApp.refreshResults()" aria-label="Refresh Election Results">
+      <button type="button" class="nav-btn" onclick="ElectionApp.refreshResults()">
         &#x21BB; Refresh
       </button>
       <button type="button" id="dark-mode-toggle" class="nav-btn" onclick="ElectionApp.toggleDarkMode()" aria-label="Toggle Dark Mode Theme">
@@ -76,6 +78,7 @@
     <header class="scrolling-ticker">
       <div class="ticker-header-top">
         <span id="ticker-status" class="live-badge">&#x25CF; UNOFFICIAL RESULTS</span>
+        <p id="live-status" class="live-status ticker-live-status" role="status">Loading results…</p>
         <span id="ticker-date" class="ticker-date-title">--</span>
       </div>
 
@@ -103,23 +106,20 @@
       </div>
     </header>
 
-    <!-- Slide Display Viewport -->
-    <section id="slide-viewport" class="slide-viewport" aria-live="polite">
-      <!-- Dynamically rendered slide content -->
-    </section>
-
-    <!-- Floating Projector Operator Controls Bar -->
-    <footer class="projector-controls" role="toolbar" aria-label="Slideshow Controls">
+    <!-- Projector controls: fixed at the bottom on wide screens; first in the DOM so keyboard users
+         reach them before the slide, and on phones they sit above it (slide changes never move them) -->
+    <div class="projector-controls" role="group" aria-label="Slideshow Controls">
       <div class="control-group">
         <button type="button" id="btn-prev" class="proj-btn" onclick="ElectionApp.prevSlide()" aria-label="Previous Slide">
           &#x23EE;&#xFE0F; Prev
         </button>
-        <button type="button" id="btn-playpause" class="proj-btn active" onclick="ElectionApp.togglePause()" aria-label="Pause Slideshow">
-          &#x23F8;&#xFE0F; Pause
+        <button type="button" id="btn-playpause" class="proj-btn active" onclick="ElectionApp.togglePause()">
+          &#x23F8;&#xFE0F; Pause slideshow
         </button>
         <button type="button" id="btn-next" class="proj-btn" onclick="ElectionApp.nextSlide()" aria-label="Next Slide">
           Next &#x23ED;&#xFE0F;
         </button>
+        <button type="button" id="live-toggle" class="live-toggle" aria-pressed="false" onclick="ElectionApp.toggleLiveUpdates()">Pause live updates</button>
       </div>
 
       <div class="control-group">
@@ -139,20 +139,17 @@
           &#x26F6;&#xFE0F; Fullscreen
         </button>
       </div>
-    </footer>
+    </div>
+
+    <!-- Slide Display Viewport -->
+    <section id="slide-viewport" class="slide-viewport" aria-live="off" aria-label="Current slide">
+      <!-- Dynamically rendered slide content -->
+    </section>
 
   </main>
 
   <!-- Election Data & Application Controller Scripts -->
-  <script src="./data.js" defer></script>
-  <script src="app.js" defer></script>
-  <script>
-    // Initialize Slideshow Engine on DOM Load
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.ElectionApp && window.ElectionApp.initSlideshow) {
-        window.ElectionApp.initSlideshow();
-      }
-    });
-  </script>
+  <script src="./functions/src/validate.js" defer></script>
+  <script src="./app.js" defer></script>
 </body>
 </html>
