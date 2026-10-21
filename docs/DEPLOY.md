@@ -48,6 +48,11 @@ The manual deploy in README › Deploy still works as before.
    - the JSON is stored gzip-encoded;
    - CORS allows `https://govotehamiltontn.gov`;
    - listing the bucket is denied.
+5. Staging only, after the smoke test:
+   - **Load:** `node tools/load-manifest.js` sends 2,000 manifest fetches, 200 at a time. It fails on any error or a p95 over 300 ms.
+   - **ZAP baseline:** passive scans (spider and passive rules, no attacks) of the Pages site and the staging bucket.
+     Warnings are reported in the `zap-pages` and `zap-bucket` artifacts but don't fail the run, because GitHub Pages' headers can't be changed.
+     The rules marked FAIL in `.zap/rules.tsv` do fail it: a vulnerable JS library, PII disclosure, CORS misconfiguration and error disclosure.
 
 ## Monitoring and alerts
 Once per project, after the first deploy: `node tools/setup-monitoring.js` (uptime check, the auditLive
