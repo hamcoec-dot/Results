@@ -861,7 +861,7 @@ window.ElectionApp = (function() {
 
       const html = `
         <tr>
-          <td style="font-weight:700;">${escapeHtml(contest.title)}</td>
+          <th scope="row" style="font-weight:700;">${escapeHtml(contest.title)}</th>
           <td>${escapeHtml(contest.voteFor)}</td>
           <td>
             <button type="button" class="reporting-btn" data-contest="${escapeHtml(contest.title)}" data-focus-key="row:${slugify(contest.title)}" aria-haspopup="dialog">
@@ -1980,7 +1980,7 @@ window.ElectionApp = (function() {
 
       tableRowsHtml += `
         <tr style="border-bottom:1px solid var(--border);">
-          <td style="font-weight:600; text-align:left; padding:12px 16px;">${escapeHtml(p.name)}</td>
+          <th scope="row" style="font-weight:600; text-align:left; padding:12px 16px;">${escapeHtml(p.name)}</th>
           <td style="text-align:center; padding:12px 16px;">
             <span class="status-pill ${p.reported ? 'status-reported' : 'status-pending'}" style="font-size:11px; padding:3px 8px;">
               ${p.reported ? 'REPORTED' : 'PENDING'}
@@ -1994,7 +1994,7 @@ window.ElectionApp = (function() {
 
     let candHeadersHtml = '';
     cands.forEach(cand => {
-      candHeadersHtml += `<th style="text-align:right; padding:12px 16px;">${escapeHtml(cand.name)}</th>`;
+      candHeadersHtml += `<th scope="col" style="text-align:right; padding:12px 16px;">${escapeHtml(cand.name)}</th>`;
     });
 
     const wrapper = document.createElement('div');
@@ -2014,11 +2014,12 @@ window.ElectionApp = (function() {
       </header>
       <div style="overflow-x:auto; padding:8px 0;" role="region" tabindex="0" aria-label="Precinct results for ${escapeHtml(contest.title)}, scrolls sideways">
         <table class="reporting-table" style="width:100%; border-collapse:collapse;">
+          <caption class="sr-only">Votes by precinct for ${escapeHtml(contest.title)}</caption>
           <thead>
             <tr style="background:var(--neutral-light); border-bottom:2px solid var(--border);">
-              <th style="text-align:left; padding:12px 16px;">Precinct</th>
-              <th style="text-align:center; padding:12px 16px;">Status</th>
-              <th style="text-align:right; padding:12px 16px;">Total Votes</th>
+              <th scope="col" style="text-align:left; padding:12px 16px;">Precinct</th>
+              <th scope="col" style="text-align:center; padding:12px 16px;">Status</th>
+              <th scope="col" style="text-align:right; padding:12px 16px;">Total Votes</th>
               ${candHeadersHtml}
             </tr>
           </thead>
