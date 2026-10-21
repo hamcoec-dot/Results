@@ -39,11 +39,13 @@ test.describe('admin by keyboard only (emulators)', () => {
     }
     await expect(page.locator('#upload-form')).toBeVisible({ timeout: 15000 });
 
-    // Setup, by mouse (not under test): the rollback at the end needs an earlier published version.
+    // Setup, by mouse (not under test): the rollback at the end needs a version other than the live
+    // one, whatever earlier tests left. Two different files give at least one new version each time.
     await expect(page.locator('#history')).toContainText(/None\.|Live now/, { timeout: 15000 });
-    if (!(await page.locator('#history').textContent()).includes('Live now')) {
-      await page.check('#k-early');
-      await page.setInputFiles('#u-file', SAMPLE.replace('04-After 10 Reporting', '02-After EV'));
+    const versions = await page.locator('#history tbody tr').count();
+    for (const sample of versions >= 2 ? [] : ['03-After 5 Reporting', '05-End of Election Day']) {
+      await page.check('#k-ed');
+      await page.setInputFiles('#u-file', SAMPLE.replace('04-After 10 Reporting', sample));
       await page.click('#upload-form button[type="submit"]');
       await page.waitForURL(/review\.html\?/, { timeout: 120000 });
       await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
