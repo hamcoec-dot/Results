@@ -57,4 +57,19 @@ test.describe('visual regression', () => {
     await page.locator('#modal-precinct-grid .precinct-chip').first().waitFor();
     await expect(page).toHaveScreenshot('dialog-375.png', { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.002 });
   });
+
+  // Forced colors (Windows High Contrast): buttons keep outlines, the selected filter and pressed
+  // toggles use Highlight, bars stay visible (styles.css @media (forced-colors: active)).
+  for (const [name, file, ready] of [['index', 'index.html', '#contests-container article'], ['scrolling', 'scrolling.html', '#slide-viewport .slide-card'], ['admin-signin', 'admin.html?emulator', '#signin']]) {
+    test(`${name} forced colors @ 375px`, async ({ page }) => {
+      await page.emulateMedia({ forcedColors: 'active' });
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto(file);
+      await page.locator(ready).first().waitFor();
+      if (file === 'scrolling.html') await page.click('#btn-playpause');
+      if (file === 'index.html') await page.click('.tab-btn[data-party="REP"]'); // a selected filter
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page).toHaveScreenshot(`${name}-forced-375.png`, { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.002 });
+    });
+  }
 });
