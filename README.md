@@ -96,6 +96,7 @@ Public pages: serve the repo root (`npx http-server -p 8123 -c-1`) and open a pa
 ```bash
 npm ci && npx playwright install chromium   # repo root: page tooling
 npm run a11y             # axe (WCAG 2.1 AA) at 320/375/1280 px, live updates, DOM oracle
+npm run e2e:browsers     # behaviour tests in Firefox, WebKit, Pixel 7, iPhone 14
 npm run a11y:admin       # admin + review signed in, on the emulators
 npm run perf             # Lighthouse mobile vs the budgets (needs Chrome); see perf/BASELINE.md
 ```
@@ -113,7 +114,7 @@ No internet? Drop CSVs in `Results/`, run `Run_Monitor.bat`, open the pages. The
 ## Testing
 Public trust depends on this: every displayed number is proven equal to the source CSV. See [TESTING.md](TESTING.md).
 - `npm test` and `npm run test:pr` (with coverage gates) run on every PR, with `npm audit`, gitleaks and osv-scanner.
-- `npm run test:emulator` and `npm run a11y:admin` run on every PR (CI job `emulator`); `npm run a11y` in CI job `pages`.
+- `npm run test:emulator` and `npm run a11y:admin` run on every PR (CI job `emulator`); `npm run a11y` in CI job `pages`; `npm run e2e:browsers` in CI job `browsers`.
 - Nightly: property tests at 100,000 runs and Stryker mutation testing (≥ 85 %).
 
 ## Troubleshooting

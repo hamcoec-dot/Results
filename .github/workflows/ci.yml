@@ -98,6 +98,29 @@ jobs:
           path: test-results
           if-no-files-found: ignore
 
+  browsers:
+    # Layer 8 on the other profiles: the behaviour tests (DOM oracle, features, live updates,
+    # resilience, hostile names) in Firefox, WebKit, and on emulated Pixel 7 and iPhone 14.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Behaviour tests in other browsers (npm run e2e:browsers)
+        run: npm run e2e:browsers
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-browsers-results
+          path: test-results
+          if-no-files-found: ignore
+
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 15
