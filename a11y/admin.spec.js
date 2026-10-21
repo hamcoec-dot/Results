@@ -112,6 +112,16 @@ test.describe('signed in (emulators)', () => {
     await page.click('#publish-confirm');
     await expect(page.locator('#publish-result')).toContainText('Published', { timeout: 60000 });
     await audit(page);
+
+    // Back on the dashboard with a version published: the published-versions history, and any controls
+    // that need something published (e.g. a settings rebuild), at every width.
+    await page.goto('admin.html?emulator');
+    await expect(page.locator('#published-now')).toContainText('Live data version', { timeout: 15000 });
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: 800 });
+      await audit(page);
+      await noHorizontalScroll(page);
+    }
   });
 
   test('review.html: a blocked draft (Election Day file uploaded as Zero)', async ({ page }) => {
