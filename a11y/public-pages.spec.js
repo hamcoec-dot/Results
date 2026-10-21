@@ -1,6 +1,6 @@
 // Accessibility checks for the public pages (plan: Mobile & accessibility requirements).
 // Each page is loaded in its default mode (./ data), checked with axe for WCAG 2.1 A + AA,
-// and checked for horizontal page scroll (1.4.10).
+// and checked for horizontal page scroll (1.4.10) and for text clipped under text-spacing overrides (1.4.12).
 const { test, expect } = require('@playwright/test');
 const { AxeBuilder } = require('@axe-core/playwright');
 const fs = require('node:fs');
@@ -47,7 +47,7 @@ for (const [file, ready] of Object.entries(PAGES)) {
       await page.goto(file);
       await page.locator(ready).first().waitFor();
       await audit(page);
-      if (file !== 'scrolling.html') await noHorizontalScroll(page);
+      await noHorizontalScroll(page);
     });
   }
 
@@ -91,3 +91,28 @@ test('precincts.html by contest', async ({ page }) => {
   await audit(page);
   await noHorizontalScroll(page);
 });
+
+// 1.4.12: with the WCAG text-spacing overrides applied, no text container clips its content.
+const TEXT_SPACING = '* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }';
+
+for (const [file, ready] of Object.entries(PAGES)) {
+  for (const width of [320, 1280]) {
+    test(`${file} text spacing @ ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(file);
+      await page.locator(ready).first().waitFor();
+      await page.addStyleTag({ content: TEXT_SPACING });
+      const clipped = await page.evaluate(() => Array.from(document.querySelectorAll('body *')).filter((el) => {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || !el.textContent.trim()) return false;
+        // Screen-reader-only text and decorative parts are clipped by design.
+        if (el.closest('.sr-only, .skip-link, [aria-hidden="true"]')) return false;
+        const hidX = cs.overflowX === 'hidden' || cs.overflowX === 'clip';
+        const hidY = cs.overflowY === 'hidden' || cs.overflowY === 'clip';
+        return (hidX && el.scrollWidth > el.clientWidth + 1) || (hidY && el.scrollHeight > el.clientHeight + 1);
+      }).map((el) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${[...el.classList].join('.')}`));
+      expect(clipped, 'text clipped under text-spacing overrides').toEqual([]);
+      await noHorizontalScroll(page);
+    });
+  }
+}

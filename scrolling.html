@@ -78,6 +78,7 @@
     <header class="scrolling-ticker">
       <div class="ticker-header-top">
         <span id="ticker-status" class="live-badge">&#x25CF; UNOFFICIAL RESULTS</span>
+        <p id="live-status" class="live-status ticker-live-status" role="status">Loading results…</p>
         <span id="ticker-date" class="ticker-date-title">--</span>
       </div>
 
@@ -105,13 +106,9 @@
       </div>
     </header>
 
-    <!-- Slide Display Viewport -->
-    <section id="slide-viewport" class="slide-viewport" aria-live="off" aria-label="Current slide">
-      <!-- Dynamically rendered slide content -->
-    </section>
-
-    <!-- Floating Projector Operator Controls Bar -->
-    <footer class="projector-controls" role="group" aria-label="Slideshow Controls">
+    <!-- Projector controls: fixed at the bottom on wide screens; first in the DOM so keyboard users
+         reach them before the slide, and on phones they sit above it (slide changes never move them) -->
+    <div class="projector-controls" role="group" aria-label="Slideshow Controls">
       <div class="control-group">
         <button type="button" id="btn-prev" class="proj-btn" onclick="ElectionApp.prevSlide()" aria-label="Previous Slide">
           &#x23EE;&#xFE0F; Prev
@@ -122,6 +119,7 @@
         <button type="button" id="btn-next" class="proj-btn" onclick="ElectionApp.nextSlide()" aria-label="Next Slide">
           Next &#x23ED;&#xFE0F;
         </button>
+        <button type="button" id="live-toggle" class="live-toggle" aria-pressed="false" onclick="ElectionApp.toggleLiveUpdates()">Pause live updates</button>
       </div>
 
       <div class="control-group">
@@ -141,12 +139,12 @@
           &#x26F6;&#xFE0F; Fullscreen
         </button>
       </div>
+    </div>
 
-      <div class="control-group live-group">
-        <button type="button" id="live-toggle" class="live-toggle" aria-pressed="false" onclick="ElectionApp.toggleLiveUpdates()">Pause live updates</button>
-        <p id="live-status" class="live-status" role="status">Loading results…</p>
-      </div>
-    </footer>
+    <!-- Slide Display Viewport -->
+    <section id="slide-viewport" class="slide-viewport" aria-live="off" aria-label="Current slide">
+      <!-- Dynamically rendered slide content -->
+    </section>
 
   </main>
 

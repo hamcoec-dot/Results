@@ -1512,11 +1512,17 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   display: none !important;
 }
 
-.live-group .live-status {
-  flex: 0 1 auto !important;
-  min-height: 4.5em !important;
-  font-size: 12px !important;
-  color: var(--neutral-dark) !important;
+/* Slideshow: the status sits in the ticker's top row, the toggle with the projector controls */
+.ticker-live-status {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  justify-content: center !important;
+  font-size: clamp(11px, 1.3vh, 15px) !important;
+  color: var(--neutral-muted) !important;
+}
+
+#slide-jump-menu {
+  max-width: 260px !important;
 }
 
 /* Ticker values keep their width when "--" becomes a number, so the slide does not jump (CLS) */
@@ -1596,4 +1602,76 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .contests-grid > .contest-card {
   content-visibility: auto;
   contain-intrinsic-size: auto 360px;
+}
+
+/* Narrow phones: a candidate row stacks (name, then bar and votes), so long names and text-spacing
+   overrides are never clipped by the card (1.4.10, 1.4.12). The table keeps its ARIA roles. */
+@media (max-width: 480px) {
+  .contest-card .candidates-table,
+  .contest-card .candidates-table tbody {
+    display: block !important;
+  }
+
+  .contest-card .candidate-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 6px 12px !important;
+    padding: 12px !important;
+  }
+
+  .contest-card .candidate-row td {
+    display: block !important;
+    width: auto !important;
+    padding: 0 !important;
+  }
+
+  .contest-card .cand-name-cell {
+    grid-column: 1 / -1 !important;
+  }
+
+  .contest-card .cand-bar-cell {
+    align-self: center !important;
+  }
+}
+
+/* The slideshow fits one screen on a projector. On phones and short windows the page scrolls
+   instead, so nothing is clipped (1.4.10) and the controls sit below the slide. */
+@media (max-width: 900px), (max-height: 600px) {
+  .scrolling-body,
+  .scrolling-main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .scrolling-body .slide-viewport,
+  .scrolling-body .slide-card {
+    overflow: visible !important;
+  }
+
+  .projector-controls {
+    position: static !important;
+    flex-wrap: wrap !important;
+  }
+
+  .ticker-header-top {
+    flex-wrap: wrap !important;
+  }
+
+  .ticker-live-status {
+    order: 3 !important;
+    flex-basis: 100% !important;
+    justify-content: flex-start !important;
+    min-height: 3em !important;
+  }
+
+  .projector-controls .control-group {
+    flex-wrap: wrap !important;
+    max-width: 100% !important;
+  }
+
+  .proj-select {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
 }

@@ -31,14 +31,15 @@ the slide down). Served **without** compression, LCP was 2.85 s on every page (`
 | index.html | 100 | 0.90 s | 1.35 s | 0 ms | 0.031 | 58 KB |
 | reporting.html | 100 | 0.91 s | 1.36 s | 0 ms | 0.025 | 60 KB |
 | precincts.html | 100 | 1.11 s | 1.35 s | 12 ms | 0.000 | 62 KB |
-| scrolling.html | 100 | 1.07 s | 1.35 s | 0 ms | 0.003 | 57 KB |
+| scrolling.html | 100 | 1.07 s | 1.35 s | 0 ms | 0.012 | 58 KB |
 
-Own JS (gzip): 23.8 KB (`app.js`, `results-config.js`, `functions/src/validate.js`). All budgets met.
+Own JS (gzip): 24.3 KB (`app.js`, `results-config.js`, `functions/src/validate.js`). All budgets met.
 
 What changed for performance:
 - `data.js` (271 KB raw) is no longer loaded; each page fetches only its file(s). It stays as the error fallback.
 - `results-config.js` runs in `<head>` and starts the data requests (and `manifest.json`) before `app.js` arrives.
-- CLS: the live-status line reserves its height; the slideshow ticker values keep a minimum width.
+- CLS: the live-status line reserves its height; the slideshow ticker values keep a minimum width. On phones the
+  slideshow scrolls instead of clipping (1.4.10), with its controls above the slide so slide changes never move them.
 - Polling (bucket mode): `manifest.json` only, under 1 KB, every 60 s; the page's JSON is fetched only when
   `dataVersion` changes; no polling while the tab is hidden, paused, or in a draft view.
 - A live update on the summary page replaces only the changed contest cards; off-screen cards skip rendering
