@@ -1,0 +1,434 @@
+[
+ [
+  {
+   "key": "turnout-high:0",
+   "id": "turnout-high",
+   "severity": "warn",
+   "title": "Precinct turnout above 95 %",
+   "detail": "COLLEGEDALE B: 97.58 %",
+   "refs": [
+    {
+     "precinct": "COLLEGEDALE B"
+    }
+   ]
+  },
+  {
+   "key": "close-race:0",
+   "id": "close-race",
+   "severity": "warn",
+   "title": "Close races (17)",
+   "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 8 vote(s)\nTennessee House of Representatives, District 29: margin 8 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+   "refs": [
+    {
+     "contest": "Governor"
+    },
+    {
+     "contest": "United States Senate"
+    },
+    {
+     "contest": "United States House of Representatives, District 3"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 28"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 29"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 30"
+    },
+    {
+     "contest": "Collegedale Commissioner"
+    },
+    {
+     "contest": "East Ridge City Council East Ridge"
+    },
+    {
+     "contest": "East Ridge City Court Clerk East Ridge"
+    },
+    {
+     "contest": "East Ridge Charter Amendment 1 East Ridge"
+    },
+    {
+     "contest": "Lakesite Commission"
+    },
+    {
+     "contest": "Red Bank Commission Red Bank"
+    },
+    {
+     "contest": "Red Bank Charter Referendum Red Bank"
+    },
+    {
+     "contest": "Ridgeside Commission"
+    },
+    {
+     "contest": "Signal Mountain Town Council"
+    },
+    {
+     "contest": "Soddy Daisy Commissioner"
+    },
+    {
+     "contest": "Walden Referendum"
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "key": "reporting-mismatch:0",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Governor: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "refs": [
+    {
+     "contest": "Governor"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:1",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Constitutional Amendment #1: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #1"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:2",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Constitutional Amendment #2: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #2"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:3",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Constitutional Amendment #3: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #3"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:4",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "United States Senate: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "refs": [
+    {
+     "contest": "United States Senate"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:5",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "United States House of Representatives, District 3: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "refs": [
+    {
+     "contest": "United States House of Representatives, District 3"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:6",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Tennessee Senate, District 11: the file says 3 reporting, but 8 precinct(s) show new votes: EAST CHATTANOOGA, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, WALDEN.",
+   "refs": [
+    {
+     "contest": "Tennessee Senate, District 11"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:7",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Tennessee House of Representatives, District 26: the file says 2 reporting, but 3 precinct(s) show new votes: LAKESITE, SODDY DAISY A, SODDY DAISY B.",
+   "refs": [
+    {
+     "contest": "Tennessee House of Representatives, District 26"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:8",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Tennessee House of Representatives, District 27: the file says 4 reporting, but 7 precinct(s) show new votes: RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, WALDEN.",
+   "refs": [
+    {
+     "contest": "Tennessee House of Representatives, District 27"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:9",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Tennessee House of Representatives, District 28: the file says 1 reporting, but 2 precinct(s) show new votes: EAST CHATTANOOGA, ST ELMO.",
+   "refs": [
+    {
+     "contest": "Tennessee House of Representatives, District 28"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:10",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Tennessee House of Representatives, District 29: the file says 1 reporting, but 2 precinct(s) show new votes: COLLEGEDALE B, TYNER.",
+   "refs": [
+    {
+     "contest": "Tennessee House of Representatives, District 29"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:11",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Tennessee House of Representatives, District 30: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "refs": [
+    {
+     "contest": "Tennessee House of Representatives, District 30"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:12",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Collegedale Commissioner: the file says 0 reporting, but 1 precinct(s) show new votes: COLLEGEDALE B.",
+   "refs": [
+    {
+     "contest": "Collegedale Commissioner"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:13",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "East Ridge Mayor East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "refs": [
+    {
+     "contest": "East Ridge Mayor East Ridge"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:14",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "East Ridge City Council East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "refs": [
+    {
+     "contest": "East Ridge City Council East Ridge"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:15",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "East Ridge City Court Clerk East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "refs": [
+    {
+     "contest": "East Ridge City Court Clerk East Ridge"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:16",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "East Ridge Charter Amendment 1 East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "refs": [
+    {
+     "contest": "East Ridge Charter Amendment 1 East Ridge"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:17",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Lakesite Commission: the file says 0 reporting, but 1 precinct(s) show new votes: LAKESITE.",
+   "refs": [
+    {
+     "contest": "Lakesite Commission"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:18",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Red Bank Commission Red Bank: the file says 0 reporting, but 1 precinct(s) show new votes: RED BANK B.",
+   "refs": [
+    {
+     "contest": "Red Bank Commission Red Bank"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:19",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Red Bank Charter Referendum Red Bank: the file says 0 reporting, but 1 precinct(s) show new votes: RED BANK B.",
+   "refs": [
+    {
+     "contest": "Red Bank Charter Referendum Red Bank"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:20",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Ridgeside Commission: the file says 0 reporting, but 1 precinct(s) show new votes: RIDGESIDE.",
+   "refs": [
+    {
+     "contest": "Ridgeside Commission"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:21",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Signal Mountain Town Council: the file says 1 reporting, but 2 precinct(s) show new votes: SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B.",
+   "refs": [
+    {
+     "contest": "Signal Mountain Town Council"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:22",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Walden Alderman: the file says 0 reporting, but 1 precinct(s) show new votes: WALDEN.",
+   "refs": [
+    {
+     "contest": "Walden Alderman"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:23",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Walden Referendum: the file says 0 reporting, but 1 precinct(s) show new votes: WALDEN.",
+   "refs": [
+    {
+     "contest": "Walden Referendum"
+    }
+   ]
+  },
+  {
+   "key": "turnout-high:0",
+   "id": "turnout-high",
+   "severity": "warn",
+   "title": "Turnout above 100 %",
+   "detail": "County turnout 151.6 %.",
+   "refs": []
+  },
+  {
+   "key": "close-race:0",
+   "id": "close-race",
+   "severity": "warn",
+   "title": "Close races (17)",
+   "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 8 vote(s)\nTennessee House of Representatives, District 29: margin 8 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+   "refs": [
+    {
+     "contest": "Governor"
+    },
+    {
+     "contest": "United States Senate"
+    },
+    {
+     "contest": "United States House of Representatives, District 3"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 28"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 29"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 30"
+    },
+    {
+     "contest": "Collegedale Commissioner"
+    },
+    {
+     "contest": "East Ridge City Council East Ridge"
+    },
+    {
+     "contest": "East Ridge City Court Clerk East Ridge"
+    },
+    {
+     "contest": "East Ridge Charter Amendment 1 East Ridge"
+    },
+    {
+     "contest": "Lakesite Commission"
+    },
+    {
+     "contest": "Red Bank Commission Red Bank"
+    },
+    {
+     "contest": "Red Bank Charter Referendum Red Bank"
+    },
+    {
+     "contest": "Ridgeside Commission"
+    },
+    {
+     "contest": "Signal Mountain Town Council"
+    },
+    {
+     "contest": "Soddy Daisy Commissioner"
+    },
+    {
+     "contest": "Walden Referendum"
+    }
+   ]
+  }
+ ]
+]

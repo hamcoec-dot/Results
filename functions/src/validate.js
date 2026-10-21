@@ -93,8 +93,9 @@
       if (count(r, p, pair[0]) && pair[0] >= nPrecincts) r.fail(p, 'precinct index out of range');
       reported += pair[1];
     });
-    // Every precinct reported <=> the contest is complete; otherwise flags never exceed the count.
-    if (reported > c.precinctsReporting) r.fail(path, reported + ' precincts flagged reported, count says ' + c.precinctsReporting);
+    // Flags may differ from the count only when the reviewer acknowledged a reporting-mismatch
+    // warning (the CSV's count publishes as written), so the hard limit here is the total.
+    if (reported > c.precinctsTotal) r.fail(path, reported + ' precincts flagged reported, but the contest has only ' + c.precinctsTotal);
   }
 
   function overall(r, path, l) {

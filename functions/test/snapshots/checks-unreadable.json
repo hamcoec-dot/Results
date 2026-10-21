@@ -1,0 +1,8 @@
+{
+ "key": "unreadable:0",
+ "id": "unreadable",
+ "severity": "block",
+ "title": "File could not be read",
+ "detail": "field larger than field limit (131072) (line 9). Re-export the Custom Table Report and upload it again.",
+ "refs": []
+}

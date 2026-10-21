@@ -1,0 +1,490 @@
+[
+ [
+  {
+   "key": "output-invalid:0",
+   "id": "output-invalid",
+   "severity": "block",
+   "title": "Published files would be rejected by the results pages",
+   "detail": "reporting.json latest.contests[0]: 5 precincts flagged reported, but the contest has only 4\nreporting.json latest.contests[1]: 5 precincts flagged reported, but the contest has only 4\nreporting.json latest.contests[2]: 5 precincts flagged reported, but the contest has only 4\nreporting.json latest.contests[3]: 5 precincts flagged reported, but the contest has only 4\nreporting.json latest.contests[4]: 5 precincts flagged reported, but the contest has only 4\nreporting.json latest.contests[5]: 5 precincts flagged reported, but the contest has only 4\nprecincts.json contests[0]: 5 precincts flagged reported, but the contest has only 4\nprecincts.json contests[1]: 5 precincts flagged reported, but the contest has only 4\nprecincts.json contests[2]: 5 precincts flagged reported, but the contest has only 4\nprecincts.json contests[3]: 5 precincts flagged reported, but the contest has only 4\nprecincts.json contests[4]: 5 precincts flagged reported, but the contest has only 4\nprecincts.json contests[5]: 5 precincts flagged reported, but the contest has only 4",
+   "refs": []
+  },
+  {
+   "key": "reporting-over-cap:0",
+   "id": "reporting-over-cap",
+   "severity": "block",
+   "title": "More precincts reporting than the county has",
+   "detail": "Governor: 5 reporting, max precincts is 4.",
+   "refs": [
+    {
+     "contest": "Governor"
+    }
+   ]
+  },
+  {
+   "key": "reporting-over-cap:1",
+   "id": "reporting-over-cap",
+   "severity": "block",
+   "title": "More precincts reporting than the county has",
+   "detail": "Constitutional Amendment #1: 5 reporting, max precincts is 4.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #1"
+    }
+   ]
+  },
+  {
+   "key": "reporting-over-cap:2",
+   "id": "reporting-over-cap",
+   "severity": "block",
+   "title": "More precincts reporting than the county has",
+   "detail": "Constitutional Amendment #2: 5 reporting, max precincts is 4.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #2"
+    }
+   ]
+  },
+  {
+   "key": "reporting-over-cap:3",
+   "id": "reporting-over-cap",
+   "severity": "block",
+   "title": "More precincts reporting than the county has",
+   "detail": "Constitutional Amendment #3: 5 reporting, max precincts is 4.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #3"
+    }
+   ]
+  },
+  {
+   "key": "reporting-over-cap:4",
+   "id": "reporting-over-cap",
+   "severity": "block",
+   "title": "More precincts reporting than the county has",
+   "detail": "United States Senate: 5 reporting, max precincts is 4.",
+   "refs": [
+    {
+     "contest": "United States Senate"
+    }
+   ]
+  },
+  {
+   "key": "reporting-over-cap:5",
+   "id": "reporting-over-cap",
+   "severity": "block",
+   "title": "More precincts reporting than the county has",
+   "detail": "United States House of Representatives, District 3: 5 reporting, max precincts is 4.",
+   "refs": [
+    {
+     "contest": "United States House of Representatives, District 3"
+    }
+   ]
+  },
+  {
+   "key": "precinct-count:0",
+   "id": "precinct-count",
+   "severity": "warn",
+   "title": "Precinct count differs from max precincts",
+   "detail": "The file lists 92 precincts; max precincts is 4.",
+   "refs": []
+  },
+  {
+   "key": "close-race:0",
+   "id": "close-race",
+   "severity": "warn",
+   "title": "Close races (17)",
+   "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 8 vote(s)\nTennessee House of Representatives, District 29: margin 8 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+   "refs": [
+    {
+     "contest": "Governor"
+    },
+    {
+     "contest": "United States Senate"
+    },
+    {
+     "contest": "United States House of Representatives, District 3"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 28"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 29"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 30"
+    },
+    {
+     "contest": "Collegedale Commissioner"
+    },
+    {
+     "contest": "East Ridge City Council East Ridge"
+    },
+    {
+     "contest": "East Ridge City Court Clerk East Ridge"
+    },
+    {
+     "contest": "East Ridge Charter Amendment 1 East Ridge"
+    },
+    {
+     "contest": "Lakesite Commission"
+    },
+    {
+     "contest": "Red Bank Commission Red Bank"
+    },
+    {
+     "contest": "Red Bank Charter Referendum Red Bank"
+    },
+    {
+     "contest": "Ridgeside Commission"
+    },
+    {
+     "contest": "Signal Mountain Town Council"
+    },
+    {
+     "contest": "Soddy Daisy Commissioner"
+    },
+    {
+     "contest": "Walden Referendum"
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "key": "verify-failed:0",
+   "id": "verify-failed",
+   "severity": "block",
+   "title": "Independent verification failed (1)",
+   "detail": "'Governor' Precincts Reported (95 == 5)",
+   "refs": []
+  },
+  {
+   "key": "output-invalid:0",
+   "id": "output-invalid",
+   "severity": "block",
+   "title": "Published files would be rejected by the results pages",
+   "detail": "summary.json latest: overall precincts reporting is more than the total\nsummary.json latest.contests[0]: precincts reporting 95 is more than the total 92\nreporting.json latest: overall precincts reporting is more than the total\nreporting.json latest.contests[0]: precincts reporting 95 is more than the total 92\nprecincts.json contests[0]: precincts reporting 95 is more than the total 92",
+   "refs": []
+  },
+  {
+   "key": "reporting-over-total:0",
+   "id": "reporting-over-total",
+   "severity": "block",
+   "title": "Reporting count above its total",
+   "detail": "Governor: \"95 of 92\".",
+   "refs": [
+    {
+     "contest": "Governor"
+    }
+   ]
+  },
+  {
+   "key": "reporting-inconsistent:0",
+   "id": "reporting-inconsistent",
+   "severity": "block",
+   "title": "Pages of one contest disagree on precincts reporting",
+   "detail": "Governor: 95 of 92 vs 5 of 92. Re-export the report.",
+   "refs": [
+    {
+     "contest": "Governor"
+    }
+   ]
+  },
+  {
+   "key": "precinct-count:0",
+   "id": "precinct-count",
+   "severity": "warn",
+   "title": "Precinct count differs from max precincts",
+   "detail": "The file lists 92 precincts; max precincts is 999.",
+   "refs": []
+  },
+  {
+   "key": "close-race:0",
+   "id": "close-race",
+   "severity": "warn",
+   "title": "Close races (17)",
+   "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 8 vote(s)\nTennessee House of Representatives, District 29: margin 8 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+   "refs": [
+    {
+     "contest": "Governor"
+    },
+    {
+     "contest": "United States Senate"
+    },
+    {
+     "contest": "United States House of Representatives, District 3"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 28"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 29"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 30"
+    },
+    {
+     "contest": "Collegedale Commissioner"
+    },
+    {
+     "contest": "East Ridge City Council East Ridge"
+    },
+    {
+     "contest": "East Ridge City Court Clerk East Ridge"
+    },
+    {
+     "contest": "East Ridge Charter Amendment 1 East Ridge"
+    },
+    {
+     "contest": "Lakesite Commission"
+    },
+    {
+     "contest": "Red Bank Commission Red Bank"
+    },
+    {
+     "contest": "Red Bank Charter Referendum Red Bank"
+    },
+    {
+     "contest": "Ridgeside Commission"
+    },
+    {
+     "contest": "Signal Mountain Town Council"
+    },
+    {
+     "contest": "Soddy Daisy Commissioner"
+    },
+    {
+     "contest": "Walden Referendum"
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "key": "verify-failed:0",
+   "id": "verify-failed",
+   "severity": "block",
+   "title": "Independent verification failed (1)",
+   "detail": "'Governor' Precincts Reported (7 == 5)",
+   "refs": []
+  },
+  {
+   "key": "reporting-inconsistent:0",
+   "id": "reporting-inconsistent",
+   "severity": "block",
+   "title": "Pages of one contest disagree on precincts reporting",
+   "detail": "Governor: 7 of 92 vs 5 of 92. Re-export the report.",
+   "refs": [
+    {
+     "contest": "Governor"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:0",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Governor: the file says 7 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "refs": [
+    {
+     "contest": "Governor"
+    }
+   ]
+  },
+  {
+   "key": "close-race:0",
+   "id": "close-race",
+   "severity": "warn",
+   "title": "Close races (17)",
+   "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 8 vote(s)\nTennessee House of Representatives, District 29: margin 8 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+   "refs": [
+    {
+     "contest": "Governor"
+    },
+    {
+     "contest": "United States Senate"
+    },
+    {
+     "contest": "United States House of Representatives, District 3"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 28"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 29"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 30"
+    },
+    {
+     "contest": "Collegedale Commissioner"
+    },
+    {
+     "contest": "East Ridge City Council East Ridge"
+    },
+    {
+     "contest": "East Ridge City Court Clerk East Ridge"
+    },
+    {
+     "contest": "East Ridge Charter Amendment 1 East Ridge"
+    },
+    {
+     "contest": "Lakesite Commission"
+    },
+    {
+     "contest": "Red Bank Commission Red Bank"
+    },
+    {
+     "contest": "Red Bank Charter Referendum Red Bank"
+    },
+    {
+     "contest": "Ridgeside Commission"
+    },
+    {
+     "contest": "Signal Mountain Town Council"
+    },
+    {
+     "contest": "Soddy Daisy Commissioner"
+    },
+    {
+     "contest": "Walden Referendum"
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "key": "reporting-mismatch:0",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Governor: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "refs": [
+    {
+     "contest": "Governor"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:1",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Constitutional Amendment #1: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #1"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:2",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Constitutional Amendment #2: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #2"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:3",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "Constitutional Amendment #3: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "refs": [
+    {
+     "contest": "Constitutional Amendment #3"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:4",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "United States Senate: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "refs": [
+    {
+     "contest": "United States Senate"
+    }
+   ]
+  },
+  {
+   "key": "reporting-mismatch:5",
+   "id": "reporting-mismatch",
+   "severity": "warn",
+   "title": "Reported precincts do not match the count",
+   "detail": "United States House of Representatives, District 3: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "refs": [
+    {
+     "contest": "United States House of Representatives, District 3"
+    }
+   ]
+  },
+  {
+   "key": "close-race:0",
+   "id": "close-race",
+   "severity": "warn",
+   "title": "Close races (17)",
+   "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 8 vote(s)\nTennessee House of Representatives, District 29: margin 8 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+   "refs": [
+    {
+     "contest": "Governor"
+    },
+    {
+     "contest": "United States Senate"
+    },
+    {
+     "contest": "United States House of Representatives, District 3"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 28"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 29"
+    },
+    {
+     "contest": "Tennessee House of Representatives, District 30"
+    },
+    {
+     "contest": "Collegedale Commissioner"
+    },
+    {
+     "contest": "East Ridge City Council East Ridge"
+    },
+    {
+     "contest": "East Ridge City Court Clerk East Ridge"
+    },
+    {
+     "contest": "East Ridge Charter Amendment 1 East Ridge"
+    },
+    {
+     "contest": "Lakesite Commission"
+    },
+    {
+     "contest": "Red Bank Commission Red Bank"
+    },
+    {
+     "contest": "Red Bank Charter Referendum Red Bank"
+    },
+    {
+     "contest": "Ridgeside Commission"
+    },
+    {
+     "contest": "Signal Mountain Town Council"
+    },
+    {
+     "contest": "Soddy Daisy Commissioner"
+    },
+    {
+     "contest": "Walden Referendum"
+    }
+   ]
+  }
+ ]
+]

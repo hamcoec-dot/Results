@@ -313,3 +313,12 @@ test('reporting mismatch: the draft is ready, but publishes only once the warnin
   await assert.rejects(publish(env, d, { acknowledged: others }), refusal('unacknowledged'));
   assert.equal((await publish(env, d)).liveCheck.ok, true);
 });
+
+test('an Election Day file with no Early file selected: mismatches warn, nothing blocks', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  const d = await draftOf(env, 'ed', '03-After 5 Reporting');
+  assert.equal(d.status, 'ready', JSON.stringify(d.doc.checks.filter((c) => c.severity === 'block').map((c) => c.id)));
+  assert.ok(d.doc.checks.some((c) => c.id === 'reporting-mismatch' && c.severity === 'warn'));
+  assert.equal((await publish(env, d)).liveCheck.ok, true);
+});

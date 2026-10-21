@@ -40,8 +40,7 @@ const CHECK_IDS = Object.freeze([
 ]);
 
 const mk = (id, severity, title, detail, refs = []) => ({ id, severity, title, detail, refs });
-const get = (m, k) => (m instanceof Map ? m.get(k) : m?.[k]);
-const entries = (m) => (m instanceof Map ? [...m.entries()] : Object.entries(m ?? {}));
+const entries = (m) => (m instanceof Map ? [...m.entries()] : Object.entries(m));
 const fmt = (n) => Number(n).toLocaleString('en-US');
 
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
@@ -80,7 +79,7 @@ function reportingHeaders(rows) {
   const out = new Map();
   eachContestBlock(rows, (i, cells, contestRow) => {
     for (const [col, text] of cells) {
-      const title = cleanContestName(col < contestRow.length && contestRow[col] ? pyStrip(contestRow[col]) : '');
+      const title = cleanContestName(contestRow[col] ? pyStrip(contestRow[col]) : '');
       const rt = parseReporting(text);
       if (!title || !rt) continue;
       if (!out.has(title)) out.set(title, []);

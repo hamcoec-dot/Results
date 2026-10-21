@@ -56,7 +56,7 @@ const CORRUPTIONS = [
   ['reporting.json', (d) => { d.latest.contests[0].precinctsStatusIndexed[0] = [0, 2]; }, /expected \[index, 0\|1\]/],
   ['reporting.json', (d) => { d.latest.contests[0].precinctsStatusIndexed[0] = [999, 0]; }, /index out of range/],
   ['reporting.json', (d) => { d.latest.contests[0].precinctsStatusIndexed[0] = [-1, 0]; }, /whole number/],
-  ['reporting.json', (d) => { d.latest.contests[0].precinctsStatusIndexed.forEach((p) => { p[1] = 1; }); }, /flagged reported, count says 10/],
+  ['reporting.json', (d) => { d.latest.contests[0].precinctsTotal = 10; d.latest.contests[0].precinctsStatusIndexed.forEach((p) => { p[1] = 1; }); }, /92 precincts flagged reported, but the contest has only 10/],
   ['reporting.json', (d) => { d.latest.contests[0].precinctsStatusIndexed = 'x'; }, /expected a list/],
   ['reporting.json', (d) => { d.masterPrecincts = null; }, /masterPrecincts: expected a list/],
   ['reporting.json', (d) => { d.latest.overallPrecinctsTotal = -2; }, /overallPrecinctsTotal/],

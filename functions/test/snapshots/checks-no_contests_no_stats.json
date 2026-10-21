@@ -1,0 +1,94 @@
+[
+ {
+  "key": "no-contests:0",
+  "id": "no-contests",
+  "severity": "block",
+  "title": "No contests found",
+  "detail": "No \"Precincts Reporting\" rows were found.",
+  "refs": []
+ },
+ {
+  "key": "no-statistics:0",
+  "id": "no-statistics",
+  "severity": "block",
+  "title": "STATISTICS block missing",
+  "detail": "The turnout (STATISTICS) section is missing from the export.",
+  "refs": []
+ },
+ {
+  "key": "verify-failed:0",
+  "id": "verify-failed",
+  "severity": "block",
+  "title": "Independent verification failed (1)",
+  "detail": "Audited 0 precinct-level candidate vote entries against raw CSV data",
+  "refs": []
+ },
+ {
+  "key": "ed-none-reporting:0",
+  "id": "ed-none-reporting",
+  "severity": "warn",
+  "title": "Election Day file with no precincts reporting",
+  "detail": "Every contest says 0 precincts reporting. Was this meant as an Early/ABS upload?",
+  "refs": []
+ },
+ {
+  "key": "close-race:0",
+  "id": "close-race",
+  "severity": "warn",
+  "title": "Close races (17)",
+  "detail": "Governor: margin 0 vote(s)\nUnited States Senate: margin 0 vote(s)\nUnited States House of Representatives, District 3: margin 0 vote(s)\nTennessee House of Representatives, District 28: margin 7 vote(s)\nTennessee House of Representatives, District 29: margin 7 vote(s)\nTennessee House of Representatives, District 30: margin 7 vote(s)\nCollegedale Commissioner: margin 7 vote(s)\nEast Ridge City Council East Ridge: margin 7 vote(s)\nEast Ridge City Court Clerk East Ridge: margin 7 vote(s)\nEast Ridge Charter Amendment 1 East Ridge: margin 7 vote(s)\nLakesite Commission: margin 0 vote(s)\nRed Bank Commission Red Bank: margin 0 vote(s)\nRed Bank Charter Referendum Red Bank: margin 7 vote(s)\nRidgeside Commission: margin 0 vote(s)\nSignal Mountain Town Council: margin 0 vote(s)\nSoddy Daisy Commissioner: margin 0 vote(s)\nWalden Referendum: margin 7 vote(s)",
+  "refs": [
+   {
+    "contest": "Governor"
+   },
+   {
+    "contest": "United States Senate"
+   },
+   {
+    "contest": "United States House of Representatives, District 3"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 28"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 29"
+   },
+   {
+    "contest": "Tennessee House of Representatives, District 30"
+   },
+   {
+    "contest": "Collegedale Commissioner"
+   },
+   {
+    "contest": "East Ridge City Council East Ridge"
+   },
+   {
+    "contest": "East Ridge City Court Clerk East Ridge"
+   },
+   {
+    "contest": "East Ridge Charter Amendment 1 East Ridge"
+   },
+   {
+    "contest": "Lakesite Commission"
+   },
+   {
+    "contest": "Red Bank Commission Red Bank"
+   },
+   {
+    "contest": "Red Bank Charter Referendum Red Bank"
+   },
+   {
+    "contest": "Ridgeside Commission"
+   },
+   {
+    "contest": "Signal Mountain Town Council"
+   },
+   {
+    "contest": "Soddy Daisy Commissioner"
+   },
+   {
+    "contest": "Walden Referendum"
+   }
+  ]
+ }
+]

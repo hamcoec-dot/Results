@@ -1,0 +1,60 @@
+[
+ [
+  {
+   "key": "overvote:0",
+   "id": "overvote",
+   "severity": "warn",
+   "title": "More votes than ballots allow (5 contests)",
+   "detail": "REP Governor: 399 votes, 325 ballots x 1\nDEM Governor: 585 votes, 325 ballots x 1\nDEM United States Senate: 610 votes, 325 ballots x 1\nDEM State Executive Committeeman, District 11: 355 votes, 325 ballots x 1\nCounty Mayor: 335 votes, 325 ballots x 1",
+   "refs": [
+    {
+     "contest": "REP Governor"
+    },
+    {
+     "contest": "DEM Governor"
+    },
+    {
+     "contest": "DEM United States Senate"
+    },
+    {
+     "contest": "DEM State Executive Committeeman, District 11"
+    },
+    {
+     "contest": "County Mayor"
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "key": "ballots-over-registered:0",
+   "id": "ballots-over-registered",
+   "severity": "warn",
+   "title": "Precincts with more ballots than registered voters",
+   "detail": "SODDY DAISY A: 25 ballots, 0 registered\nCollegedale Property Rights: 25 ballots, 0 registered",
+   "refs": [
+    {
+     "precinct": "SODDY DAISY A"
+    },
+    {
+     "precinct": "Collegedale Property Rights"
+    }
+   ]
+  },
+  {
+   "key": "close-race:0",
+   "id": "close-race",
+   "severity": "warn",
+   "title": "Close races (2)",
+   "detail": "County Commission, District 6: margin 8 vote(s)\nCounty School Board, District 6: margin 8 vote(s)",
+   "refs": [
+    {
+     "contest": "County Commission, District 6"
+    },
+    {
+     "contest": "County School Board, District 6"
+    }
+   ]
+  }
+ ]
+]

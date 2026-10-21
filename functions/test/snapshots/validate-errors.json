@@ -1,0 +1,134 @@
+{
+ "summary.json": [
+  [
+   "latest.contests[0]: candidate votes add up to 1607, contest total is 1606"
+  ],
+  [
+   "latest.contests[0].candidates[0].votes: expected a whole number >= 0, got -1",
+   "latest.contests[0]: candidate votes add up to 1533, contest total is 1606"
+  ],
+  [
+   "latest.contests[0].candidates[0].percentage: over 100"
+  ],
+  [
+   "latest.contests[0].candidates[0].percentage: expected a percentage >= 0, got \"x\""
+  ],
+  [
+   "latest.contests[0].candidates[0].party: unexpected party \"GRN\""
+  ],
+  [
+   "latest.contests[0].candidates[0].isLeading: expected true/false"
+  ],
+  [
+   "latest.contests[0].candidates[0].name: expected text"
+  ],
+  [
+   "latest.contests[0].candidates[15]: duplicate candidate \"Marsha Blackburn\""
+  ],
+  [
+   "latest.contests[0].candidates: expected a list"
+  ],
+  [
+   "latest.contests[0].candidates[0]: expected an object",
+   "latest.contests[0]: candidate votes add up to 1533, contest total is 1606"
+  ],
+  [
+   "latest.contests[25]: duplicate contest \"Governor\""
+  ],
+  [
+   "latest.contests[0]: precincts reporting 93 is more than the total 92"
+  ],
+  [
+   "latest.contests: expected a list"
+  ],
+  [
+   "latest: overall precincts reporting is more than the total"
+  ],
+  [
+   "latest.turnoutPercent: expected a percentage >= 0, got -1"
+  ],
+  [
+   "latest: expected an object"
+  ],
+  [
+   "metadata.dataVersion: expected 12 hex characters"
+  ],
+  [
+   "metadata.county: expected text"
+  ],
+  [
+   "metadata: expected an object"
+  ],
+  [
+   "config: expected an object"
+  ],
+  [
+   "latest.contests[0].voteFor: expected text"
+  ],
+  [
+   "latest.contests[0].title: expected text"
+  ]
+ ],
+ "reporting.json": [
+  [
+   "latest.contests[0].precinctsStatusIndexed[0]: expected [index, 0|1]"
+  ],
+  [
+   "latest.contests[0].precinctsStatusIndexed[0]: expected [index, 0|1]"
+  ],
+  [
+   "latest.contests[0].precinctsStatusIndexed[0]: precinct index out of range"
+  ],
+  [],
+  [
+   "latest.contests[0].precinctsStatusIndexed: expected a list"
+  ],
+  [
+   "masterPrecincts: expected a list"
+  ],
+  [
+   "latest: expected an object"
+  ]
+ ],
+ "precincts.json": [
+  [
+   "precinctStats[\"TYNER\"].voters: expected a whole number >= 0, got -5"
+  ],
+  [
+   "precinctStats[\"TYNER\"]: expected an object"
+  ],
+  [
+   "precinctStats: expected an object"
+  ],
+  [
+   "contests[0].candidates[0].precinctVotes[\"TYNER\"]: expected a whole number >= 0, got 2.5"
+  ],
+  [
+   "contests[0].candidates[0].precinctVotes: expected an object"
+  ],
+  [
+   "contests[0].candidates[0]: expected an object",
+   "contests[0]: candidate votes add up to 1533, contest total is 1606",
+   "contests[0].candidates[0].precinctVotes: expected an object"
+  ]
+ ],
+ "sets": [
+  [
+   "reporting.json: dataVersion 0123456789ab does not match the manifest b0b2e4fcd2d1"
+  ],
+  [
+   "manifest.json: dataVersion: expected 12 hex characters",
+   "manifest.json: updatedAt: expected text",
+   "manifest.json: files.x: expected a sha256"
+  ],
+  [
+   "manifest.json: files: expected an object"
+  ],
+  [
+   "nope.json: unknown file"
+  ],
+  [
+   "summary.json: expected a JSON object"
+  ]
+ ]
+}

@@ -10,7 +10,8 @@
       "test/fixes.test.js",
       "test/parity.test.js",
       "test/checks.test.js",
-      "test/validate.test.js"
+      "test/validate.test.js",
+      "test/snapshots.test.js"
     ]
   },
   "coverageAnalysis": "perTest",

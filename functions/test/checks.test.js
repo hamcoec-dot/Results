@@ -261,3 +261,22 @@ test('rollback drafts: acknowledge the rollback, see every reversal, and the fil
 test('every check id has a test', () => {
   assert.deepEqual(CHECK_IDS.filter((id) => !triggered.has(id)), []);
 });
+
+test('normalizeDate: anchored formats, one- and two-digit parts', () => {
+  for (const [s, d] of [['x November 3, 2026', null], ['November 3, 2026 x', null], ['November 13, 2026', '2026-11-13'], ['11/13/2026', '2026-11-13'],
+    ['1/3/2026', '2026-01-03'], ['x2026-11-03', null], ['2026-11-03x', null], ['x6-Aug-26', null], ['6-Aug-26x', null], ['16-Aug-2026', '2026-08-16'],
+    ['0/3/2026', null], ['11/3/2026 ', '2026-11-03'], ['Jan 1, 2027', '2027-01-01'], ['December 31, 2026', '2026-12-31']]) {
+    assert.equal(normalizeDate(s), d, s);
+  }
+});
+
+test('closeMargin: boundaries at 10 votes and 0.5 %', () => {
+  const contest = (votes, voteFor = 'VOTE FOR 1') => ({ voteFor, totalVotes: votes.reduce((a, b) => a + b, 0), candidates: votes.map((v) => ({ votes: v })) });
+  assert.equal(closeMargin(contest([5010, 5000])), 10); // margin 10, 0.0999 %: under 0.5 % -> close
+  assert.equal(closeMargin(contest([110, 100])), null);
+  assert.equal(closeMargin(contest([109, 100])), 9);
+  assert.equal(closeMargin(contest([100500, 99500])), null); // exactly 0.5 %: not close
+  assert.equal(closeMargin(contest([100499, 99501])), 998); // just under 0.5 %
+  assert.equal(closeMargin(contest([3, 1, 2])), 1); // unsorted input
+  assert.equal(closeMargin(contest([5, 5], 'VOTE FOR 2')), null); // no loser
+});
