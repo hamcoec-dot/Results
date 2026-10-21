@@ -133,3 +133,28 @@ for (const [file, ready] of Object.entries(PAGES)) {
     expect(small, 'controls under 44 x 44 px').toEqual([]);
   });
 }
+
+// Dark mode and high contrast on every page (contest slides and the precinct table included).
+for (const theme of ['dark-mode-toggle', 'contrast-toggle']) {
+  for (const [file, ready] of Object.entries(PAGES)) {
+    test(`${file} with #${theme} @ 375px`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 800 });
+      await page.goto(file);
+      await page.locator(ready).first().waitFor();
+      await page.click(`#${theme}`);
+      await audit(page);
+      if (file === 'scrolling.html') {
+        await page.click('#btn-playpause');
+        for (const slide of ['1', '20']) {
+          await page.selectOption('#slide-jump-menu', slide);
+          await audit(page);
+        }
+      }
+      if (file === 'precincts.html') {
+        await page.click('#view-mode-contest-btn');
+        await page.locator('#precinct-results-container table').waitFor();
+        await audit(page);
+      }
+    });
+  }
+}
