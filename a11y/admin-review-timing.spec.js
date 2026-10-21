@@ -75,7 +75,8 @@ test.describe('review screen interactions at 4x CPU', () => {
     const report = results.map((r) => `${r.label}: ${r.worst} ms`).join('\n');
     console.log(`Review interactions at 4x CPU (Event Timing; 0 = under 16 ms):\n${report}\nworst: ${worst} ms`);
     test.info().annotations.push({ type: 'worst interaction (ms)', description: String(worst) });
-    expect(results.length).toBeGreaterThan(20);
+    // Every kind was measured (how many warnings there are depends on what earlier tests published).
+    for (const kind of [/^filter /, /^search keystroke/, /^warning tick/]) expect(results.some((r) => kind.test(r.label)), String(kind)).toBe(true);
     if (process.env.STRICT) expect(results.filter((r) => r.worst >= BUDGET_MS)).toEqual([]);
   });
 });

@@ -44,6 +44,7 @@ test.describe('admin flows (emulators)', () => {
     for (const link of await page.locator('#previews a').all()) {
       const [tab] = await Promise.all([page.context().waitForEvent('page'), link.click()]);
       await tab.close();
+      await page.bringToFront(); // Firefox throttles a background tab's timers
     }
     await expect(page.locator('#publish-btn')).toBeEnabled();
     await page.click('#publish-btn');
@@ -224,6 +225,7 @@ test.describe('publish guard rails (emulators)', () => {
     for (const link of await page.locator('#previews a').all()) {
       const [tab] = await Promise.all([page.context().waitForEvent('page'), link.click()]);
       await tab.close();
+      await page.bringToFront(); // Firefox throttles a background tab's timers
     }
   };
   async function publish(page) {

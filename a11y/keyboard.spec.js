@@ -30,6 +30,7 @@ function noErrors(page) {
 test('summary page by keyboard: party filter, search, precinct dialog in and out, export', async ({ page }) => {
   const errors = noErrors(page);
   await page.goto('index.html');
+  await page.bringToFront(); // Firefox throttles a background tab's timers (the search is debounced)
   const cards = page.locator('#contests-container > article');
   await expect(cards.first()).toBeVisible();
   const all = await cards.count();
@@ -72,6 +73,7 @@ test('summary page by keyboard: party filter, search, precinct dialog in and out
 test('precinct page by keyboard: pick a precinct with the arrow keys, switch views', async ({ page }) => {
   const errors = noErrors(page);
   await page.goto('precincts.html');
+  await page.bringToFront(); // Firefox throttles a background tab's timers (the search is debounced)
   await expect(page.locator('#precinct-select option').nth(1)).toBeAttached();
   await tabTo(page, '#precinct-select');
   const before = await page.inputValue('#precinct-select');
@@ -94,6 +96,7 @@ test('precinct page by keyboard: pick a precinct with the arrow keys, switch vie
 test('slideshow by keyboard: pause/play, next/prev, speed, jump menu, fullscreen', async ({ page }) => {
   const errors = noErrors(page);
   await page.goto('scrolling.html');
+  await page.bringToFront(); // Firefox throttles a background tab's timers (the search is debounced)
   await expect(page.locator('#slide-viewport .slide-card').first()).toBeVisible();
   const slide = () => page.inputValue('#slide-jump-menu');
 
@@ -142,6 +145,7 @@ test('no fullscreen API (iPhone Safari): the Fullscreen button is hidden and not
   });
   const errors = noErrors(page);
   await page.goto('scrolling.html');
+  await page.bringToFront(); // Firefox throttles a background tab's timers (the search is debounced)
   await expect(page.locator('#slide-viewport .slide-card').first()).toBeVisible();
   await expect(page.locator('#btn-fullscreen')).toBeHidden();
   await page.evaluate(() => window.ElectionApp.toggleFullscreen()); // a stale bookmark or old copy calling it

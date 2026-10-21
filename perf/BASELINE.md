@@ -98,7 +98,8 @@ accessibility is checked by `npm run a11y:admin`.
 
   It reviews sample 05 (63 contests, all changed) at 412 px and 4× CPU: 8 filter changes by keyboard, 8 search
   keystrokes and 15 warning ticks. `STRICT=1` fails on a miss.
-  - **Result (2026-10-21): worst 32 ms** (filters 0–32 ms, keystrokes 0–24 ms, ticks 16 ms). Event Timing reports
+  - **Result (2026-10-21): worst 32 ms** (filters 0–32 ms, keystrokes 0–24 ms, ticks 16 ms). After `content-visibility` was
+    removed from the review cards (it moved the Publish button as cards scrolled into view): **worst 48 ms**. Event Timing reports
     only interactions over 16 ms, so 0 means under 16 ms.
 - `<link rel="preconnect">` to `storage.googleapis.com`: add in Phase 5 together with `PUBLIC_BASE`.
 - Lighthouse is not in CI yet (it needs Chrome and is noisy on shared runners); run it before a release.

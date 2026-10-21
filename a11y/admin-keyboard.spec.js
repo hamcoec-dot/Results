@@ -54,6 +54,7 @@ test.describe('admin by keyboard only (emulators)', () => {
       for (const link of await page.locator('#previews a').all()) {
         const [tab] = await Promise.all([context.waitForEvent('page'), link.click()]);
         await tab.close();
+        await page.bringToFront(); // Firefox throttles a background tab's timers
       }
       await page.click('#publish-btn');
       await page.fill('#confirm-count', /(?:→|first publish,) (\d+) of/.exec(await page.locator('#publish-summary').textContent())[1]);
@@ -92,6 +93,7 @@ test.describe('admin by keyboard only (emulators)', () => {
       await tabTo(page, '#previews a[data-kb]');
       const [tab] = await Promise.all([context.waitForEvent('page'), page.keyboard.press('Enter')]);
       await tab.close();
+      await page.bringToFront(); // Firefox throttles a background tab's timers
       await page.locator('#previews a[data-kb]').evaluate((a) => a.removeAttribute('data-kb'));
     }
 
