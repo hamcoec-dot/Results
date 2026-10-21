@@ -40,6 +40,11 @@ window.ElectionApp = (function() {
   let livePaused = readSessionFlag(LIVE_PAUSED_KEY);
   let lastUpdatedText = '';
 
+  // One formatter for every vote count: Number#toLocaleString builds a new one per call, which made a
+  // full refresh (hundreds of numbers) a long task.
+  const NUMBER_FORMAT = new Intl.NumberFormat();
+  const fmtNum = n => NUMBER_FORMAT.format(n);
+
   /** The election's "max precincts" (config.precinctCap in the data), default 92. */
   function precinctCap() {
     const n = Number(electionData && electionData.config ? electionData.config.precinctCap : NaN);
@@ -552,11 +557,11 @@ window.ElectionApp = (function() {
     if (heroTitle) heroTitle.textContent = `${data.county} County ${data.electionTitle}`;
     if (heroDate) heroDate.textContent = data.electionDate;
     if (statusText) statusText.textContent = data.statusLabel || 'UNOFFICIAL RESULTS';
-    if (statVoters) statVoters.textContent = data.totalVoters.toLocaleString();
-    if (statBallots) statBallots.textContent = data.totalBallots.toLocaleString();
-    if (statBallotsRep) statBallotsRep.textContent = (data.ballotsRep || 0).toLocaleString();
-    if (statBallotsDem) statBallotsDem.textContent = (data.ballotsDem || 0).toLocaleString();
-    if (statBallotsGen) statBallotsGen.textContent = (data.ballotsGen || 0).toLocaleString();
+    if (statVoters) statVoters.textContent = fmtNum(data.totalVoters);
+    if (statBallots) statBallots.textContent = fmtNum(data.totalBallots);
+    if (statBallotsRep) statBallotsRep.textContent = fmtNum(data.ballotsRep || 0);
+    if (statBallotsDem) statBallotsDem.textContent = fmtNum(data.ballotsDem || 0);
+    if (statBallotsGen) statBallotsGen.textContent = fmtNum(data.ballotsGen || 0);
     if (statTurnout) statTurnout.textContent = `${data.turnoutPercent.toFixed(2)}%`;
     if (statReporting) statReporting.textContent = `${overallRepCapped} of ${overallTotCapped} Precincts`;
 
@@ -702,7 +707,7 @@ window.ElectionApp = (function() {
               <div class="contest-meta" style="margin-top:4px;">
                 <span>${escapeHtml(contest.voteFor)}</span>
                 <span>&bull;</span>
-                <span>Total Votes: ${contest.totalVotes.toLocaleString()}</span>
+                <span>Total Votes: ${fmtNum(contest.totalVotes)}</span>
               </div>
             </div>
             <button type="button" class="reporting-btn" data-contest="${cTitleEsc}" data-focus-key="card:${cSlug}" aria-haspopup="dialog">
@@ -732,7 +737,7 @@ window.ElectionApp = (function() {
               </div>
             </td>
             <td class="cand-votes-cell" role="cell">
-              <span class="vote-count">${cand.votes.toLocaleString()}</span>
+              <span class="vote-count">${fmtNum(cand.votes)}</span>
               <span class="vote-percent">(${cand.percentage.toFixed(1)}%)</span>
             </td>
           </tr>
@@ -762,19 +767,52 @@ window.ElectionApp = (function() {
    */
   function patchCards(container, cards) {
     const previous = renderedCards.get(container);
-    const sameList = previous && previous.length === cards.length && container.children.length === cards.length
+    const unfinished = patchRuns.get(container);
+    const sameList = previous && !unfinished && previous.length === cards.length && container.children.length === cards.length
       && cards.every((c, i) => previous[i].key === c.key);
-    if (!sameList) {
-      container.innerHTML = cards.map(c => c.html).join('');
-    } else {
-      cards.forEach((c, i) => {
-        if (previous[i].html === c.html) return;
-        const t = document.createElement('template');
-        t.innerHTML = c.html;
-        container.replaceChild(t.content.firstElementChild, container.children[i]);
-      });
-    }
     renderedCards.set(container, cards);
+    if (!sameList) {
+      patchRuns.delete(container);
+      container.innerHTML = cards.map(c => c.html).join('');
+      return;
+    }
+    // Swap the changed items a few at a time, yielding between batches, so a live update never
+    // blocks input for long (plan: no long task over 50 ms during a refresh).
+    const changed = cards.map((c, i) => i).filter(i => previous[i].html !== cards[i].html);
+    const run = {};
+    patchRuns.set(container, run);
+    const step = (from) => {
+      if (patchRuns.get(container) !== run) return; // a newer update rebuilt the list
+      changed.slice(from, from + PATCH_BATCH).forEach(i => replaceItem(container, i, cards[i].html));
+      if (from + PATCH_BATCH < changed.length) yieldToMain().then(() => step(from + PATCH_BATCH));
+      else patchRuns.delete(container);
+    };
+    step(0);
+  }
+
+  /** Replace container's i-th child with html; focus inside it moves to the same control in the new one. */
+  function replaceItem(container, i, html) {
+    const old = container.children[i];
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    const fresh = t.content.firstElementChild;
+    const active = document.activeElement;
+    const key = old.contains(active) && active.getAttribute ? active.getAttribute('data-focus-key') : null;
+    container.replaceChild(fresh, old);
+    if (key) {
+      const again = Array.from(fresh.querySelectorAll('[data-focus-key]')).find(el => el.getAttribute('data-focus-key') === key);
+      if (again) again.focus({ preventScroll: true });
+    }
+  }
+
+  // Swaps still to do per container (a newer update over an unfinished one rebuilds the list instead).
+  const patchRuns = new WeakMap();
+  const PATCH_BATCH = 8;
+
+  /** Let the browser handle input and paint before the next batch. */
+  function yieldToMain() {
+    if (window.scheduler && typeof window.scheduler.yield === 'function') return window.scheduler.yield();
+    return new Promise(resolve => setTimeout(resolve, 0));
   }
 
   function renderReportingTable() {
@@ -806,7 +844,7 @@ window.ElectionApp = (function() {
             </span>
           </td>
           <td>${earlyStatusBadge}</td>
-          <td style="font-weight:700;">${earlyVotesCount.toLocaleString()}</td>
+          <td style="font-weight:700;">${fmtNum(earlyVotesCount)}</td>
         </tr>
       `;
     }
@@ -831,7 +869,7 @@ window.ElectionApp = (function() {
             </button>
           </td>
           <td>${statusBadge}</td>
-          <td style="font-weight:700;">${contest.totalVotes.toLocaleString()}</td>
+          <td style="font-weight:700;">${fmtNum(contest.totalVotes)}</td>
         </tr>
       `;
         return { key: slugify(contest.title), html: html.trim() };
@@ -1184,8 +1222,8 @@ window.ElectionApp = (function() {
 
     if (tStatus) tStatus.innerHTML = `&#x25CF; ${escapeHtml(data.statusLabel || 'UNOFFICIAL RESULTS')}`;
     if (tDate) tDate.textContent = formatCompactDate(data.electionDate) || data.electionDate || '';
-    if (tVoters) tVoters.textContent = data.totalVoters ? data.totalVoters.toLocaleString() : '0';
-    if (tBallots) tBallots.textContent = data.totalBallots ? data.totalBallots.toLocaleString() : '0';
+    if (tVoters) tVoters.textContent = data.totalVoters ? fmtNum(data.totalVoters) : '0';
+    if (tBallots) tBallots.textContent = data.totalBallots ? fmtNum(data.totalBallots) : '0';
     if (tTurnout) tTurnout.textContent = `${data.turnoutPercent.toFixed(2)}%`;
     if (tEarly) tEarly.textContent = `${earlyRep} of ${earlyTot} (${earlyRep > 0 ? 'Reported' : 'Pending'})`;
     if (tReporting) tReporting.textContent = `${overallRepCapped} of ${overallTotCapped} Precincts`;
@@ -1291,7 +1329,7 @@ window.ElectionApp = (function() {
                 <div class="visual-stat-title">&#x1F5F3;&#xFE0F; Overall Voter Turnout</div>
                 <div class="visual-stat-value">${data.turnoutPercent.toFixed(2)}%</div>
                 <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px);">
-                  ${data.totalBallots.toLocaleString()} Ballots Cast / ${data.totalVoters.toLocaleString()} Registered Voters
+                  ${fmtNum(data.totalBallots)} Ballots Cast / ${fmtNum(data.totalVoters)} Registered Voters
                 </div>
                 <div class="proj-track" style="margin-top:6px;">
                   <div class="proj-fill" style="width: ${Math.min(data.turnoutPercent, 100)}%; background: linear-gradient(90deg, #1e3a8a, #2563eb);"></div>
@@ -1326,15 +1364,15 @@ window.ElectionApp = (function() {
                 <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
                     <span style="font-weight:700; color:#991b1b;">Republican Primary</span>
-                    <span style="font-weight:800; color:#991b1b;">${(data.ballotsRep || 0).toLocaleString()} (${repPct.toFixed(1)}%)</span>
+                    <span style="font-weight:800; color:#991b1b;">${fmtNum(data.ballotsRep || 0)} (${repPct.toFixed(1)}%)</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;">
                     <span style="font-weight:700; color:#1e40af;">Democrat Primary</span>
-                    <span style="font-weight:800; color:#1e40af;">${(data.ballotsDem || 0).toLocaleString()} (${demPct.toFixed(1)}%)</span>
+                    <span style="font-weight:800; color:#1e40af;">${fmtNum(data.ballotsDem || 0)} (${demPct.toFixed(1)}%)</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px;">
                     <span style="font-weight:700; color:#374151;">General Election Only</span>
-                    <span style="font-weight:800; color:#374151;">${(data.ballotsGen || 0).toLocaleString()} (${genPct.toFixed(1)}%)</span>
+                    <span style="font-weight:800; color:#374151;">${fmtNum(data.ballotsGen || 0)} (${genPct.toFixed(1)}%)</span>
                   </div>
                 </div>
               </div>
@@ -1383,7 +1421,7 @@ window.ElectionApp = (function() {
               ${cParty ? `<span class="party-pill ${partyClass}">${escapeHtml(cParty)}</span>` : ''}
               ${cand.isLeading && contest.totalVotes > 0 ? '<span class="leading-tag">&#x2714;&#xFE0F; LEADING</span>' : ''}
             </span>
-            <span>${cand.votes.toLocaleString()} (${cand.percentage.toFixed(1)}%)</span>
+            <span>${fmtNum(cand.votes)} (${cand.percentage.toFixed(1)}%)</span>
           </div>
           <div class="proj-track">
             <div class="proj-fill" style="width: ${Math.min(cand.percentage, 100)}%; background: ${fillColor};"></div>
@@ -1403,7 +1441,7 @@ window.ElectionApp = (function() {
       rightPanelAnalyticsHtml += `
         <div class="visual-stat-card">
           <div class="visual-stat-title">&#x1F3C6; Lead Margin</div>
-          <div class="visual-stat-value" style="color:var(--status-reported);">+ ${leadMarginVotes.toLocaleString()} votes</div>
+          <div class="visual-stat-value" style="color:var(--status-reported);">+ ${fmtNum(leadMarginVotes)} votes</div>
           <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px);">
             ${escapeHtml(leadCand.name)} leads by +${leadMarginPct.toFixed(1)}%
           </div>
@@ -1433,7 +1471,7 @@ window.ElectionApp = (function() {
             <h1 class="slide-title">${cTitleEsc}${totalPages > 1 ? `<span style="font-size:0.7em; color:var(--neutral-muted); margin-left:10px;">(Page ${pageNum} of ${totalPages})</span>` : ''}</h1>
             <div style="font-size: clamp(14px, 1.2vw, 18px); color:var(--neutral-muted); margin-top:4px;">
               <span>${escapeHtml(contest.voteFor)}</span> &bull; 
-              <span>Total Votes: ${contest.totalVotes.toLocaleString()}</span>
+              <span>Total Votes: ${fmtNum(contest.totalVotes)}</span>
             </div>
           </div>
           <div class="slide-meta">
@@ -1767,19 +1805,19 @@ window.ElectionApp = (function() {
     const turnout = pStats.turnoutPercent !== undefined ? pStats.turnoutPercent : (voters > 0 ? (ballots/voters*100).toFixed(2) : '0.00');
 
     const vElem = document.getElementById('precinct-stat-voters');
-    if (vElem) vElem.textContent = voters.toLocaleString();
+    if (vElem) vElem.textContent = fmtNum(voters);
 
     const bElem = document.getElementById('precinct-stat-ballots');
-    if (bElem) bElem.textContent = ballots.toLocaleString();
+    if (bElem) bElem.textContent = fmtNum(ballots);
 
     const repElem = document.getElementById('precinct-stat-ballots-rep');
-    if (repElem) repElem.textContent = (pStats.rep || 0).toLocaleString();
+    if (repElem) repElem.textContent = fmtNum(pStats.rep || 0);
 
     const demElem = document.getElementById('precinct-stat-ballots-dem');
-    if (demElem) demElem.textContent = (pStats.dem || 0).toLocaleString();
+    if (demElem) demElem.textContent = fmtNum(pStats.dem || 0);
 
     const genElem = document.getElementById('precinct-stat-ballots-gen');
-    if (genElem) genElem.textContent = (pStats.gen || 0).toLocaleString();
+    if (genElem) genElem.textContent = fmtNum(pStats.gen || 0);
 
     const tElem = document.getElementById('precinct-stat-turnout');
     if (tElem) tElem.textContent = `${turnout}%`;
@@ -1856,7 +1894,7 @@ window.ElectionApp = (function() {
               ${isLead ? '<span class="status-pill status-reported" style="font-size:12px; padding:3px 8px; font-weight:700;">&#x2714; LEADING IN PRECINCT</span>' : ''}
             </div>
             <div class="candidate-stats" style="display:flex; justify-content:space-between; margin-top:8px; font-size:15px;">
-              <span class="vote-count" style="font-weight:700; color:var(--primary);">${cand.votes.toLocaleString()} votes</span>
+              <span class="vote-count" style="font-weight:700; color:var(--primary);">${fmtNum(cand.votes)} votes</span>
               <span class="vote-percent" style="font-weight:600; color:var(--neutral-muted);">${pct}%</span>
             </div>
             <div class="progress-bar-bg" style="height:10px; background:var(--border); border-radius:5px; margin-top:6px; overflow:hidden;">
@@ -1880,8 +1918,8 @@ window.ElectionApp = (function() {
           ${candsHtml}
         </div>
         <footer class="contest-footer" style="margin-top:20px; padding-top:14px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; font-size:14px; color:var(--neutral-muted);">
-          <span>Precinct Total Votes: <strong style="color:var(--neutral-dark); font-weight:700;">${precinctTotalVotes.toLocaleString()}</strong></span>
-          <span>Countywide Contest Total: <strong style="color:var(--neutral-dark); font-weight:700;">${c.totalVotes.toLocaleString()}</strong></span>
+          <span>Precinct Total Votes: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(precinctTotalVotes)}</strong></span>
+          <span>Countywide Contest Total: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(c.totalVotes)}</strong></span>
         </footer>
       </article>`;
       return { key: `${selectedPrecinct}|${c.title}`, html };
@@ -1935,7 +1973,7 @@ window.ElectionApp = (function() {
         const isLead = p.reported && cutoffPV !== null && v >= cutoffPV && v > 0;
         candCellsHtml += `
           <td style="text-align:right; font-weight:${isLead ? '700' : '400'}; color:${isLead ? 'var(--primary)' : 'inherit'}; padding:12px 16px;">
-            ${v.toLocaleString()} ${isLead ? '&#x2714;' : ''}
+            ${fmtNum(v)} ${isLead ? '&#x2714;' : ''}
           </td>
         `;
       });
@@ -1948,7 +1986,7 @@ window.ElectionApp = (function() {
               ${p.reported ? 'REPORTED' : 'PENDING'}
             </span>
           </td>
-          <td style="text-align:right; font-weight:700; padding:12px 16px;">${pTotal.toLocaleString()}</td>
+          <td style="text-align:right; font-weight:700; padding:12px 16px;">${fmtNum(pTotal)}</td>
           ${candCellsHtml}
         </tr>
       `;

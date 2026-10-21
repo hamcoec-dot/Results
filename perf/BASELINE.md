@@ -52,8 +52,23 @@ inside the 2.5 s budget. Served **without** compression (a plain local server), 
 
 ## Not yet covered
 
-- Long tasks during a live refresh are not measured automatically yet. The summary page swaps only the contest
-  cards, the reporting page only its changed table rows, and the precinct page (by precinct) only its changed
-  cards (keyed; all checked in `a11y/live-updates.spec.js`). The precinct page's by-contest table still rebuilds.
+- **Long tasks during a live refresh: budget not yet met for a full refresh.** Measured with a PerformanceObserver
+  (4× CPU throttle, 412 px) while every one of 63 contests changes (sample 02 → 05):
+  - two long tasks of about 50–90 ms each on the summary, reporting and precinct pages;
+  - a poll with no change has none.
+
+  Profiling shows the page's own JS is about 20 ms of that; the rest is the browser's style and layout work after
+  the DOM changes. Already done:
+  - only the changed cards and rows are swapped (keyed, checked in `a11y/live-updates.spec.js`);
+  - swaps go in batches of 8 with `scheduler.yield()` in between;
+  - one cached `Intl.NumberFormat` replaces per-call `toLocaleString()`.
+
+  Next steps:
+  - render the hero, jump menu and cards in separate tasks;
+  - avoid table relayout on the reporting page (`table-layout: fixed`);
+  - simplify the precinct cards' inline styles.
+
+  A typical election-night update changes a few contests, not all 63. The precinct page's by-contest table still
+  rebuilds.
 - `<link rel="preconnect">` to `storage.googleapis.com`: add in Phase 5 together with `PUBLIC_BASE`.
 - Lighthouse is not in CI yet (it needs Chrome and is noisy on shared runners); run it before a release.
