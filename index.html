@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Election Night Results Dashboard | Hamilton County Election Commission</title>
+  
+  <!-- Global Visual Diagnostic Error Handler -->
+  <script>
+    window.onerror = function(msg, src, line, col, err) {
+      var d = document.createElement('div');
+      d.style.cssText = 'background:#fef2f2; border:2px solid #dc2626; color:#991b1b; padding:20px; margin:20px; font-family:sans-serif; font-size:14px; border-radius:8px; z-index:9999; position:relative;';
+      d.innerHTML = '<h3>&#x26A0;&#xFE0F; JavaScript Runtime Error:</h3>' +
+                    '<p><strong>Message:</strong> ' + msg + '</p>' +
+                    '<p><strong>Source:</strong> ' + src + ' (Line ' + line + ', Col ' + col + ')</p>';
+      document.body.insertBefore(d, document.body.firstChild);
+      return false;
+    };
+  </script>
+
+  <!-- CSS Design System -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Screen Reader Skip Link (WCAG 2.1 AA SC 1.3.2) -->
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+
+  <!-- Top Navigation & Header Banner -->
+  <nav class="navbar" role="navigation" aria-label="Main Navigation">
+    <a href="index.html" class="navbar-brand" aria-label="Hamilton County Election Commission Home">
+      <div class="navbar-seal" aria-hidden="true">
+        <svg class="tn-seal-svg" viewBox="0 0 100 100" width="100%" height="100%" aria-label="Tennessee Three Grand Divisions Logo">
+          <circle cx="50" cy="50" r="50" fill="#CC0000" />
+          <circle cx="50" cy="50" r="43" fill="none" stroke="#FFFFFF" stroke-width="4" />
+          <circle cx="50" cy="50" r="41" fill="#002147" />
+          <g fill="#FFFFFF">
+            <path d="M 0,-9 L 2.65,-2.78 L 8.56,-2.78 L 3.83,0.66 L 5.63,6.36 L 0,2.7 L -5.63,6.36 L -3.83,0.66 L -8.56,-2.78 L -2.65,-2.78 Z" transform="translate(37, 39) rotate(-10)" />
+            <path d="M 0,-9 L 2.65,-2.78 L 8.56,-2.78 L 3.83,0.66 L 5.63,6.36 L 0,2.7 L -5.63,6.36 L -3.83,0.66 L -8.56,-2.78 L -2.65,-2.78 Z" transform="translate(63, 43) rotate(25)" />
+            <path d="M 0,-9 L 2.65,-2.78 L 8.56,-2.78 L 3.83,0.66 L 5.63,6.36 L 0,2.7 L -5.63,6.36 L -3.83,0.66 L -8.56,-2.78 L -2.65,-2.78 Z" transform="translate(48, 66) rotate(60)" />
+          </g>
+        </svg>
+      </div>
+      <div>
+        <div class="navbar-title">Hamilton County Election Commission</div>
+        <div id="navbar-subtitle" class="navbar-subtitle">Election Night Unofficial Results</div>
+      </div>
+    </a>
+
+    <div class="navbar-controls">
+      <a href="index.html" class="nav-btn active" aria-current="page">Summary Results</a>
+      <a href="reporting.html" class="nav-btn">Reporting Status</a>
+      <a href="precincts.html" class="nav-btn">Precinct Results</a>
+      <a href="scrolling.html" class="nav-btn">&#x1F4FA; Scrolling Results</a>
+      <button type="button" class="nav-btn" onclick="ElectionApp.refreshResults()" aria-label="Refresh Election Results">
+        &#x21BB; Refresh
+      </button>
+      <button type="button" id="dark-mode-toggle" class="nav-btn" onclick="ElectionApp.toggleDarkMode()" aria-label="Toggle Dark Mode Theme">
+        &#x1F319; Dark Mode
+      </button>
+      <button type="button" id="contrast-toggle" class="nav-btn" onclick="ElectionApp.toggleHighContrast()" aria-label="Toggle High Contrast Mode">
+        &#x1F317; High Contrast
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main id="main-content" class="app-container">
+
+    <!-- Hero Turnout Summary Banner -->
+    <header class="hero-banner" aria-labelledby="hero-title">
+      <div class="hero-header">
+        <div>
+          <h1 id="hero-title" class="hero-title">Hamilton County General Election</h1>
+          <div id="hero-date" class="hero-subtitle">November 5, 2024</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <button type="button" class="export-btn" onclick="ElectionApp.refreshResults()" aria-label="Refresh Election Results Data" style="background:var(--secondary) !important;">
+            &#x21BB; Refresh Results
+          </button>
+          <button type="button" class="export-btn" onclick="ElectionApp.exportCSV()" aria-label="Export Summary Election Results as CSV">
+            &#x1F4E5; Export CSV
+          </button>
+          <div class="status-badge" aria-label="Election Status">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            <span id="status-text">UNOFFICIAL RESULTS</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Turnout Summary Metrics Grid (4 Clean KPI Cards) -->
+      <div class="metrics-grid" role="region" aria-label="Overall Turnout Statistics">
+        <div class="metric-card">
+          <div class="metric-label">Registered Voters</div>
+          <div id="stat-voters" class="metric-value">--</div>
+          <div class="metric-subtext">Active Registered Voters</div>
+        </div>
+
+        <div class="metric-card" style="flex: 2 1 320px !important;">
+          <div class="metric-label">Total Ballots Cast</div>
+          <div id="stat-ballots" class="metric-value">--</div>
+          <div class="ballot-breakdown-pills" aria-label="Party Ballot Breakdown">
+            <span class="ballot-pill ballot-pill-rep">REP: <strong id="stat-ballots-rep">--</strong></span>
+            <span class="ballot-pill ballot-pill-dem">DEM: <strong id="stat-ballots-dem">--</strong></span>
+            <span class="ballot-pill ballot-pill-gen">GEN: <strong id="stat-ballots-gen">--</strong></span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Voter Turnout</div>
+          <div id="stat-turnout" class="metric-value">--%</div>
+          <div class="turnout-bar-container" aria-hidden="true">
+            <div id="turnout-fill" class="turnout-bar-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Precincts &amp; Early Status</div>
+          <div id="stat-reporting" class="metric-value">--</div>
+          <div class="precinct-bar-container" aria-hidden="true">
+            <div id="reporting-fill" class="precinct-bar-fill" style="width: 0%;"></div>
+          </div>
+          <div id="stat-early-val" class="metric-subtext" style="margin-top:6px; font-weight:600;">--</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filter Bar & Search Controls -->
+    <section class="filter-bar" aria-label="Contest Filters and Search">
+      <div class="filter-tabs" role="tablist" aria-label="Party Filter Tabs">
+        <button type="button" class="tab-btn active" data-party="ALL" role="tab" aria-selected="true" onclick="ElectionApp.setPartyFilter('ALL')">All Contests</button>
+        <button type="button" class="tab-btn" data-party="REP" role="tab" aria-selected="false" onclick="ElectionApp.setPartyFilter('REP')">Republican</button>
+        <button type="button" class="tab-btn" data-party="DEM" role="tab" aria-selected="false" onclick="ElectionApp.setPartyFilter('DEM')">Democratic</button>
+        <button type="button" class="tab-btn" data-party="IND" role="tab" aria-selected="false" onclick="ElectionApp.setPartyFilter('IND')">Non-Partisan / Independent</button>
+      </div>
+
+      <div class="controls-right-group">
+        <select id="contest-jump-menu" class="jump-select" onchange="ElectionApp.jumpToContest(this.value)" aria-label="Jump to specific contest">
+          <option value="">&#x1F4CC; Jump to Contest...</option>
+        </select>
+
+        <div class="search-box-container">
+          <label for="contest-search" class="sr-only">Search Contests or Candidates</label>
+          <input type="text" id="contest-search" class="search-input" placeholder="&#x1F50D; Search contest..." aria-label="Search contest or candidate name">
+        </div>
+      </div>
+    </section>
+
+    <!-- Contest Cards Grid Container -->
+    <section id="contests-container" class="contests-grid" aria-label="Election Results Contests">
+      <!-- Dynamically generated contest cards -->
+    </section>
+
+  </main>
+
+  <!-- Floating Back to Top Button -->
+  <button type="button" id="back-to-top" class="back-to-top-btn" onclick="ElectionApp.scrollToTop()" aria-label="Return to top of page">
+    &#x25B2; Top
+  </button>
+
+  <!-- Precinct Reporting Visual Modal Dialog -->
+  <div id="precinct-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <header class="modal-header">
+        <div>
+          <h2 id="modal-title" class="modal-title">Precinct Reporting Status</h2>
+          <div id="modal-subtitle" style="font-size:13px; color:var(--neutral-muted); margin-top:2px;">--</div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="ElectionApp.closePrecinctModal()" aria-label="Close Precinct Modal">&times;</button>
+      </header>
+
+      <div class="modal-subnav">
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="tab-btn modal-filter-btn active" data-mfilter="ALL" onclick="ElectionApp.setModalFilter('ALL')">All Precincts</button>
+          <button type="button" class="tab-btn modal-filter-btn" data-mfilter="REPORTED" onclick="ElectionApp.setModalFilter('REPORTED')">&#x2705; Reported</button>
+          <button type="button" class="tab-btn modal-filter-btn" data-mfilter="PENDING" onclick="ElectionApp.setModalFilter('PENDING')">&#x23F3; Pending</button>
+        </div>
+
+        <div style="flex:1; max-width:260px;">
+          <input type="text" id="modal-search-input" class="search-input" placeholder="&#x1F50D; Search precinct name..." oninput="ElectionApp.handleModalSearch(this.value)" aria-label="Search precinct name">
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div id="modal-precinct-grid" class="precinct-grid">
+          <!-- Dynamically populated precinct status chips -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reporting Timeframe & Audit Disclaimer Notices -->
+  <div class="container" style="margin-top: 36px; margin-bottom: 28px;">
+    <div class="disclaimer-banner-group horizontal-notices" role="note">
+      <div class="disclaimer-banner notice-large">
+        <span>&#x2139;&#xFE0F;</span>
+        <span><strong>Reporting Notice:</strong> Reaching 100% Election Day precincts reporting generally takes about 3 hours after polls close.</span>
+      </div>
+      <div class="disclaimer-banner notice-large">
+        <span>&#x2139;&#xFE0F;</span>
+        <span><strong>Results Notice:</strong> Precinct-level results are made available within 1 to 2 business days after Election Day.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer" role="contentinfo">
+    <p>&copy; Hamilton County Election Commission &bull; Unofficial Election Night Results &bull; Compliant with WCAG 2.1 AA Standards</p>
+    <p style="margin-top: 4px; font-size: 11px;">Addresses and Maps Link: <a href="https://maps.google.com/?q=700+River+Terminal+Road,+Chattanooga,+TN+37406" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:600;">Hamilton County Election Commission Office</a></p>
+  </footer>
+
+  <!-- Election Data & Application Controller Scripts -->
+  <script src="./data.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

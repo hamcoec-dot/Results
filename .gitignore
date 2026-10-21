@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+__pycache__/
+*.pyc
+
+# Firebase emulator logs
+*-debug.log
+
+
+# Local session state (checkpoints load from disk)
+/.claude/

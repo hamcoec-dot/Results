@@ -1,0 +1,6 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Fixtures and goldens are byte-exact test inputs (sha256-checked)
+*.csv -text
+functions/test/golden/** -text

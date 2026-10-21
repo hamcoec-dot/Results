@@ -1,0 +1,2126 @@
+{
+ "checks": [
+  {
+   "detail": "summary.json file generated successfully (~15KB)",
+   "pass": true
+  },
+  {
+   "detail": "precincts.json file generated successfully (~230KB)",
+   "pass": true
+  },
+  {
+   "detail": "Data Revision Hash (dataVersion) generated",
+   "pass": true
+  },
+  {
+   "detail": "Dynamic Master Precinct List built (93 precincts)",
+   "pass": true
+  },
+  {
+   "detail": "Election Title matches ('2026-08-06 State Primary & County General')",
+   "pass": true
+  },
+  {
+   "detail": "Election Date matches ('August 6, 2026')",
+   "pass": true
+  },
+  {
+   "detail": "County Name matches ('Hamilton')",
+   "pass": true
+  },
+  {
+   "detail": "Registered Voters count (219226 == 219226)",
+   "pass": true
+  },
+  {
+   "detail": "Total Ballots Cast (325 == 325)",
+   "pass": true
+  },
+  {
+   "detail": "Turnout Percentage (0.15% == 0.15%)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Judge Mary Wagner' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Mary Wagner' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Mary Wagner' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County School Board, District 6' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 6' Precincts Reported (9 == 9)",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 6' Total Precincts (9 == 9)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP Tennessee House of Representatives, District 27' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 27' Precincts Reported (33 == 33)",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 27' Total Precincts (33 == 33)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Judge Valerie Smith' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Valerie Smith' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Valerie Smith' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP State Executive Committeeman, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeeman, District 11' Precincts Reported (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeeman, District 11' Total Precincts (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Register of Deeds' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Register of Deeds' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Register of Deeds' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Town of Lookout Mountain School Board Lookout Mountain' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Town of Lookout Mountain School Board Lookout Mountain' Precincts Reported (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "'Town of Lookout Mountain School Board Lookout Mountain' Total Precincts (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Judge William Phillips, II' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Judge William Phillips, II' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Judge William Phillips, II' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM Tennessee House of Representatives, District 30' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 30' Precincts Reported (25 == 25)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 30' Total Precincts (25 == 25)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM Tennessee House of Representatives, District 29' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 29' Precincts Reported (21 == 21)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 29' Total Precincts (21 == 21)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Collegedale City Judge' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Collegedale City Judge' Precincts Reported (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "'Collegedale City Judge' Total Precincts (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Judge Steve Maroney' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Steve Maroney' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Steve Maroney' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP State Executive Committeewoman, District 10' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeewoman, District 10' Precincts Reported (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeewoman, District 10' Total Precincts (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County School Board, District 5' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 5' Precincts Reported (11 == 11)",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 5' Total Precincts (11 == 11)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP Tennessee Senate, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee Senate, District 11' Precincts Reported (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee Senate, District 11' Total Precincts (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Sheriff' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Sheriff' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Sheriff' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County School Board, District 3' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 3' Precincts Reported (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 3' Total Precincts (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP United States House of Representatives, District 3' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP United States House of Representatives, District 3' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'REP United States House of Representatives, District 3' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP Tennessee House of Representatives, District 28' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 28' Precincts Reported (27 == 27)",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 28' Total Precincts (27 == 27)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM State Executive Committeeman, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeeman, District 11' Precincts Reported (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeeman, District 11' Total Precincts (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 1' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 1' Precincts Reported (11 == 11)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 1' Total Precincts (11 == 11)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 4' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 4' Precincts Reported (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 4' Total Precincts (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Trustee' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Trustee' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'County Trustee' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM State Executive Committeewoman, District 10' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeewoman, District 10' Precincts Reported (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeewoman, District 10' Total Precincts (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'General Sessions Court Judge, Div. 2' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'General Sessions Court Judge, Div. 2' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'General Sessions Court Judge, Div. 2' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM Tennessee Senate, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee Senate, District 11' Precincts Reported (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee Senate, District 11' Total Precincts (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Criminal Court Clerk' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Criminal Court Clerk' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Criminal Court Clerk' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 8' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 8' Precincts Reported (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 8' Total Precincts (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Judge Kyle Hixson' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Kyle Hixson' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Kyle Hixson' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Juvenile Court Clerk' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Juvenile Court Clerk' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Juvenile Court Clerk' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County School Board, District 9' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 9' Precincts Reported (6 == 6)",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 9' Total Precincts (6 == 6)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM Tennessee House of Representatives, District 28' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 28' Precincts Reported (27 == 27)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 28' Total Precincts (27 == 27)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 5' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 5' Precincts Reported (11 == 11)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 5' Total Precincts (11 == 11)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 11' Precincts Reported (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 11' Total Precincts (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 2' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 2' Precincts Reported (10 == 10)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 2' Total Precincts (10 == 10)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Red Bank City Judge Red Bank' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Red Bank City Judge Red Bank' Precincts Reported (4 == 4)",
+   "pass": true
+  },
+  {
+   "detail": "'Red Bank City Judge Red Bank' Total Precincts (4 == 4)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 7' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 7' Precincts Reported (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 7' Total Precincts (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM United States House of Representatives, District 3' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM United States House of Representatives, District 3' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM United States House of Representatives, District 3' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP Tennessee House of Representatives, District 30' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 30' Precincts Reported (25 == 25)",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 30' Total Precincts (25 == 25)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Circuit Court Clerk' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Circuit Court Clerk' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Circuit Court Clerk' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM State Executive Committeeman, District 10' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeeman, District 10' Precincts Reported (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeeman, District 10' Total Precincts (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County School Board, District 8' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 8' Precincts Reported (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "'County School Board, District 8' Total Precincts (7 == 7)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 3' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 3' Precincts Reported (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 3' Total Precincts (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Judge Stacy Street' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Stacy Street' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Stacy Street' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP United States Senate' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP United States Senate' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'REP United States Senate' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Circuit Court Judge, Div. 2' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Circuit Court Judge, Div. 2' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Circuit Court Judge, Div. 2' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 10' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 10' Precincts Reported (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 10' Total Precincts (8 == 8)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP State Executive Committeeman, District 10' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeeman, District 10' Precincts Reported (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeeman, District 10' Total Precincts (35 == 35)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Judge Steven Sword' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Steven Sword' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Judge Steven Sword' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Town of Lookout Mountain Commission Lookout Mountain' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Town of Lookout Mountain Commission Lookout Mountain' Precincts Reported (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "'Town of Lookout Mountain Commission Lookout Mountain' Total Precincts (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP Tennessee House of Representatives, District 29' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 29' Precincts Reported (21 == 21)",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 29' Total Precincts (21 == 21)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 9' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 9' Precincts Reported (6 == 6)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 9' Total Precincts (6 == 6)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Commission, District 6' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 6' Precincts Reported (9 == 9)",
+   "pass": true
+  },
+  {
+   "detail": "'County Commission, District 6' Total Precincts (9 == 9)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Clerk' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Clerk' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'County Clerk' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM State Executive Committeewoman, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeewoman, District 11' Precincts Reported (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM State Executive Committeewoman, District 11' Total Precincts (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM Tennessee House of Representatives, District 26' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 26' Precincts Reported (31 == 31)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 26' Total Precincts (31 == 31)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM Governor' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Governor' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Governor' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP Governor' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP Governor' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'REP Governor' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'County Mayor' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'County Mayor' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'County Mayor' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP State Executive Committeewoman, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeewoman, District 11' Precincts Reported (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "'REP State Executive Committeewoman, District 11' Total Precincts (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM Tennessee House of Representatives, District 27' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 27' Precincts Reported (33 == 33)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM Tennessee House of Representatives, District 27' Total Precincts (33 == 33)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'DEM United States Senate' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'DEM United States Senate' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'DEM United States Senate' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'REP Tennessee House of Representatives, District 26' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 26' Precincts Reported (31 == 31)",
+   "pass": true
+  },
+  {
+   "detail": "'REP Tennessee House of Representatives, District 26' Total Precincts (31 == 31)",
+   "pass": true
+  },
+  {
+   "detail": "Total contest count matches (63 == 63)",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Replace' vote sum (51 == 51) in 'Judge Mary Wagner'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Retain' vote sum (20 == 20) in 'Judge Mary Wagner'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Replace' vote sum (159 == 159) in 'Judge Valerie Smith'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Retain' vote sum (128 == 128) in 'Judge Valerie Smith'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'James T. Williams' vote sum (0 == 0) in 'Town of Lookout Mountain School Board Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Julie G Fisher' vote sum (0 == 0) in 'Town of Lookout Mountain School Board Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Karen Welborn' vote sum (0 == 0) in 'Town of Lookout Mountain School Board Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Replace' vote sum (113 == 113) in 'Judge William Phillips, II'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Retain' vote sum (82 == 82) in 'Judge William Phillips, II'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Replace' vote sum (175 == 175) in 'Judge Steve Maroney'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Retain' vote sum (144 == 144) in 'Judge Steve Maroney'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Austin Garrett' vote sum (132 == 132) in 'Sheriff'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Chuck Fleischmann' vote sum (108 == 108) in 'REP United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Bill Hullander' vote sum (117 == 117) in 'County Trustee'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Tori Smith' vote sum (70 == 70) in 'General Sessions Court Judge, Div. 2'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Vince Dean' vote sum (76 == 76) in 'Criminal Court Clerk'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Aaliyah K. Hakeem' vote sum (107 == 107) in 'Criminal Court Clerk'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Replace' vote sum (169 == 169) in 'Judge Kyle Hixson'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Retain' vote sum (138 == 138) in 'Judge Kyle Hixson'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Gary D. Behler' vote sum (60 == 60) in 'Juvenile Court Clerk'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Emily O'Donnell' vote sum (0 == 0) in 'Red Bank City Judge Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Meredith Mochel' vote sum (0 == 0) in 'Red Bank City Judge Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Bryan Hoss' vote sum (0 == 0) in 'Red Bank City Judge Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Anna Golladay' vote sum (66 == 66) in 'DEM United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Bryan Martin' vote sum (97 == 97) in 'DEM United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Larry L. Henry' vote sum (194 == 194) in 'Circuit Court Clerk'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Bill Hagerty' vote sum (46 == 46) in 'REP United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Replace' vote sum (41 == 41) in 'Judge Stacy Street'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Retain' vote sum (190 == 190) in 'Judge Stacy Street'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Replace' vote sum (103 == 103) in 'Judge Steven Sword'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Retain' vote sum (72 == 72) in 'Judge Steven Sword'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'John Charles Tugman, Jr.' vote sum (0 == 0) in 'Town of Lookout Mountain Commission Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Karen Leavengood' vote sum (0 == 0) in 'Town of Lookout Mountain Commission Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Lindsey Parks' vote sum (0 == 0) in 'Town of Lookout Mountain Commission Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'William Valadez' vote sum (0 == 0) in 'Town of Lookout Mountain Commission Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jake Tallent' vote sum (0 == 0) in 'Town of Lookout Mountain Commission Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jim Bentley' vote sum (0 == 0) in 'Town of Lookout Mountain Commission Lookout Mountain'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'George Ryan Love' vote sum (153 == 153) in 'County Clerk'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Brooke Weaver' vote sum (122 == 122) in 'County Clerk'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Adam \"Ditch\" Kurtz' vote sum (76 == 76) in 'DEM Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Tim Cyr' vote sum (194 == 194) in 'DEM Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jerri Green' vote sum (45 == 45) in 'DEM Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Carnita Atwater' vote sum (163 == 163) in 'DEM Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Kevin Lee McCants' vote sum (107 == 107) in 'DEM Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'John Rose' vote sum (164 == 164) in 'REP Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Monty Fritts' vote sum (133 == 133) in 'REP Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Marsha Blackburn' vote sum (102 == 102) in 'REP Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Weston Wamp' vote sum (152 == 152) in 'County Mayor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Mark Herndon' vote sum (183 == 183) in 'County Mayor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Marc Gravitt' vote sum (35 == 35) in 'Register of Deeds'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Diana Onyejiaka' vote sum (184 == 184) in 'DEM United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Maria Brewer' vote sum (91 == 91) in 'DEM United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Civil Miller-Watkins' vote sum (153 == 153) in 'DEM United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Marquita Bradshaw' vote sum (60 == 60) in 'DEM United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Kevin Lee McCants' vote sum (122 == 122) in 'DEM United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jennifer K. Peck' vote sum (90 == 90) in 'Circuit Court Judge, Div. 2'",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AIRPORT A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AIRPORT A' Registered Voters (829 == 829)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AIRPORT A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AIRPORT B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AIRPORT B' Registered Voters (1400 == 1400)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AIRPORT B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'ALTON PARK' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'ALTON PARK' Registered Voters (2368 == 2368)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'ALTON PARK' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'APISON A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'APISON A' Registered Voters (1923 == 1923)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'APISON A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'APISON B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'APISON B' Registered Voters (721 == 721)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'APISON B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AVONDALE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AVONDALE' Registered Voters (1563 == 1563)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'AVONDALE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BIRCHWOOD' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BIRCHWOOD' Registered Voters (2191 == 2191)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BIRCHWOOD' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BONNY OAKS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BONNY OAKS' Registered Voters (2625 == 2625)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BONNY OAKS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BRAINERD' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BRAINERD' Registered Voters (2221 == 2221)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BRAINERD' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BRAINERD HILLS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BRAINERD HILLS' Registered Voters (2059 == 2059)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BRAINERD HILLS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BUSHTOWN' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BUSHTOWN' Registered Voters (2349 == 2349)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'BUSHTOWN' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COLLEGEDALE A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COLLEGEDALE A' Registered Voters (1849 == 1849)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COLLEGEDALE A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COLLEGEDALE B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COLLEGEDALE B' Registered Voters (1051 == 1051)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COLLEGEDALE B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'CONCORD A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'CONCORD A' Registered Voters (1949 == 1949)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'CONCORD A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'CONCORD B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'CONCORD B' Registered Voters (3188 == 3188)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'CONCORD B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COURTHOUSE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COURTHOUSE' Registered Voters (1453 == 1453)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'COURTHOUSE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DALEWOOD' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DALEWOOD' Registered Voters (2640 == 2640)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DALEWOOD' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DALLAS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DALLAS' Registered Voters (3856 == 3856)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DALLAS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DOWNTOWN' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DOWNTOWN' Registered Voters (2856 == 2856)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DOWNTOWN' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DUPONT' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DUPONT' Registered Voters (3175 == 3175)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'DUPONT' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST BRAINERD A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST BRAINERD A' Registered Voters (3378 == 3378)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST BRAINERD A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST BRAINERD B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST BRAINERD B' Registered Voters (4684 == 4684)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST BRAINERD B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST CHATTANOOGA' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST CHATTANOOGA' Registered Voters (2083 == 2083)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST CHATTANOOGA' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST LAKE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST LAKE' Registered Voters (1604 == 1604)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST LAKE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE A' Registered Voters (3459 == 3459)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE B' Registered Voters (3696 == 3696)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE C' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE C' Registered Voters (1656 == 1656)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE C' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE D' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE D' Registered Voters (3138 == 3138)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EAST RIDGE D' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EASTGATE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EASTGATE' Registered Voters (2307 == 2307)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EASTGATE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EASTSIDE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EASTSIDE' Registered Voters (2924 == 2924)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'EASTSIDE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FAIRMOUNT' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FAIRMOUNT' Registered Voters (2777 == 2777)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FAIRMOUNT' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FALLING WATER A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FALLING WATER A' Registered Voters (112 == 112)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FALLING WATER A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FALLING WATER B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FALLING WATER B' Registered Voters (990 == 990)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FALLING WATER B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FLAT TOP MOUNTAIN' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FLAT TOP MOUNTAIN' Registered Voters (465 == 465)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'FLAT TOP MOUNTAIN' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'GANNS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'GANNS' Registered Voters (3681 == 3681)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'GANNS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'GLENWOOD' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'GLENWOOD' Registered Voters (2109 == 2109)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'GLENWOOD' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HARRISON' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HARRISON' Registered Voters (2380 == 2380)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HARRISON' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HARRISON BAY' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HARRISON BAY' Registered Voters (4416 == 4416)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HARRISON BAY' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HIXSON' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HIXSON' Registered Voters (2263 == 2263)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HIXSON' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HUNTER' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HUNTER' Registered Voters (4194 == 4194)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HUNTER' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HURRICANE CREEK' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HURRICANE CREEK' Registered Voters (4820 == 4820)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'HURRICANE CREEK' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'KINGSPOINT' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'KINGSPOINT' Registered Voters (2115 == 2115)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'KINGSPOINT' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LAKE HILLS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LAKE HILLS' Registered Voters (1645 == 1645)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LAKE HILLS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LAKESITE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LAKESITE' Registered Voters (1414 == 1414)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LAKESITE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LOOKOUT MOUNTAIN' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LOOKOUT MOUNTAIN' Registered Voters (1644 == 1644)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LOOKOUT MOUNTAIN' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LOOKOUT VALLEY' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LOOKOUT VALLEY' Registered Voters (4397 == 4397)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LOOKOUT VALLEY' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LUPTON CITY' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LUPTON CITY' Registered Voters (2756 == 2756)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'LUPTON CITY' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MEADOWVIEW' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MEADOWVIEW' Registered Voters (3085 == 3085)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MEADOWVIEW' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MIDDLE VALLEY' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MIDDLE VALLEY' Registered Voters (2199 == 2199)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MIDDLE VALLEY' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MISSIONARY RIDGE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MISSIONARY RIDGE' Registered Voters (1632 == 1632)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MISSIONARY RIDGE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK A' Registered Voters (3599 == 3599)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK B' Registered Voters (1592 == 1592)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK C' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK C' Registered Voters (209 == 209)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOUNTAIN CREEK C' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOWBRAY A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOWBRAY A' Registered Voters (492 == 492)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOWBRAY A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOWBRAY B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOWBRAY B' Registered Voters (712 == 712)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MOWBRAY B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MURRAY HILLS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MURRAY HILLS' Registered Voters (1982 == 1982)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'MURRAY HILLS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTH CHATTANOOGA A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTH CHATTANOOGA A' Registered Voters (1672 == 1672)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTH CHATTANOOGA A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTH CHATTANOOGA B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTH CHATTANOOGA B' Registered Voters (1171 == 1171)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTH CHATTANOOGA B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHGATE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHGATE' Registered Voters (2794 == 2794)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHGATE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHSHORE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHSHORE' Registered Voters (3273 == 3273)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHSHORE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHWOODS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHWOODS' Registered Voters (3710 == 3710)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'NORTHWOODS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH' Registered Voters (5031 == 5031)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH GEORGETOWN' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH GEORGETOWN' Registered Voters (2310 == 2310)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH GEORGETOWN' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH RINGGOLD' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH RINGGOLD' Registered Voters (5212 == 5212)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'OOLTEWAH RINGGOLD' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'PLEASANT GROVE A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'PLEASANT GROVE A' Registered Voters (3519 == 3519)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'PLEASANT GROVE A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'PLEASANT GROVE B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'PLEASANT GROVE B' Registered Voters (253 == 253)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'PLEASANT GROVE B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'POSSUM CREEK' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'POSSUM CREEK' Registered Voters (3224 == 3224)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'POSSUM CREEK' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK A' Registered Voters (3316 == 3316)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK B' Registered Voters (2604 == 2604)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK C' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK C' Registered Voters (1948 == 1948)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RED BANK C' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIDGEDALE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIDGEDALE' Registered Voters (2385 == 2385)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIDGEDALE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIDGESIDE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIDGESIDE' Registered Voters (387 == 387)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIDGESIDE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIVERVIEW' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIVERVIEW' Registered Voters (1964 == 1964)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'RIVERVIEW' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SALE CREEK' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SALE CREEK' Registered Voters (2385 == 2385)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SALE CREEK' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SAVANNAH BAY' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SAVANNAH BAY' Registered Voters (3161 == 3161)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SAVANNAH BAY' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SEQUOYAH' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SEQUOYAH' Registered Voters (2714 == 2714)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SEQUOYAH' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SIGNAL MOUNTAIN A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SIGNAL MOUNTAIN A' Registered Voters (2513 == 2513)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SIGNAL MOUNTAIN A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SIGNAL MOUNTAIN B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SIGNAL MOUNTAIN B' Registered Voters (4513 == 4513)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SIGNAL MOUNTAIN B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SILVERDALE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SILVERDALE' Registered Voters (1378 == 1378)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SILVERDALE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SODDY DAISY B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SODDY DAISY B' Registered Voters (3138 == 3138)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SODDY DAISY B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SODDY DAISY C' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SODDY DAISY C' Registered Voters (1630 == 1630)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SODDY DAISY C' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'ST ELMO' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'ST ELMO' Registered Voters (2080 == 2080)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'ST ELMO' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'STUART HEIGHTS' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'STUART HEIGHTS' Registered Voters (3276 == 3276)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'STUART HEIGHTS' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SUMMIT' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SUMMIT' Registered Voters (3286 == 3286)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'SUMMIT' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'TYNER' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'TYNER' Registered Voters (2321 == 2321)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'TYNER' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'VALLEYBROOK' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'VALLEYBROOK' Registered Voters (4633 == 4633)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'VALLEYBROOK' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WALDEN' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WALDEN' Registered Voters (1726 == 1726)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WALDEN' Ballots Cast (325 == 325)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WESTVIEW A' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WESTVIEW A' Registered Voters (1628 == 1628)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WESTVIEW A' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WESTVIEW B' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WESTVIEW B' Registered Voters (3118 == 3118)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WESTVIEW B' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WOLFTEVER' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WOLFTEVER' Registered Voters (196 == 196)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WOLFTEVER' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WOODMORE' stats present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WOODMORE' Registered Voters (1882 == 1882)",
+   "pass": true
+  },
+  {
+   "detail": "Precinct 'WOODMORE' Ballots Cast (0 == 0)",
+   "pass": true
+  },
+  {
+   "detail": "Audited 5331 precinct-level candidate vote entries against raw CSV data",
+   "pass": true
+  }
+ ],
+ "failed": 0,
+ "passed": 530
+}

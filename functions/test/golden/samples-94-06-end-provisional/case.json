@@ -1,0 +1,8 @@
+{
+ "early": "Test_Files/Web Results Samples/02-After EV (94).csv",
+ "earlySha256": "fa6a9477e1741f4d2775bd94528eb153f7e3606a8fc80339685e5ce91b644f4d",
+ "ed": "Test_Files/Web Results Samples/06-End of Provisional (94).csv",
+ "edSha256": "56ce8293a95a9156f1194c3896d9252993637e5a2e4f569a5c7fd97709c00bed",
+ "id": "samples-94-06-end-provisional",
+ "precinctCap": 92
+}

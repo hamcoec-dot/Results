@@ -1,0 +1,8 @@
+{
+ "early": null,
+ "earlySha256": null,
+ "ed": "Test_Files/ED test.csv",
+ "edSha256": "7d09b09e7fa1db6f7824816bac016d25a05d2f5c0a504c8d1bc42b8c0a2b3bf9",
+ "id": "testfiles-ed-only",
+ "precinctCap": 92
+}

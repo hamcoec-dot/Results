@@ -1,0 +1,8 @@
+{
+ "early": "Test_Files/EV test.csv",
+ "earlySha256": "062eebab412e6170417fa5ed285e368a4d0bb151890b80fbb17faa9eabef910b",
+ "ed": "Test_Files/ED test.csv",
+ "edSha256": "7d09b09e7fa1db6f7824816bac016d25a05d2f5c0a504c8d1bc42b8c0a2b3bf9",
+ "id": "testfiles-ev-ed",
+ "precinctCap": 92
+}

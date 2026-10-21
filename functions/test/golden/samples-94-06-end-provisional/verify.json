@@ -1,0 +1,626 @@
+{
+ "checks": [
+  {
+   "detail": "summary.json file generated successfully (~15KB)",
+   "pass": true
+  },
+  {
+   "detail": "precincts.json file generated successfully (~230KB)",
+   "pass": true
+  },
+  {
+   "detail": "Data Revision Hash (dataVersion) generated",
+   "pass": true
+  },
+  {
+   "detail": "Dynamic Master Precinct List built (94 precincts)",
+   "pass": true
+  },
+  {
+   "detail": "Election Title matches ('2026-11-03 General')",
+   "pass": true
+  },
+  {
+   "detail": "Election Date matches ('November 3, 2026')",
+   "pass": true
+  },
+  {
+   "detail": "County Name matches ('Hamilton')",
+   "pass": true
+  },
+  {
+   "detail": "Registered Voters count (231431 == 231431)",
+   "pass": true
+  },
+  {
+   "detail": "Total Ballots Cast (2048 == 2048)",
+   "pass": true
+  },
+  {
+   "detail": "Turnout Percentage (0.88% == 0.88%)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Constitutional Amendment #2' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Constitutional Amendment #2' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Constitutional Amendment #2' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Ridgeside Commission' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Ridgeside Commission' Precincts Reported (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "'Ridgeside Commission' Total Precincts (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Tennessee House of Representatives, District 26' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 26' Precincts Reported (31 == 31)",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 26' Total Precincts (31 == 31)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Constitutional Amendment #1' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Constitutional Amendment #1' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Constitutional Amendment #1' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'East Ridge Charter Amendment 1 East Ridge' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge Charter Amendment 1 East Ridge' Precincts Reported (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge Charter Amendment 1 East Ridge' Total Precincts (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Walden Alderman' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Walden Alderman' Precincts Reported (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "'Walden Alderman' Total Precincts (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Constitutional Amendment #3' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Constitutional Amendment #3' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Constitutional Amendment #3' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'United States House of Representatives, District 3' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'United States House of Representatives, District 3' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'United States House of Representatives, District 3' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Signal Mountain Town Council' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Signal Mountain Town Council' Precincts Reported (2 == 2)",
+   "pass": true
+  },
+  {
+   "detail": "'Signal Mountain Town Council' Total Precincts (2 == 2)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Soddy Daisy Commissioner' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Soddy Daisy Commissioner' Precincts Reported (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "'Soddy Daisy Commissioner' Total Precincts (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'East Ridge City Court Clerk East Ridge' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge City Court Clerk East Ridge' Precincts Reported (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge City Court Clerk East Ridge' Total Precincts (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Tennessee House of Representatives, District 28' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 28' Precincts Reported (27 == 27)",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 28' Total Precincts (27 == 27)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'United States Senate' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'United States Senate' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'United States Senate' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Collegedale Commissioner' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Collegedale Commissioner' Precincts Reported (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "'Collegedale Commissioner' Total Precincts (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Governor' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Governor' Precincts Reported (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "'Governor' Total Precincts (92 == 92)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'East Ridge City Council East Ridge' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge City Council East Ridge' Precincts Reported (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge City Council East Ridge' Total Precincts (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Tennessee House of Representatives, District 29' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 29' Precincts Reported (21 == 21)",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 29' Total Precincts (21 == 21)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Tennessee House of Representatives, District 27' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 27' Precincts Reported (33 == 33)",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 27' Total Precincts (33 == 33)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Lakesite Commission' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Lakesite Commission' Precincts Reported (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "'Lakesite Commission' Total Precincts (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Walden Referendum' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Walden Referendum' Precincts Reported (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "'Walden Referendum' Total Precincts (1 == 1)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'East Ridge Mayor East Ridge' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge Mayor East Ridge' Precincts Reported (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "'East Ridge Mayor East Ridge' Total Precincts (5 == 5)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Tennessee House of Representatives, District 30' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 30' Precincts Reported (25 == 25)",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee House of Representatives, District 30' Total Precincts (25 == 25)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Tennessee Senate, District 11' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee Senate, District 11' Precincts Reported (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "'Tennessee Senate, District 11' Total Precincts (57 == 57)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Red Bank Commission Red Bank' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Red Bank Commission Red Bank' Precincts Reported (4 == 4)",
+   "pass": true
+  },
+  {
+   "detail": "'Red Bank Commission Red Bank' Total Precincts (4 == 4)",
+   "pass": true
+  },
+  {
+   "detail": "Contest 'Red Bank Charter Referendum Red Bank' present in JS dataset",
+   "pass": true
+  },
+  {
+   "detail": "'Red Bank Charter Referendum Red Bank' Precincts Reported (4 == 4)",
+   "pass": true
+  },
+  {
+   "detail": "'Red Bank Charter Referendum Red Bank' Total Precincts (4 == 4)",
+   "pass": true
+  },
+  {
+   "detail": "Total contest count matches (25 == 25)",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Yes' vote sum (88 == 88) in 'Constitutional Amendment #2'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'No' vote sum (176 == 176) in 'Constitutional Amendment #2'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Yes' vote sum (88 == 88) in 'Constitutional Amendment #1'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'No' vote sum (176 == 176) in 'Constitutional Amendment #1'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Against the amendment' vote sum (16 == 16) in 'East Ridge Charter Amendment 1 East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'For the amendment' vote sum (8 == 8) in 'East Ridge Charter Amendment 1 East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Angela Cassidy' vote sum (9 == 9) in 'Walden Alderman'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Yes' vote sum (88 == 88) in 'Constitutional Amendment #3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'No' vote sum (176 == 176) in 'Constitutional Amendment #3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Donnie Lynn Ownby' vote sum (176 == 176) in 'United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Chuck Fleischmann' vote sum (88 == 88) in 'United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Dean Arnold' vote sum (88 == 88) in 'United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Edward John Roland' vote sum (88 == 88) in 'United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Rodney Joe King' vote sum (88 == 88) in 'United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Anna Golladay' vote sum (176 == 176) in 'United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jean Howard-Hill' vote sum (176 == 176) in 'United States House of Representatives, District 3'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Laura Malone' vote sum (10 == 10) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Chris Gailmard' vote sum (20 == 20) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Scott Gossett' vote sum (10 == 10) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Rufus Marye' vote sum (20 == 20) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Austin Scofield' vote sum (10 == 10) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Clay Crumbliss' vote sum (20 == 20) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'P. Andrew Coyle' vote sum (10 == 10) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jami Wolbers' vote sum (20 == 20) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'J. Miles Jorgensen' vote sum (20 == 20) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'John Foreman' vote sum (10 == 10) in 'Signal Mountain Town Council'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Marcus Keith' vote sum (28 == 28) in 'Soddy Daisy Commissioner'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Mark Penney' vote sum (14 == 14) in 'Soddy Daisy Commissioner'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jay Branum' vote sum (14 == 14) in 'Soddy Daisy Commissioner'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Patricia E. Cassidy' vote sum (8 == 8) in 'East Ridge City Court Clerk East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Misty D. Chauncey' vote sum (16 == 16) in 'East Ridge City Court Clerk East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'James William Macon III' vote sum (88 == 88) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Yoshi D. Matthews' vote sum (176 == 176) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Catherine Barcel \"Barcy\" Whitson' vote sum (176 == 176) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Tharon Chandler' vote sum (88 == 88) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'David Sutman, Jr.' vote sum (88 == 88) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Robert Jones' vote sum (176 == 176) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jeremy Dean Hearn' vote sum (88 == 88) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Andrew Gerena' vote sum (176 == 176) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Bill Hagerty' vote sum (88 == 88) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Marquita Bradshaw' vote sum (176 == 176) in 'United States Senate'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Eddie Lee Murphy' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Misam Abidi' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'David Hatley' vote sum (176 == 176) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Dean Brewer' vote sum (176 == 176) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Robert C. Vick' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Victor L. Scoggin' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jerri Green' vote sum (176 == 176) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Karl Knox Smithson' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'L. Webb Taylor' vote sum (176 == 176) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Charles Van Morgan' vote sum (176 == 176) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Wendell Jackson' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Dave Seeman' vote sum (176 == 176) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Lauren Pinkston' vote sum (176 == 176) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Ray Brown' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Marsha Blackburn' vote sum (88 == 88) in 'Governor'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Robert (Bob) Gilreath' vote sum (8 == 8) in 'East Ridge City Council East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Caroline Rossman' vote sum (8 == 8) in 'East Ridge City Council East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'David Tyler' vote sum (16 == 16) in 'East Ridge City Council East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'James L. C. Meyers' vote sum (16 == 16) in 'East Ridge City Council East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Marty Von Schaaf' vote sum (8 == 8) in 'East Ridge City Council East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Brian Williams' vote sum (8 == 8) in 'East Ridge Mayor East Ridge'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Hollie Berry' vote sum (9 == 9) in 'Red Bank Commission Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Jamie Fairbanks-Harvey' vote sum (9 == 9) in 'Red Bank Commission Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'David R. Smith' vote sum (18 == 18) in 'Red Bank Commission Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Chad Bullard' vote sum (18 == 18) in 'Red Bank Commission Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'Against the amendment' vote sum (18 == 18) in 'Red Bank Charter Referendum Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Candidate 'For the amendment' vote sum (9 == 9) in 'Red Bank Charter Referendum Red Bank'",
+   "pass": true
+  },
+  {
+   "detail": "Audited 4100 precinct-level candidate vote entries against raw CSV data",
+   "pass": true
+  }
+ ],
+ "failed": 0,
+ "passed": 155
+}
