@@ -14,7 +14,7 @@ updates) cover the automated part. Baseline and known gaps: [BASELINE.md](BASELI
 - [ ] Scrolling the review page and the precinct page (By Contest table): no visible jank.
 - [ ] Leave each public page open for 30 minutes through several publishes, then check that:
   - [ ] it updates within about 60 s of each publish;
-  - [ ] memory stays stable (Chrome Task Manager);
+  - [ ] memory stays stable (Chrome Task Manager; `a11y/memory-soak.spec.js` checks 30 publishes automatically);
   - [ ] the page stays responsive;
   - [ ] the "Results updated" time moves.
 - [ ] Switch to another tab for a few minutes. DevTools › Network shows no requests while hidden and one manifest
