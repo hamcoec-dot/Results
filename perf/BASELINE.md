@@ -52,23 +52,22 @@ inside the 2.5 s budget. Served **without** compression (a plain local server), 
 
 ## Not yet covered
 
-- **Long tasks during a live refresh: budget not yet met for a full refresh.** Measured with a PerformanceObserver
-  (4× CPU throttle, 412 px) while every one of 63 contests changes (sample 02 → 05):
-  - two long tasks of about 50–90 ms each on the summary, reporting and precinct pages;
-  - a poll with no change has none.
+- Long tasks during a live refresh are measured by `a11y/refresh-longtasks.spec.js`. It is timing-dependent, so it
+  runs only on request:
 
-  Profiling shows the page's own JS is about 20 ms of that; the rest is the browser's style and layout work after
-  the DOM changes. Already done:
-  - only the changed cards and rows are swapped (keyed, checked in `a11y/live-updates.spec.js`);
-  - swaps go in batches of 8 with `scheduler.yield()` in between;
-  - one cached `Intl.NumberFormat` replaces per-call `toLocaleString()`.
+  ```
+  PERF=1 npx playwright test --config a11y/playwright.config.js --workers=1 refresh-longtasks
+  ```
 
-  Next steps:
-  - render the hero, jump menu and cards in separate tasks;
-  - avoid table relayout on the reporting page (`table-layout: fixed`);
-  - simplify the precinct cards' inline styles.
-
-  A typical election-night update changes a few contests, not all 63. The precinct page's by-contest table still
-  rebuilds.
+  Add `STRICT=1` to fail on a long task. The test sets up a full refresh where every one of 63 contests changes
+  (sample 02 → 05), with 4× CPU throttling (checked: a fixed loop runs 29 ms → 125 ms) at 412 px.
+  - **Result: no long task over 50 ms on the summary, reporting or precinct page**, in every run.
+  - An injected 80 ms task is reported, so the observer works.
+  - Correction: an earlier draft of this file reported 50–90 ms long tasks. That came from a throwaway script that
+    began measuring before the first render had settled. Measured properly, the commit before the batching and
+    formatter changes also shows none.
+  - The summary cards, reporting rows and by-precinct cards are swapped per changed item, in batches of 8 with
+    `scheduler.yield()`, using one cached `Intl.NumberFormat`.
+  - A desktop CPU throttled 4× is not a real phone: run the manual checklist on devices.
 - `<link rel="preconnect">` to `storage.googleapis.com`: add in Phase 5 together with `PUBLIC_BASE`.
 - Lighthouse is not in CI yet (it needs Chrome and is noisy on shared runners); run it before a release.
