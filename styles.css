@@ -1675,3 +1675,28 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
     min-width: 0 !important;
   }
 }
+
+/* Windows High Contrast / forced colors: buttons keep an outline, the selected filter or pressed toggle
+   shows as Highlight, and bars stay visible (their values are always also in text). */
+@media (forced-colors: active) {
+  .export-btn, .proj-btn, .back-to-top-btn, .tab-btn, .live-toggle, .reporting-btn, .nav-btn, .modal-close-btn {
+    border: 2px solid ButtonText !important;
+  }
+
+  .tab-btn.active, .tab-btn[aria-pressed="true"], .modal-filter-btn.active,
+  .live-toggle[aria-pressed="true"], .proj-btn.active, .nav-btn.active {
+    forced-color-adjust: none;
+    background: Highlight !important;
+    color: HighlightText !important;
+    border-color: Highlight !important;
+  }
+
+  .progress-fill, .turnout-bar-fill, .precinct-bar-fill, .proj-fill, .slide-timer-bar, .progress-bar-fill {
+    forced-color-adjust: none;
+    background: CanvasText !important;
+  }
+
+  .draft-banner {
+    border: 3px solid CanvasText !important;
+  }
+}
