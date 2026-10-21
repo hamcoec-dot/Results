@@ -21,6 +21,7 @@ window.ElectionApp = (function() {
   const DEFAULT_PRECINCT_CAP = 92;
   const AUTO_REFRESH_INTERVAL_MS = 60000; // 1 minute auto-refresh
   const RETRY_DELAY_MS = 15000; // after a failed or invalid update
+  const FETCH_TIMEOUT_MS = 20000; // a stalled request fails, so the next poll still runs
   const LIVE_PAUSED_KEY = 'liveUpdatesPaused';
   const SLIDES_PAUSED_KEY = 'slideshowPaused';
 
@@ -206,12 +207,26 @@ window.ElectionApp = (function() {
     return data;
   }
 
+  /**
+   * Fetch one data file. A request that never answers (a dropped mobile connection) fails after
+   * FETCH_TIMEOUT_MS; otherwise the poll it belongs to would never finish and live updates would stop.
+   */
   function fetchJson(file) {
     const early = RESULTS.takeEarly ? RESULTS.takeEarly(file) : null;
-    return (early || fetch(RESULTS.url(file, { bust: true }), { cache: 'no-store' })).then(res => {
-      if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
-      return res.json();
+    const controller = !early && typeof AbortController === 'function' ? new AbortController() : null;
+    let timer;
+    const timeout = new Promise((resolve, reject) => {
+      timer = setTimeout(() => {
+        if (controller) controller.abort();
+        reject(new Error(`${file}: no answer in ${FETCH_TIMEOUT_MS / 1000} s`));
+      }, FETCH_TIMEOUT_MS);
     });
+    const request = (early || fetch(RESULTS.url(file, { bust: true }), { cache: 'no-store', signal: controller ? controller.signal : undefined }))
+      .then(res => {
+        if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
+        return res.json();
+      });
+    return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
   }
 
   /**
