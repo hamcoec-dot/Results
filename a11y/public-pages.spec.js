@@ -138,6 +138,8 @@ for (const [file, ready] of Object.entries(PAGES)) {
 for (const theme of ['dark-mode-toggle', 'contrast-toggle']) {
   for (const [file, ready] of Object.entries(PAGES)) {
     test(`${file} with #${theme} @ 375px`, async ({ page }) => {
+      // Colours are checked at rest: with reduced motion the theme and filter transitions finish at once.
+      await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.setViewportSize({ width: 375, height: 800 });
       await page.goto(file);
       await page.locator(ready).first().waitFor();
