@@ -116,3 +116,20 @@ for (const [file, ready] of Object.entries(PAGES)) {
     });
   }
 }
+
+// Project standard (plan: Layout): touch targets at least 44 x 44 px on phones.
+for (const [file, ready] of Object.entries(PAGES)) {
+  test(`${file} touch targets @ 375px`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(file);
+    await page.locator(ready).first().waitFor();
+    const small = await page.evaluate(() => Array.from(document.querySelectorAll('button, a[href], select, input:not([type=hidden])'))
+      .filter((el) => {
+        if (el.closest('.sr-only, .skip-link, [aria-hidden="true"]') || getComputedStyle(el).visibility === 'hidden') return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && (r.width < 44 || r.height < 44);
+      })
+      .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')} ${Math.round(el.getBoundingClientRect().width)}x${Math.round(el.getBoundingClientRect().height)}`));
+    expect(small, 'controls under 44 x 44 px').toEqual([]);
+  });
+}

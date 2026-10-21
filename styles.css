@@ -1734,3 +1734,21 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 [hidden] {
   display: none !important;
 }
+
+/* Touch targets: at least 44 x 44 px on phones and touch screens (project standard, plan: Layout) */
+@media (max-width: 900px), (pointer: coarse) {
+  .nav-btn, .export-btn, .tab-btn, .proj-btn, .proj-select, .jump-select, .search-input,
+  .reporting-btn, .back-to-top-btn, .modal-close-btn, .live-toggle {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .footer a {
+    display: inline-block !important;
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 12px 4px !important;
+  }
+}
