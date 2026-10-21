@@ -243,19 +243,20 @@ function compareWithCurrent(draft, current, add) {
 
   const cur = new Map(current.contests.map((c) => [c.title, c]));
   const nxt = new Map(draft.contests.map((c) => [c.title, c]));
-  const fewer = []; // contests whose precincts reporting went down: one grouped warning, like close races
+  // Per-contest decreases are one grouped warning per kind, like close races.
+  const fewer = [], contestDown = [], candidateDown = [];
   let changed = 0;
   for (const [title, c] of nxt) {
     const old = cur.get(title);
     if (!old) { add('contest-added', 'warn', 'Contest added', title, [{ contest: title }]); continue; }
     if (c.precinctsReporting < old.precinctsReporting) fewer.push([title, old.precinctsReporting, c.precinctsReporting]);
-    if (c.totalVotes < old.totalVotes) add('votes-decreased', 'warn', 'Contest total went down', `${title}: ${fmt(old.totalVotes)} → ${fmt(c.totalVotes)}.`, [{ contest: title }]);
+    if (c.totalVotes < old.totalVotes) contestDown.push([`${title}: ${fmt(old.totalVotes)} → ${fmt(c.totalVotes)}`, { contest: title }]);
     const oc = new Map(old.candidates.map((x) => [x.name, x]));
     const nc = new Map(c.candidates.map((x) => [x.name, x]));
     for (const [name, x] of nc) {
       const o = oc.get(name);
       if (!o) add('candidate-added', 'warn', 'Candidate added', `${title}: ${name}`, [{ contest: title, candidate: name }]);
-      else if (x.votes < o.votes) add('votes-decreased', 'warn', 'Candidate total went down', `${title} / ${name}: ${fmt(o.votes)} → ${fmt(x.votes)}.`, [{ contest: title, candidate: name }]);
+      else if (x.votes < o.votes) candidateDown.push([`${title} / ${name}: ${fmt(o.votes)} → ${fmt(x.votes)}`, { contest: title, candidate: name }]);
     }
     for (const name of oc.keys()) if (!nc.has(name)) add('candidate-removed', 'warn', 'Candidate removed', `${title}: ${name}`, [{ contest: title, candidate: name }]);
     const leaders = (list) => list.filter((x) => x.isLeading).map((x) => x.name).sort().join(' + ');
@@ -269,6 +270,11 @@ function compareWithCurrent(draft, current, add) {
     add('reporting-decreased', 'warn', `Contest${fewer.length > 1 ? `s (${fewer.length})` : ''} with fewer precincts reporting`,
       fewer.map(([t, was, now]) => `${t}: ${was} → ${now}`).join('\n'), fewer.map(([t]) => ({ contest: t })));
   }
+  const grouped = (rows, one, many) => {
+    if (rows.length) add('votes-decreased', 'warn', rows.length > 1 ? `${many} (${rows.length})` : one, rows.map(([line]) => line).join('\n'), rows.map(([, ref]) => ref));
+  };
+  grouped(contestDown, 'Contest total went down', 'Contest totals that went down');
+  grouped(candidateDown, 'Candidate total went down', 'Candidate totals that went down');
   add('summary', 'info', 'Size of this update',
     `${changed} of ${nxt.size} contests changed; precincts reporting ${current.overallPrecinctsReporting} → ${draft.overallPrecinctsReporting} of ${draft.overallPrecinctsTotal}; ballots ${fmt(current.totalBallots)} → ${fmt(draft.totalBallots)}.`);
 }
