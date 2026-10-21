@@ -81,6 +81,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - name: HTML validity (npm run lint:html)
+        run: npm run lint:html
       - run: npx playwright install --with-deps chromium
       - name: Accessibility and live updates (npm run a11y)
         run: npm run a11y
