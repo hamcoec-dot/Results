@@ -1,0 +1,14 @@
+{
+  "name": "hcec-election-results-pages",
+  "private": true,
+  "description": "Browser checks for the public pages (accessibility and performance). The pages themselves need no build.",
+  "scripts": {
+    "a11y": "playwright test --config a11y/playwright.config.js",
+    "perf": "npm --prefix perf ci --no-audit --no-fund && node perf/lighthouse.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
+    "@playwright/test": "1.59.1",
+    "http-server": "14.1.1"
+  }
+}

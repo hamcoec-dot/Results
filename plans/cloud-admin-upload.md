@@ -593,3 +593,28 @@ Pages must stay fast and lag-free, including on mid-range phones on 4G.
   `service.test.js` runs the full callable contract on in-memory fakes; `test/emulator/` re-runs it on the emulators.
 - **Mutation testing** runs nightly as one shard per source file (each mutant reruns about 5 s of suites).
 
+
+## Appendix C — Decisions made while building (Phase 4)
+- **Local mode is lenient.** With `?local`, or by default while `PUBLIC_BASE` is null, the pages read `./` as before.
+  The legacy monitor's files there fail `validate.js` (LEGACY flags can exceed a contest's total: 93 of 92), so local
+  mode logs validation errors and still renders. Bucket and draft modes are strict: invalid data is never shown,
+  the last good data stays, and the status reads "Live updates delayed — retrying" (retry after 15 s).
+- **Files per page:** summary and slideshow pages read `summary.json`. The precinct page reads `precincts.json`.
+  The reporting page reads `summary.json` + `reporting.json`, because `reporting.json` has no vote totals,
+  `voteFor` or early ballots. The summary page fetches `reporting.json` only when its precinct dialog is first
+  opened, and requires the same `dataVersion`. `data.js` is only the error fallback.
+- **`results-config.js` runs in `<head>`** with `data-files="…"` and starts the data (and manifest) requests early.
+  `app.js` takes them with `RESULTS.takeEarly(file)`. Every bucket request carries a cache-buster: the manifest is
+  under 1 KB, and the data files are fetched only when `dataVersion` changes.
+- **The status line uses the manifest's `updatedAt`** ("Results updated 9:42 PM"). Without a manifest (local or
+  draft), it uses `metadata.lastUpdated`. The text is written only when it changes, so each update is announced once.
+- **Filter buttons are toggle buttons** (`aria-pressed` in a `role="group"`), not tabs, because there are no tab panels.
+  Reporting buttons use `data-contest` plus a delegated click handler. The old inline `onclick` with
+  `escapeJsString` broke on titles containing `"`.
+- **Precinct dialog:** focus moves to Close, Tab is trapped, and Escape returns focus to the opener. A live update
+  re-points the open dialog at the same contest.
+- **Dark theme:** `--primary` and `--secondary` are lighter (`#60a5fa`, `#f87171`) so text in those colours passes
+  4.5:1. Filled controls use the new `--on-fill` text token (dark text in dark mode).
+- **Lighthouse lives in `perf/` with its own `package.json`.** Its puppeteer download helpers carry high-severity
+  advisories that would fail the root `npm audit`. It is a local tool, not run in CI. The a11y harness
+  (Playwright + axe) is the root package and the CI job `pages`.

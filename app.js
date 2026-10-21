@@ -18,9 +18,46 @@ window.ElectionApp = (function() {
   let modalFilter = 'ALL';
   let modalSearch = '';
 
-  const MAX_PRECINCT_CAP = 92;
+  const DEFAULT_PRECINCT_CAP = 92;
   const AUTO_REFRESH_INTERVAL_MS = 60000; // 1 minute auto-refresh
-  let autoRefreshTimer = null;
+  const RETRY_DELAY_MS = 15000; // after a failed or invalid update
+  const LIVE_PAUSED_KEY = 'liveUpdatesPaused';
+  const SLIDES_PAUSED_KEY = 'slideshowPaused';
+
+  // Where the data lives (results-config.js) and the shared validator (functions/src/validate.js).
+  // Without results-config.js the pages read ./ as the legacy monitor writes it.
+  const RESULTS = window.RESULTS || { url: file => `./${file}?t=${Date.now()}`, draft: null, local: true, usesManifest: false };
+  const Validate = window.ResultsValidate || null;
+
+  // The page's own data file. The slideshow shows the summary.
+  const PAGE_FILE = document.getElementById('precinct-results-container') ? 'precincts.json'
+    : (document.getElementById('reporting-table-body') && !document.getElementById('contests-container')) ? 'reporting.json'
+    : 'summary.json';
+
+  let liveTimer = null;
+  let pollInFlight = null;
+  let updatesDelayed = false;
+  let livePaused = readSessionFlag(LIVE_PAUSED_KEY);
+  let lastUpdatedText = '';
+
+  /** The election's "max precincts" (config.precinctCap in the data), default 92. */
+  function precinctCap() {
+    const n = Number(electionData && electionData.config ? electionData.config.precinctCap : NaN);
+    return Number.isInteger(n) && n > 0 ? n : DEFAULT_PRECINCT_CAP;
+  }
+
+  function readSessionFlag(key) {
+    try { return sessionStorage.getItem(key) === '1'; } catch (e) { return false; }
+  }
+
+  function writeSessionFlag(key, on) {
+    try { sessionStorage.setItem(key, on ? '1' : '0'); } catch (e) { /* private mode: this page only */ }
+  }
+
+  /** Export file names carry DRAFT_ in a draft view, so a draft is never mistaken for results. */
+  function exportFileName(name) {
+    return RESULTS.draft ? `DRAFT_${name}` : name;
+  }
 
   function isPrecinctPageEnabled() {
     const rawData = window.ELECTION_DATA;
@@ -74,50 +111,47 @@ window.ElectionApp = (function() {
     return '';
   }
 
-  // Initialize application
+  // Initialize application: wire the controls once, then load the page's data.
   function init() {
-    if (!window.ELECTION_DATA) {
-      console.warn('Election data payload missing at start. Attempting dynamic load of ./data.js...');
-      loadDataJsAndInit();
-      return;
-    }
-
-    electionData = window.ELECTION_DATA;
-
-    applyConfigVisibility();
-    renderNavbarMetadata();
-    renderDashboard();
-
-    // Attach search listener
     const searchInput = document.getElementById('contest-search');
     if (searchInput) {
+      let searchTimer = null;
       searchInput.addEventListener('input', function(e) {
-        searchQuery = e.target.value.trim().toLowerCase();
-        renderContests();
+        const value = e.target.value;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          searchQuery = value.trim().toLowerCase();
+          renderContests();
+        }, 150);
       });
     }
 
     // Attach scroll listener for Back-to-Top button
-    window.addEventListener('scroll', handleScrollState);
+    window.addEventListener('scroll', handleScrollState, { passive: true });
 
-    // Attach ESC key listener for modal closure
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closePrecinctModal();
-      }
-    });
+    // Modal: Escape closes it, Tab stays inside it; reporting buttons open it
+    document.addEventListener('keydown', handleModalKeydown);
+    document.addEventListener('click', handleReportingButtonClick);
 
-    // Start 1-minute auto-refresh timer
-    startAutoRefreshTimer();
-
-    // Location & Scroll position preservation after rendering
-    setTimeout(restoreSavedLocation, 150);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    setupLiveControls();
+    loadInitialData();
   }
 
   let activeDataVersion = null;
 
+  // The files each page renders from. The reporting page needs the summary's vote totals and
+  // reporting.json's per-precinct flags; the summary page fetches reporting.json only when its
+  // precinct dialog is opened.
+  const PAGE_FILES = PAGE_FILE === 'reporting.json' ? ['summary.json', 'reporting.json'] : [PAGE_FILE];
+
   function isValidPayload(payload) {
     return payload && (payload.latest || payload.metadata) && (payload.latest ? Array.isArray(payload.latest.contests) : Array.isArray(payload.contests));
+  }
+
+  function hasShape(file, data) {
+    if (!data || typeof data !== 'object') return false;
+    return file === 'precincts.json' ? Array.isArray(data.contests) : !!(data.latest && Array.isArray(data.latest.contests));
   }
 
   function resolvePrecinctStatus(contest, masterPrecincts) {
@@ -133,84 +167,274 @@ window.ElectionApp = (function() {
     return [];
   }
 
-  function loadDataJsAndInit() {
-    fetch(`./summary.json?t=${Date.now()}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(summaryData => {
-        if (isValidPayload(summaryData)) {
-          window.ELECTION_DATA = summaryData;
-          electionData = summaryData;
-          activeDataVersion = summaryData.metadata ? summaryData.metadata.dataVersion : null;
-          init();
-          return;
-        }
-        throw new Error('summary.json invalid or missing');
+  /** Give every contest a {name, reported}[] precinctsStatus list (the files carry index pairs). */
+  function expandStatuses(contests, masterPrecincts) {
+    (contests || []).forEach(c => { c.precinctsStatus = resolvePrecinctStatus(c, masterPrecincts); });
+  }
+
+  /** Copy reporting.json's per-precinct flags onto the summary's contests (matched by title). */
+  function attachStatuses(data, reporting) {
+    const byTitle = new Map((reporting.latest.contests || []).map(c => [c.title, c]));
+    const master = reporting.masterPrecincts || [];
+    (data.latest.contests || []).forEach(c => {
+      const r = byTitle.get(c.title);
+      c.precinctsStatus = r ? resolvePrecinctStatus(r, master) : [];
+    });
+    data.latest.masterPrecincts = master;
+    data.hasPrecinctStatuses = true;
+  }
+
+  /** One {metadata, config, latest} object, the shape the renderers (and data.js) use. */
+  function combineFiles(files) {
+    const p = files['precincts.json'];
+    if (p) {
+      expandStatuses(p.contests, p.masterPrecincts);
+      return { metadata: p.metadata, config: p.config, masterPrecincts: p.masterPrecincts, latest: p, hasPrecinctStatuses: true };
+    }
+    const data = files['summary.json'];
+    if (files['reporting.json']) attachStatuses(data, files['reporting.json']);
+    return data;
+  }
+
+  function fetchJson(file) {
+    const early = RESULTS.takeEarly ? RESULTS.takeEarly(file) : null;
+    return (early || fetch(RESULTS.url(file, { bust: true }), { cache: 'no-store' })).then(res => {
+      if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
+      return res.json();
+    });
+  }
+
+  /**
+   * Throws unless the files may be shown. Invalid data is never rendered: the page keeps its last
+   * good data. The legacy monitor's ./ files predate validate.js (its LEGACY precinct flags can
+   * exceed a contest's total), so in local mode problems are logged and the data is shown as before.
+   */
+  function checkFiles(files, manifest) {
+    const names = Object.keys(files);
+    names.forEach(name => {
+      if (!hasShape(name, files[name])) throw new Error(`${name} is not results data`);
+    });
+    if (!Validate) return;
+    let errors;
+    if (manifest) {
+      errors = Validate.validateSet(manifest, files).errors;
+    } else {
+      errors = [];
+      const versions = new Set();
+      names.forEach(name => {
+        Validate.validateFile(name, files[name]).errors.forEach(e => errors.push(`${name}: ${e}`));
+        versions.add((files[name].metadata || {}).dataVersion);
+      });
+      if (versions.size > 1) errors.push(`the files are from different versions: ${Array.from(versions).join(', ')}`);
+    }
+    if (!errors.length) return;
+    if (RESULTS.local) {
+      console.warn('Results data failed validation (shown anyway in local mode):', errors);
+      return;
+    }
+    throw new Error(`Results data failed validation: ${errors.slice(0, 5).join('; ')}`);
+  }
+
+  /**
+   * Fetch and show the newest data. With a manifest, only manifest.json (under 1 KB) is fetched
+   * unless its dataVersion changed. Resolves true when new data was rendered.
+   */
+  function loadLatest(force) {
+    const manifestStep = RESULTS.usesManifest ? fetchJson('manifest.json') : Promise.resolve(null);
+    return manifestStep.then(manifest => {
+      if (manifest && !force && manifest.dataVersion === activeDataVersion) return false;
+      return Promise.all(PAGE_FILES.map(fetchJson)).then(list => {
+        const files = {};
+        PAGE_FILES.forEach((f, i) => { files[f] = list[i]; });
+        const version = (files[PAGE_FILES[0]].metadata || {}).dataVersion || null;
+        if (!manifest && !force && version && version === activeDataVersion) return false;
+        checkFiles(files, manifest);
+        applyData(combineFiles(files), manifest);
+        return true;
+      });
+    });
+  }
+
+  /** Error fallback: the full data.js bundle, loaded as a script. */
+  function loadDataJsFallback() {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = RESULTS.url('data.js', { bust: true });
+      script.onload = function() { script.remove(); resolve(window.ELECTION_DATA); };
+      script.onerror = function() { script.remove(); reject(new Error('data.js could not be loaded')); };
+      document.head.appendChild(script);
+    }).then(data => {
+      if (!isValidPayload(data) || !data.latest) throw new Error('data.js has no results');
+      checkFiles({ 'summary.json': data }, null);
+      expandStatuses(data.latest.contests, data.latest.masterPrecincts || data.masterPrecincts);
+      data.hasPrecinctStatuses = true;
+      applyData(data, null);
+    });
+  }
+
+  function loadInitialData() {
+    loadLatest(true)
+      .catch(err => {
+        console.warn(`Could not load ${PAGE_FILES.join(' + ')}; trying data.js.`, err);
+        return loadDataJsFallback();
       })
-      .catch(() => {
-        const script = document.createElement('script');
-        script.src = `./data.js?t=${Date.now()}`;
-        script.onload = function() {
-          if (isValidPayload(window.ELECTION_DATA)) {
-            activeDataVersion = (window.ELECTION_DATA.metadata || {}).dataVersion || null;
-            init();
-          } else {
-            console.warn('ELECTION_DATA payload incomplete or missing. Retrying...');
-          }
-          if (script.parentNode) script.parentNode.removeChild(script);
-        };
-        script.onerror = function() {
-          console.error('Failed to load ./data.js over network.');
-          if (script.parentNode) script.parentNode.removeChild(script);
-        };
-        document.head.appendChild(script);
+      .catch(err => {
+        console.error('Results could not be loaded.', err);
+        updatesDelayed = true;
+      })
+      .then(() => {
+        renderLiveStatus();
+        scheduleLiveUpdates();
       });
   }
 
-  function startAutoRefreshTimer() {
-    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-    autoRefreshTimer = setInterval(refreshDataSilently, AUTO_REFRESH_INTERVAL_MS);
+  function applyData(data, manifest) {
+    const first = !electionData;
+    electionData = data;
+    window.ELECTION_DATA = data;
+    activeDataVersion = (data.metadata || {}).dataVersion || null;
+    updatesDelayed = false;
+    lastUpdatedText = updatedLabel(data, manifest);
+    if (first) renderFirst();
+    else preserveFocus(renderUpdate);
   }
 
-  function refreshDataSilently() {
-    fetch(`./summary.json?t=${Date.now()}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(summaryData => {
-        if (isValidPayload(summaryData)) {
-          const newVersion = summaryData.metadata ? summaryData.metadata.dataVersion : null;
-          if (newVersion && newVersion === activeDataVersion) {
-            // Data has not changed since previous poll; skip redundant DOM re-rendering
-            return;
-          }
-          activeDataVersion = newVersion;
-          window.ELECTION_DATA = summaryData;
-          electionData = summaryData;
-          applyConfigVisibility();
-          renderNavbarMetadata();
-          renderDashboard();
-          renderReportingTable();
-        }
-      })
-      .catch(() => {
-        const newScript = document.createElement('script');
-        newScript.src = `./data.js?t=${Date.now()}`;
-        newScript.onload = function() {
-          if (isValidPayload(window.ELECTION_DATA)) {
-            const newVersion = (window.ELECTION_DATA.metadata || {}).dataVersion || null;
-            if (newVersion && newVersion === activeDataVersion) {
-              if (newScript.parentNode) newScript.parentNode.removeChild(newScript);
-              return;
-            }
-            activeDataVersion = newVersion;
-            electionData = window.ELECTION_DATA;
-            applyConfigVisibility();
-            renderNavbarMetadata();
-            renderDashboard();
-            renderReportingTable();
-          }
-          if (newScript.parentNode) newScript.parentNode.removeChild(newScript);
-        };
-        document.head.appendChild(newScript);
-      });
+  /** "9:42 PM" from the manifest's publish time, else the data's own lastUpdated text. */
+  function updatedLabel(data, manifest) {
+    const when = manifest && manifest.updatedAt ? new Date(manifest.updatedAt) : null;
+    if (when && !isNaN(when.getTime())) {
+      return when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+    return (data.metadata && data.metadata.lastUpdated) || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function isSlideshowPage() {
+    return !!document.getElementById('slide-viewport');
+  }
+
+  function renderFirst() {
+    applyConfigVisibility();
+    renderNavbarMetadata();
+    if (PAGE_FILE === 'precincts.json') {
+      if (!isPrecinctPageEnabled()) return;
+      restorePrecinctStateFromURL();
+      bindPrecinctPageControls();
+      populatePrecinctSelects();
+      setPrecinctViewMode(precinctViewMode);
+      setPrecinctPartyFilter(precinctPartyFilter);
+    } else if (isSlideshowPage()) {
+      initSlideshow();
+    } else {
+      renderDashboard();
+      // Location & Scroll position preservation after rendering
+      setTimeout(restoreSavedLocation, 150);
+    }
+  }
+
+  /** A live update: redraw in place without moving focus or scroll. */
+  function renderUpdate() {
+    applyConfigVisibility();
+    renderNavbarMetadata();
+    if (PAGE_FILE === 'precincts.json') {
+      if (!isPrecinctPageEnabled()) return;
+      populatePrecinctSelects();
+      renderPrecinctPage();
+    } else if (isSlideshowPage()) {
+      renderTicker();
+      populateSlideJumpMenu();
+      const menu = document.getElementById('slide-jump-menu');
+      if (menu) menu.value = currentSlideIndex;
+    } else {
+      renderDashboard();
+      refreshOpenModal();
+    }
+  }
+
+  /** Re-render, then put focus back on the same control (by data-focus-key) and keep the scroll. */
+  function preserveFocus(render) {
+    const active = document.activeElement;
+    const key = active && active.getAttribute ? active.getAttribute('data-focus-key') : null;
+    const y = window.scrollY;
+    render();
+    if (key && !document.body.contains(active)) {
+      const again = Array.from(document.querySelectorAll('[data-focus-key]')).find(el => el.getAttribute('data-focus-key') === key);
+      if (again) again.focus({ preventScroll: true });
+    }
+    if (window.scrollY !== y) window.scrollTo(0, y);
+  }
+
+  // Live updates (WCAG 2.2.2): a 60 s poll that stops while the tab is hidden or the viewer pauses
+  // it, never runs for a draft, and reports through one polite status line.
+  function liveUpdatesOn() {
+    return !RESULTS.draft && !livePaused && !document.hidden;
+  }
+
+  function scheduleLiveUpdates() {
+    clearTimeout(liveTimer);
+    liveTimer = null;
+    if (!liveUpdatesOn()) return;
+    liveTimer = setTimeout(checkForUpdates, updatesDelayed ? RETRY_DELAY_MS : AUTO_REFRESH_INTERVAL_MS);
+  }
+
+  function checkForUpdates() {
+    if (!pollInFlight) {
+      pollInFlight = loadLatest(!electionData)
+        .then(() => { updatesDelayed = false; }, err => {
+          console.warn('Live update failed; keeping the last good results.', err);
+          updatesDelayed = true;
+        })
+        .then(() => {
+          pollInFlight = null;
+          renderLiveStatus();
+          scheduleLiveUpdates();
+        });
+    }
+    return pollInFlight;
+  }
+
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      clearTimeout(liveTimer);
+      liveTimer = null;
+    } else if (liveUpdatesOn()) {
+      checkForUpdates();
+    }
+  }
+
+  function setupLiveControls() {
+    const btn = document.getElementById('live-toggle');
+    if (btn) {
+      btn.hidden = !!RESULTS.draft;
+      btn.setAttribute('aria-pressed', livePaused ? 'true' : 'false');
+    }
+    renderLiveStatus();
+  }
+
+  function toggleLiveUpdates() {
+    livePaused = !livePaused;
+    writeSessionFlag(LIVE_PAUSED_KEY, livePaused);
+    setupLiveControls();
+    if (livePaused) scheduleLiveUpdates();
+    else checkForUpdates();
+  }
+
+  function renderLiveStatus() {
+    const el = document.getElementById('live-status');
+    if (!el) return;
+    let text;
+    if (!electionData) {
+      text = updatesDelayed ? 'Results could not be loaded. Retrying…' : 'Loading results…';
+    } else if (RESULTS.draft) {
+      text = `Draft preview, built ${lastUpdatedText}. Live updates are off.`;
+    } else if (updatesDelayed) {
+      text = `Live updates delayed — retrying. Showing results updated ${lastUpdatedText}.`;
+    } else if (livePaused) {
+      text = `Live updates paused. Results updated ${lastUpdatedText}.`;
+    } else {
+      text = `Results updated ${lastUpdatedText}`;
+    }
+    // Only a change is written, so screen readers hear each update once.
+    if (el.textContent !== text) el.textContent = text;
   }
 
   function renderNavbarMetadata() {
@@ -229,10 +453,10 @@ window.ElectionApp = (function() {
     tabBtns.forEach(btn => {
       if (btn.getAttribute('data-party') === party) {
         btn.classList.add('active');
-        btn.setAttribute('aria-selected', 'true');
+        btn.setAttribute('aria-pressed', 'true');
       } else {
         btn.classList.remove('active');
-        btn.setAttribute('aria-selected', 'false');
+        btn.setAttribute('aria-pressed', 'false');
       }
     });
     renderContests();
@@ -287,6 +511,13 @@ window.ElectionApp = (function() {
     window.location.reload();
   }
 
+  /** Early & absentee reported? reporting.json has no ballot counts, so its flag alone decides there. */
+  function earlyVotingReported(data) {
+    const flag = (data.earlyVotingReporting !== undefined) ? data.earlyVotingReporting : (data.hasEarlyUpload ? 1 : 0);
+    if (data.totalBallots === undefined) return flag ? 1 : 0;
+    return data.totalBallots > 0 && flag ? 1 : 0;
+  }
+
   function getCurrentDataset() {
     return electionData.latest || electionData;
   }
@@ -308,8 +539,8 @@ window.ElectionApp = (function() {
     const turnoutFill = document.getElementById('turnout-fill');
     const reportingFill = document.getElementById('reporting-fill');
 
-    const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, MAX_PRECINCT_CAP);
-    const overallTotCapped = Math.min(data.overallPrecinctsTotal || MAX_PRECINCT_CAP, MAX_PRECINCT_CAP);
+    const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, precinctCap());
+    const overallTotCapped = Math.min(data.overallPrecinctsTotal || precinctCap(), precinctCap());
     const reportingPct = overallTotCapped > 0 ? (overallRepCapped / overallTotCapped * 100) : 0;
 
     const statBallotsRep = document.getElementById('stat-ballots-rep');
@@ -328,8 +559,7 @@ window.ElectionApp = (function() {
     if (statReporting) statReporting.textContent = `${overallRepCapped} of ${overallTotCapped} Precincts`;
 
     if (statEarlyVal) {
-      const hasBallots = (data.totalBallots || 0) > 0;
-      const earlyRep = hasBallots && ((data.earlyVotingReporting !== undefined) ? data.earlyVotingReporting : (data.hasEarlyUpload ? 1 : 0)) ? 1 : 0;
+      const earlyRep = earlyVotingReported(data);
       const earlyTot = data.earlyVotingTotal || 1;
       const earlyBadge = earlyRep > 0 ? '&#x2705;' : '&#x23F3;';
       statEarlyVal.innerHTML = `${earlyBadge} Early &amp; Absentee: ${earlyRep} of ${earlyTot} (${earlyRep > 0 ? 'Complete' : 'Pending'})`;
@@ -459,8 +689,8 @@ window.ElectionApp = (function() {
     filteredContests.forEach(contest => {
       const cTitleEsc = escapeHtml(contest.title);
       const cSlug = slugify(contest.title);
-      const cRepCapped = Math.min(contest.precinctsReporting || 0, MAX_PRECINCT_CAP);
-      const cTotCapped = Math.min(contest.precinctsTotal || 0, MAX_PRECINCT_CAP);
+      const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
+      const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
 
       html += `
         <article id="contest-card-${cSlug}" class="contest-card" aria-labelledby="contest-title-${cSlug}">
@@ -473,8 +703,8 @@ window.ElectionApp = (function() {
                 <span>Total Votes: ${contest.totalVotes.toLocaleString()}</span>
               </div>
             </div>
-            <button type="button" class="reporting-btn" onclick="ElectionApp.openPrecinctModal('${escapeJsString(contest.title)}')" aria-label="View Precinct Reporting Status for ${cTitleEsc}">
-              &#x1F5F3;&#xFE0F; ${cRepCapped} of ${cTotCapped} Election Day Precincts Reporting &#x25BE;
+            <button type="button" class="reporting-btn" data-contest="${cTitleEsc}" data-focus-key="card:${cSlug}" aria-haspopup="dialog">
+              <span aria-hidden="true">&#x1F5F3;&#xFE0F;</span> ${cRepCapped} of ${cTotCapped} Election Day Precincts Reporting<span class="sr-only"> in ${cTitleEsc}</span> <span aria-hidden="true">&#x25BE;</span>
             </button>
           </header>
           <div class="contest-body">
@@ -526,14 +756,13 @@ window.ElectionApp = (function() {
     const data = getCurrentDataset();
     if (!data || !data.contests) return;
 
-    const hasBallots = (data.totalBallots || 0) > 0;
-    const earlyRep = hasBallots && ((data.earlyVotingReporting !== undefined) ? data.earlyVotingReporting : (data.hasEarlyUpload ? 1 : 0)) ? 1 : 0;
+    const earlyRep = earlyVotingReported(data);
     const earlyTot = data.earlyVotingTotal || 1;
     const earlyStatusBadge = earlyRep > 0 ? 
-      '<span style="color:#16a34a; font-weight:700;">&#x2705; COMPLETE</span>' : 
+      '<span style="color:var(--status-reported); font-weight:700;">&#x2705; COMPLETE</span>' : 
       '<span style="color:var(--primary); font-weight:700;">&#x23F3; IN PROGRESS (0.0%)</span>';
 
-    const earlyVotesCount = (data.earlyBallotsCast !== undefined) ? data.earlyBallotsCast : (earlyRep > 0 ? data.totalBallots : 0);
+    const earlyVotesCount = (data.earlyBallotsCast !== undefined) ? data.earlyBallotsCast : (earlyRep > 0 ? (data.totalBallots || 0) : 0);
 
     if (earlyTableBody) {
       earlyTableBody.innerHTML = `
@@ -557,12 +786,12 @@ window.ElectionApp = (function() {
       let html = '';
 
     data.contests.forEach(contest => {
-      const cRepCapped = Math.min(contest.precinctsReporting || 0, MAX_PRECINCT_CAP);
-      const cTotCapped = Math.min(contest.precinctsTotal || 0, MAX_PRECINCT_CAP);
+      const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
+      const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
       const pct = cTotCapped > 0 ? (cRepCapped / cTotCapped * 100).toFixed(1) : '0.0';
 
       const statusBadge = cRepCapped === cTotCapped && cTotCapped > 0 ? 
-        '<span style="color:#16a34a; font-weight:700;">&#x2705; COMPLETE</span>' : 
+        '<span style="color:var(--status-reported); font-weight:700;">&#x2705; COMPLETE</span>' : 
         `<span style="color:var(--primary); font-weight:700;">&#x23F3; IN PROGRESS (${pct}%)</span>`;
 
       html += `
@@ -570,8 +799,8 @@ window.ElectionApp = (function() {
           <td style="font-weight:700;">${escapeHtml(contest.title)}</td>
           <td>${escapeHtml(contest.voteFor)}</td>
           <td>
-            <button type="button" class="reporting-btn" onclick="ElectionApp.openPrecinctModal('${escapeJsString(contest.title)}')" aria-label="View Precinct Breakdown for ${escapeHtml(contest.title)}">
-              &#x1F5F3;&#xFE0F; ${cRepCapped} of ${cTotCapped} &#x25BE;
+            <button type="button" class="reporting-btn" data-contest="${escapeHtml(contest.title)}" data-focus-key="row:${slugify(contest.title)}" aria-haspopup="dialog">
+              <span aria-hidden="true">&#x1F5F3;&#xFE0F;</span> ${cRepCapped} of ${cTotCapped}<span class="sr-only"> precincts reporting in ${escapeHtml(contest.title)}</span> <span aria-hidden="true">&#x25BE;</span>
             </button>
           </td>
           <td>${statusBadge}</td>
@@ -585,7 +814,49 @@ window.ElectionApp = (function() {
   }
 
   // Precinct Reporting Visual Modal Logic
-  function openPrecinctModal(contestTitle) {
+  let modalOpener = null;
+  let modalStatusState = 'ready'; // 'ready' | 'loading' | 'failed'
+  let statusesPromise = null;
+
+  function handleReportingButtonClick(e) {
+    const btn = e.target.closest ? e.target.closest('.reporting-btn[data-contest]') : null;
+    if (btn) openPrecinctModal(btn.getAttribute('data-contest'), btn);
+  }
+
+  /**
+   * The summary page has no per-precinct flags until its dialog is first opened: fetch
+   * reporting.json then, for the same dataVersion as the summary on screen.
+   */
+  function ensurePrecinctStatuses() {
+    if (!electionData || electionData.hasPrecinctStatuses) return Promise.resolve();
+    if (!statusesPromise) {
+      const target = electionData;
+      const version = activeDataVersion;
+      statusesPromise = fetchJson('reporting.json').then(rep => {
+        checkFiles({ 'reporting.json': rep }, null);
+        const repVersion = (rep.metadata || {}).dataVersion || null;
+        if (!RESULTS.local && version && repVersion !== version) throw new Error(`reporting.json is version ${repVersion}, the page shows ${version}`);
+        if (electionData === target) attachStatuses(target, rep);
+      }).finally(() => { statusesPromise = null; });
+    }
+    return statusesPromise;
+  }
+
+  function loadModalStatuses() {
+    if (!electionData || electionData.hasPrecinctStatuses) {
+      modalStatusState = 'ready';
+      return;
+    }
+    modalStatusState = 'loading';
+    ensurePrecinctStatuses().then(() => { modalStatusState = 'ready'; }, err => {
+      console.warn('Precinct list could not be loaded.', err);
+      modalStatusState = 'failed';
+    }).then(() => {
+      if (currentModalContest) refreshOpenModal();
+    });
+  }
+
+  function openPrecinctModal(contestTitle, opener) {
     const data = getCurrentDataset();
     if (!data || !data.contests) return;
 
@@ -595,46 +866,106 @@ window.ElectionApp = (function() {
     currentModalContest = contest;
     modalFilter = 'ALL';
     modalSearch = '';
+    modalOpener = opener || document.activeElement;
 
-    const modalTitleEl = document.getElementById('modal-title');
-    const modalSubtitleEl = document.getElementById('modal-subtitle');
     const modalSearchInput = document.getElementById('modal-search-input');
-
-    const cRepCapped = Math.min(contest.precinctsReporting || 0, MAX_PRECINCT_CAP);
-    const cTotCapped = Math.min(contest.precinctsTotal || 0, MAX_PRECINCT_CAP);
-
-    if (modalTitleEl) modalTitleEl.textContent = `${contest.title} - Precinct Reporting Breakdown`;
-    if (modalSubtitleEl) modalSubtitleEl.textContent = `${cRepCapped} of ${cTotCapped} Election Day Precincts Reported (${contest.voteFor})`;
     if (modalSearchInput) modalSearchInput.value = '';
 
+    renderModalHeading();
+    loadModalStatuses();
     setModalFilter('ALL');
-    renderModalPrecinctGrid();
 
     const backdrop = document.getElementById('precinct-modal');
     if (backdrop) {
       backdrop.classList.add('active');
       backdrop.setAttribute('aria-hidden', 'false');
+      const closeBtn = backdrop.querySelector('.modal-close-btn');
+      if (closeBtn) closeBtn.focus();
     }
   }
 
+  function renderModalHeading() {
+    const contest = currentModalContest;
+    const modalTitleEl = document.getElementById('modal-title');
+    const modalSubtitleEl = document.getElementById('modal-subtitle');
+    const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
+    const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
+
+    if (modalTitleEl) modalTitleEl.textContent = `${contest.title} - Precinct Reporting Breakdown`;
+    if (modalSubtitleEl) modalSubtitleEl.textContent = `${cRepCapped} of ${cTotCapped} Election Day Precincts Reported (${contest.voteFor})`;
+  }
+
+  /** After a live update, point the open dialog at the same contest in the new data. */
+  function refreshOpenModal() {
+    if (!currentModalContest) return;
+    const data = getCurrentDataset();
+    const contest = data && data.contests ? data.contests.find(c => c.title === currentModalContest.title) : null;
+    if (!contest) {
+      closePrecinctModal();
+      return;
+    }
+    currentModalContest = contest;
+    if (modalStatusState === 'ready' && !electionData.hasPrecinctStatuses) loadModalStatuses();
+    renderModalHeading();
+    renderModalPrecinctGrid();
+  }
+
+  function isModalOpen() {
+    const backdrop = document.getElementById('precinct-modal');
+    return !!(backdrop && backdrop.classList.contains('active'));
+  }
+
   function closePrecinctModal() {
+    const wasOpen = isModalOpen();
     const backdrop = document.getElementById('precinct-modal');
     if (backdrop) {
       backdrop.classList.remove('active');
       backdrop.setAttribute('aria-hidden', 'true');
     }
     currentModalContest = null;
+    if (!wasOpen) return;
+    // Return focus to the button that opened the dialog (or its re-rendered twin).
+    let target = modalOpener && document.body.contains(modalOpener) ? modalOpener : null;
+    const key = modalOpener && modalOpener.getAttribute ? modalOpener.getAttribute('data-focus-key') : null;
+    if (!target && key) target = Array.from(document.querySelectorAll('[data-focus-key]')).find(el => el.getAttribute('data-focus-key') === key);
+    modalOpener = null;
+    if (target) target.focus();
+  }
+
+  /** Escape closes the dialog; Tab and Shift+Tab stay inside it while it is open. */
+  function handleModalKeydown(e) {
+    if (!isModalOpen()) return;
+    if (e.key === 'Escape') {
+      closePrecinctModal();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const card = document.querySelector('#precinct-modal .modal-card');
+    if (!card) return;
+    const focusables = Array.from(card.querySelectorAll('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])'))
+      .filter(el => !el.disabled && el.offsetParent !== null);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (!card.contains(document.activeElement)) {
+      e.preventDefault();
+      first.focus();
+    } else if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 
   function setModalFilter(filterType) {
     modalFilter = filterType;
     const filterBtns = document.querySelectorAll('.modal-filter-btn');
     filterBtns.forEach(btn => {
-      if (btn.getAttribute('data-mfilter') === filterType) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+      const on = btn.getAttribute('data-mfilter') === filterType;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     renderModalPrecinctGrid();
   }
@@ -647,6 +978,16 @@ window.ElectionApp = (function() {
   function renderModalPrecinctGrid() {
     const gridContainer = document.getElementById('modal-precinct-grid');
     if (!gridContainer || !currentModalContest) return;
+
+    if (modalStatusState !== 'ready') {
+      const note = document.createElement('p');
+      note.className = 'modal-grid-note';
+      note.textContent = modalStatusState === 'loading'
+        ? 'Loading the precinct list…'
+        : 'The precinct list could not be loaded. Close this window and try again in a minute.';
+      gridContainer.replaceChildren(note);
+      return;
+    }
 
     const masterPrecincts = (electionData && electionData.latest ? electionData.latest.masterPrecincts : null) || (electionData ? electionData.masterPrecincts : null);
     const pList = resolvePrecinctStatus(currentModalContest, masterPrecincts);
@@ -716,8 +1057,8 @@ window.ElectionApp = (function() {
         }
       }
 
-      const cRepCapped = Math.min(contest.precinctsReporting || 0, MAX_PRECINCT_CAP);
-      const cTotCapped = Math.min(contest.precinctsTotal || 0, MAX_PRECINCT_CAP);
+      const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
+      const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
 
       contest.candidates.forEach(cand => {
         csvRows.push([
@@ -740,7 +1081,7 @@ window.ElectionApp = (function() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Hamilton_Election_Summary_Results.csv`);
+    link.setAttribute('download', exportFileName('Hamilton_Election_Summary_Results.csv'));
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -760,11 +1101,6 @@ window.ElectionApp = (function() {
       .replace(/'/g, '&#039;');
   }
 
-  function escapeJsString(str) {
-    if (!str) return '';
-    return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
-  }
-
   function formatCsvCell(val) {
     if (val === null || val === undefined) return '""';
     const str = String(val).replace(/"/g, '""');
@@ -775,15 +1111,18 @@ window.ElectionApp = (function() {
   let slideshowActive = false;
   let currentSlideIndex = 0;
   let slideIntervalMs = 8000;
-  let isPaused = false;
+  let isPaused = readSessionFlag(SLIDES_PAUSED_KEY);
   let slideTimer = null;
   let slideProgressTimer = null;
 
+  // Runs once the data has loaded (renderFirst); a second call does nothing.
   function initSlideshow() {
+    if (slideshowActive || !electionData) return;
     slideshowActive = true;
     currentSlideIndex = 0;
     renderTicker();
     populateSlideJumpMenu();
+    renderPlayPause();
     renderCurrentSlide();
     startSlideTimer();
   }
@@ -809,10 +1148,9 @@ window.ElectionApp = (function() {
     const tEarly = document.getElementById('ticker-early');
     const tReporting = document.getElementById('ticker-reporting');
 
-    const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, MAX_PRECINCT_CAP);
-    const overallTotCapped = Math.min(data.overallPrecinctsTotal || MAX_PRECINCT_CAP, MAX_PRECINCT_CAP);
-    const hasBallots = (data.totalBallots || 0) > 0;
-    const earlyRep = hasBallots && ((data.earlyVotingReporting !== undefined) ? data.earlyVotingReporting : (data.hasEarlyUpload ? 1 : 0)) ? 1 : 0;
+    const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, precinctCap());
+    const overallTotCapped = Math.min(data.overallPrecinctsTotal || precinctCap(), precinctCap());
+    const earlyRep = earlyVotingReported(data);
     const earlyTot = data.earlyVotingTotal || 1;
 
     if (tStatus) tStatus.innerHTML = `&#x25CF; ${escapeHtml(data.statusLabel || 'UNOFFICIAL RESULTS')}`;
@@ -878,17 +1216,7 @@ window.ElectionApp = (function() {
     menu.innerHTML = html;
   }
 
-  function reloadDataFresh() {
-    // Re-fetch window.ELECTION_DATA dynamically to pick up any updated data.js content
-    if (window.ELECTION_DATA) {
-      electionData = window.ELECTION_DATA;
-      renderTicker();
-    }
-  }
-
   function renderCurrentSlide() {
-    reloadDataFresh();
-
     const viewport = document.getElementById('slide-viewport');
     if (!viewport) return;
 
@@ -908,10 +1236,9 @@ window.ElectionApp = (function() {
     // Slide 0: Overall Election Summary
     if (currentSlideObj.type === 'summary') {
       const data = getCurrentDataset();
-      const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, MAX_PRECINCT_CAP);
-      const overallTotCapped = Math.min(data.overallPrecinctsTotal || MAX_PRECINCT_CAP, MAX_PRECINCT_CAP);
-      const hasBallots = (data.totalBallots || 0) > 0;
-      const earlyRep = hasBallots && ((data.earlyVotingReporting !== undefined) ? data.earlyVotingReporting : (data.hasEarlyUpload ? 1 : 0)) ? 1 : 0;
+      const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, precinctCap());
+      const overallTotCapped = Math.min(data.overallPrecinctsTotal || precinctCap(), precinctCap());
+      const earlyRep = earlyVotingReported(data);
       const earlyTot = data.earlyVotingTotal || 1;
 
       const repPct = data.totalBallots ? ((data.ballotsRep || 0) / data.totalBallots * 100) : 0;
@@ -946,7 +1273,7 @@ window.ElectionApp = (function() {
                 <div class="visual-stat-title">&#x1F4EC; Reporting Completion</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                   <span style="font-weight:700;">Election Day Precincts:</span>
-                  <span style="font-weight:800; color:#16a34a;">${overallRepCapped} of ${overallTotCapped} (${((overallRepCapped / (overallTotCapped || 1)) * 100).toFixed(1)}%)</span>
+                  <span style="font-weight:800; color:var(--status-reported);">${overallRepCapped} of ${overallTotCapped} (${((overallRepCapped / (overallTotCapped || 1)) * 100).toFixed(1)}%)</span>
                 </div>
                 <div class="proj-track">
                   <div class="proj-fill" style="width: ${(overallRepCapped / (overallTotCapped || 1)) * 100}%; background:#16a34a;"></div>
@@ -1008,8 +1335,8 @@ window.ElectionApp = (function() {
     const totalPages = currentSlideObj.totalPages;
 
     const cTitleEsc = escapeHtml(contest.title);
-    const cRepCapped = Math.min(contest.precinctsReporting || 0, MAX_PRECINCT_CAP);
-    const cTotCapped = Math.min(contest.precinctsTotal || 0, MAX_PRECINCT_CAP);
+    const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
+    const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
 
     let chartBarsHtml = '';
     const sortedCands = [...(contest.candidates || [])].sort((a, b) => b.votes - a.votes);
@@ -1047,7 +1374,7 @@ window.ElectionApp = (function() {
       rightPanelAnalyticsHtml += `
         <div class="visual-stat-card">
           <div class="visual-stat-title">&#x1F3C6; Lead Margin</div>
-          <div class="visual-stat-value" style="color:#16a34a;">+ ${leadMarginVotes.toLocaleString()} votes</div>
+          <div class="visual-stat-value" style="color:var(--status-reported);">+ ${leadMarginVotes.toLocaleString()} votes</div>
           <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px);">
             ${escapeHtml(leadCand.name)} leads by +${leadMarginPct.toFixed(1)}%
           </div>
@@ -1158,13 +1485,22 @@ window.ElectionApp = (function() {
     startSlideTimer();
   }
 
-  function togglePause() {
-    isPaused = !isPaused;
+  // The button names the action it performs; slides are announced only while paused, so a
+  // screen reader isn't interrupted every few seconds by the rotation.
+  function renderPlayPause() {
     const btn = document.getElementById('btn-playpause');
     if (btn) {
-      btn.innerHTML = isPaused ? '&#x25B6;&#xFE0F; Play' : '&#x23F8;&#xFE0F; Pause';
+      btn.textContent = isPaused ? '▶️ Play slideshow' : '⏸️ Pause slideshow';
       btn.classList.toggle('active', !isPaused);
     }
+    const viewport = document.getElementById('slide-viewport');
+    if (viewport) viewport.setAttribute('aria-live', isPaused ? 'polite' : 'off');
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+    writeSessionFlag(SLIDES_PAUSED_KEY, isPaused);
+    renderPlayPause();
     if (isPaused) {
       stopSlideTimer();
     } else {
@@ -1208,7 +1544,9 @@ window.ElectionApp = (function() {
 
   function savePrecinctStateToURL() {
     try {
-      const params = new URLSearchParams();
+      // Keep the data-source switches (?local, ?emulator, ?draft) and replace only the page state.
+      const params = new URLSearchParams(window.location.search);
+      ['precinct', 'mode', 'party', 'contest', 'search'].forEach(k => params.delete(k));
       if (selectedPrecinct) params.set('precinct', selectedPrecinct);
       if (precinctViewMode) params.set('mode', precinctViewMode);
       if (precinctPartyFilter) params.set('party', precinctPartyFilter);
@@ -1254,85 +1592,33 @@ window.ElectionApp = (function() {
     } catch (e) {}
   }
 
-  function initPrecinctPage() {
-    if (!window.ELECTION_DATA) {
-      console.warn('Election data payload missing at start of Precinct page. Attempting dynamic load...');
-      loadDataJsAndInitPrecinct();
-      return;
-    }
-    electionData = window.ELECTION_DATA;
-    applyConfigVisibility();
-    if (!isPrecinctPageEnabled()) return;
+  // Kept for pages that still call it; the data load (renderFirst) sets the page up.
+  function initPrecinctPage() {}
 
-    renderNavbarMetadata();
-    setupPrecinctPageControls();
-    renderPrecinctPage();
-  }
-
-  function loadDataJsAndInitPrecinct() {
-    fetch(`./precincts.json?t=${Date.now()}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(pData => {
-        if (pData && (pData.precinctStats || pData.contests)) {
-          window.ELECTION_DATA = { metadata: pData.metadata, config: pData.config, latest: pData };
-          electionData = window.ELECTION_DATA;
-          applyConfigVisibility();
-          if (!isPrecinctPageEnabled()) return;
-          renderNavbarMetadata();
-          setupPrecinctPageControls();
+  function bindPrecinctPageControls() {
+    const searchInput = document.getElementById('precinct-search');
+    if (searchInput) {
+      if (precinctSearchQuery) searchInput.value = precinctSearchQuery;
+      let searchTimer = null;
+      searchInput.addEventListener('input', function(e) {
+        const value = e.target.value;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          precinctSearchQuery = value.trim().toLowerCase();
+          savePrecinctStateToURL();
           renderPrecinctPage();
-          return;
-        }
-        throw new Error('precincts.json invalid');
-      })
-      .catch(() => {
-        const script = document.createElement('script');
-        script.src = `./data.js?t=${Date.now()}`;
-        script.onload = function() {
-          if (isValidPayload(window.ELECTION_DATA)) {
-            electionData = window.ELECTION_DATA;
-            applyConfigVisibility();
-            if (!isPrecinctPageEnabled()) return;
-
-            renderNavbarMetadata();
-            setupPrecinctPageControls();
-            renderPrecinctPage();
-          }
-          if (script.parentNode) script.parentNode.removeChild(script);
-        };
-        script.onerror = function() {
-          console.error('Failed to load ./data.js over network.');
-          if (script.parentNode) script.parentNode.removeChild(script);
-        };
-        document.head.appendChild(script);
+        }, 150);
       });
+    }
   }
 
-  function loadDataJsAndInitReporting() {
-    fetch(`./reporting.json?t=${Date.now()}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(repData => {
-        if (repData && repData.latest && Array.isArray(repData.latest.contests)) {
-          window.ELECTION_DATA = repData;
-          electionData = repData;
-          applyConfigVisibility();
-          renderNavbarMetadata();
-          renderReportingTable();
-          return;
-        }
-        throw new Error('reporting.json invalid');
-      })
-      .catch(() => {
-        loadDataJsAndInit();
-      });
-  }
-
-  function setupPrecinctPageControls() {
+  /** Fill the precinct and contest pickers, keeping the current selections. */
+  function populatePrecinctSelects() {
     if (!electionData || !electionData.latest) return;
     const latest = electionData.latest;
     const pStats = latest.precinctStats || {};
     const masterPrecincts = latest.masterPrecincts || electionData.masterPrecincts || [];
-    
+
     const pSet = new Set(Object.keys(pStats));
     if (Array.isArray(masterPrecincts)) {
       masterPrecincts.forEach(p => pSet.add(p));
@@ -1342,53 +1628,30 @@ window.ElectionApp = (function() {
     });
     const precinctList = Array.from(pSet).sort();
 
-    restorePrecinctStateFromURL();
-
     const pSelect = document.getElementById('precinct-select');
     if (pSelect) {
-      pSelect.innerHTML = '';
+      const frag = document.createDocumentFragment();
       if (precinctList.length > 0) {
         if (!selectedPrecinct || !precinctList.includes(selectedPrecinct)) {
           selectedPrecinct = precinctList[0];
         }
-        precinctList.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p;
-          opt.textContent = p;
-          if (p === selectedPrecinct) opt.selected = true;
-          pSelect.appendChild(opt);
-        });
+        precinctList.forEach(p => frag.appendChild(new Option(p, p, false, p === selectedPrecinct)));
       } else {
-        pSelect.innerHTML = '<option value="">No Precinct Data Available</option>';
+        frag.appendChild(new Option('No Precinct Data Available', ''));
       }
+      pSelect.replaceChildren(frag);
     }
 
     const cSelect = document.getElementById('contest-precinct-select');
     if (cSelect) {
-      cSelect.innerHTML = '<option value="">Select Contest...</option>';
+      const frag = document.createDocumentFragment();
+      frag.appendChild(new Option('Select Contest...', ''));
       (latest.contests || []).forEach((c, idx) => {
-        const opt = document.createElement('option');
-        opt.value = c.title;
-        opt.textContent = c.title;
         if (idx === 0 && !selectedContestForPrecinctView) selectedContestForPrecinctView = c.title;
-        if (c.title === selectedContestForPrecinctView) opt.selected = true;
-        cSelect.appendChild(opt);
+        frag.appendChild(new Option(c.title, c.title, false, c.title === selectedContestForPrecinctView));
       });
+      cSelect.replaceChildren(frag);
     }
-
-    const searchInput = document.getElementById('precinct-search');
-    if (searchInput) {
-      if (precinctSearchQuery) searchInput.value = precinctSearchQuery;
-      searchInput.addEventListener('input', function(e) {
-        precinctSearchQuery = e.target.value.trim().toLowerCase();
-        savePrecinctStateToURL();
-        renderPrecinctPage();
-      });
-    }
-
-    // Restore UI tabs state
-    setPrecinctViewMode(precinctViewMode);
-    setPrecinctPartyFilter(precinctPartyFilter);
   }
 
   function selectPrecinct(pName) {
@@ -1410,9 +1673,9 @@ window.ElectionApp = (function() {
     const cWrapper = document.getElementById('contest-select-wrapper');
     if (pBtn && cBtn) {
       pBtn.classList.toggle('active', mode === 'BY_PRECINCT');
-      pBtn.setAttribute('aria-selected', mode === 'BY_PRECINCT');
+      pBtn.setAttribute('aria-pressed', mode === 'BY_PRECINCT');
       cBtn.classList.toggle('active', mode === 'BY_CONTEST');
-      cBtn.setAttribute('aria-selected', mode === 'BY_CONTEST');
+      cBtn.setAttribute('aria-pressed', mode === 'BY_CONTEST');
     }
     if (cWrapper) {
       cWrapper.style.display = (mode === 'BY_CONTEST') ? 'block' : 'none';
@@ -1426,7 +1689,7 @@ window.ElectionApp = (function() {
     document.querySelectorAll('[data-precinct-party]').forEach(btn => {
       const isMatch = btn.getAttribute('data-precinct-party') === party;
       btn.classList.toggle('active', isMatch);
-      btn.setAttribute('aria-selected', isMatch);
+      btn.setAttribute('aria-pressed', isMatch);
     });
     savePrecinctStateToURL();
     renderPrecinctPage();
@@ -1681,7 +1944,7 @@ window.ElectionApp = (function() {
           <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${escapeHtml(contest.voteFor)} &bull; ${contest.precinctsReporting} of ${contest.precinctsTotal} Precincts Reporting</div>
         </div>
       </header>
-      <div style="overflow-x:auto; padding:8px 0;">
+      <div style="overflow-x:auto; padding:8px 0;" role="region" tabindex="0" aria-label="Precinct results for ${escapeHtml(contest.title)}, scrolls sideways">
         <table class="reporting-table" style="width:100%; border-collapse:collapse;">
           <thead>
             <tr style="background:var(--neutral-light); border-bottom:2px solid var(--border);">
@@ -1734,7 +1997,7 @@ window.ElectionApp = (function() {
         (c.candidates || []).forEach(cand => {
           const v = (cand.precinctVotes || {})[selectedPrecinct] || 0;
           const cParty = getCandidateParty(cand, c);
-          csvContent += `"${selectedPrecinct}","${c.title}","${cand.name}","${cParty}",${v},${cand.votes}\n`;
+          csvContent += [formatCsvCell(selectedPrecinct), formatCsvCell(c.title), formatCsvCell(cand.name), formatCsvCell(cParty), v, cand.votes].join(',') + '\n';
         });
       });
 
@@ -1753,7 +2016,7 @@ window.ElectionApp = (function() {
         (contest.candidates || []).forEach(cand => {
           const v = (cand.precinctVotes || {})[p.name] || 0;
           const cParty = getCandidateParty(cand, contest);
-          csvContent += `"${p.name}","${contest.title}","${cand.name}","${cParty}",${v},${cand.votes}\n`;
+          csvContent += [formatCsvCell(p.name), formatCsvCell(contest.title), formatCsvCell(cand.name), formatCsvCell(cParty), v, cand.votes].join(',') + '\n';
         });
       });
 
@@ -1779,7 +2042,7 @@ window.ElectionApp = (function() {
             (c.candidates || []).forEach(cand => {
               const v = (cand.precinctVotes || {})[pName] || 0;
               const cParty = getCandidateParty(cand, c);
-              csvContent += `"${pName}","${c.title}","${cand.name}","${cParty}",${v},${cand.votes}\n`;
+              csvContent += [formatCsvCell(pName), formatCsvCell(c.title), formatCsvCell(cand.name), formatCsvCell(cParty), v, cand.votes].join(',') + '\n';
             });
           }
         });
@@ -1789,7 +2052,7 @@ window.ElectionApp = (function() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = filename;
+    link.download = exportFileName(filename);
     link.click();
   }
 
@@ -1811,6 +2074,7 @@ window.ElectionApp = (function() {
     setModalFilter: setModalFilter,
     handleModalSearch: handleModalSearch,
     exportCSV: exportCSV,
+    toggleLiveUpdates: toggleLiveUpdates,
 
     // Precinct Page Exports
     initPrecinctPage: initPrecinctPage,

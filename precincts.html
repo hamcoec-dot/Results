@@ -10,9 +10,8 @@
     window.onerror = function(msg, src, line, col, err) {
       var d = document.createElement('div');
       d.style.cssText = 'background:#fef2f2; border:2px solid #dc2626; color:#991b1b; padding:20px; margin:20px; font-family:sans-serif; font-size:14px; border-radius:8px; z-index:9999; position:relative;';
-      d.innerHTML = '<h3>&#x26A0;&#xFE0F; JavaScript Runtime Error:</h3>' +
-                    '<p><strong>Message:</strong> ' + msg + '</p>' +
-                    '<p><strong>Source:</strong> ' + src + ' (Line ' + line + ', Col ' + col + ')</p>';
+      d.setAttribute('role', 'alert');
+      d.textContent = '\u26A0\uFE0F JavaScript runtime error: ' + msg + ' (' + src + ', line ' + line + ', col ' + col + ')';
       document.body.insertBefore(d, document.body.firstChild);
       return false;
     };
@@ -20,11 +19,14 @@
 
   <!-- CSS Design System -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
+  <script src="./results-config.js" data-files="precincts.json"></script>
 </head>
 <body>
 
   <!-- Screen Reader Skip Link (WCAG 2.1 AA SC 1.3.2) -->
-  <a href="#main-content" class="sr-only">Skip to main content</a>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <!-- Top Navigation & Header Banner -->
   <nav class="navbar" role="navigation" aria-label="Main Navigation">
@@ -52,7 +54,7 @@
       <a href="reporting.html" class="nav-btn">Reporting Status</a>
       <a href="precincts.html" class="nav-btn active" aria-current="page">Precinct Results</a>
       <a href="scrolling.html" class="nav-btn">&#x1F4FA; Scrolling Results</a>
-      <button type="button" class="nav-btn" onclick="ElectionApp.refreshResults()" aria-label="Refresh Election Results">
+      <button type="button" class="nav-btn" onclick="ElectionApp.refreshResults()">
         &#x21BB; Refresh
       </button>
       <button type="button" id="dark-mode-toggle" class="nav-btn" onclick="ElectionApp.toggleDarkMode()" aria-label="Toggle Dark Mode Theme">
@@ -67,6 +69,12 @@
   <!-- Main Content Container -->
   <main id="main-content" class="app-container">
 
+    <!-- Live updates (WCAG 2.2.2): pause control and a polite "Results updated" status -->
+    <div class="live-bar">
+      <p id="live-status" class="live-status" role="status">Loading results…</p>
+      <button type="button" id="live-toggle" class="live-toggle" aria-pressed="false" onclick="ElectionApp.toggleLiveUpdates()">Pause live updates</button>
+    </div>
+
     <!-- Hero Turnout Summary Banner -->
     <header class="hero-banner" aria-labelledby="hero-title">
       <div class="hero-header">
@@ -75,13 +83,13 @@
           <div id="hero-date" class="hero-subtitle">Unofficial Precinct Results Breakdown</div>
         </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <button type="button" class="export-btn" onclick="ElectionApp.refreshResults()" aria-label="Refresh Election Results Data" style="background:var(--secondary) !important;">
+          <button type="button" class="export-btn" onclick="ElectionApp.refreshResults()" style="background:var(--secondary) !important;">
             &#x21BB; Refresh Results
           </button>
-          <button type="button" class="export-btn" onclick="ElectionApp.exportPrecinctCSV('FILTERED')" aria-label="Export Filtered Precinct Results as CSV">
+          <button type="button" class="export-btn" onclick="ElectionApp.exportPrecinctCSV('FILTERED')">
             &#x1F4E5; Export Filtered CSV
           </button>
-          <button type="button" class="export-btn" onclick="ElectionApp.exportPrecinctCSV('ALL')" aria-label="Export All Precinct Results as CSV" style="background:var(--primary) !important;">
+          <button type="button" class="export-btn" onclick="ElectionApp.exportPrecinctCSV('ALL')" style="background:var(--primary) !important;">
             &#x1F4E5; Export All Precincts CSV
           </button>
           <div class="status-badge" aria-label="Election Status">
@@ -131,17 +139,17 @@
     <section class="filter-bar" aria-label="Precinct Filters and View Controls">
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <!-- View Mode Selector -->
-        <div class="filter-tabs" role="tablist" aria-label="View Mode Tabs">
-          <button type="button" class="tab-btn active" id="view-mode-precinct-btn" role="tab" aria-selected="true" onclick="ElectionApp.setPrecinctViewMode('BY_PRECINCT')">&#x1F4CC; By Precinct</button>
-          <button type="button" class="tab-btn" id="view-mode-contest-btn" role="tab" aria-selected="false" onclick="ElectionApp.setPrecinctViewMode('BY_CONTEST')">&#x1F4FA; By Contest</button>
+        <div class="filter-tabs" role="group" aria-label="View Mode">
+          <button type="button" class="tab-btn active" id="view-mode-precinct-btn" aria-pressed="true" onclick="ElectionApp.setPrecinctViewMode('BY_PRECINCT')">&#x1F4CC; By Precinct</button>
+          <button type="button" class="tab-btn" id="view-mode-contest-btn" aria-pressed="false" onclick="ElectionApp.setPrecinctViewMode('BY_CONTEST')">&#x1F4FA; By Contest</button>
         </div>
 
         <!-- Party Filter Tabs -->
-        <div class="filter-tabs" role="tablist" aria-label="Party Filter Tabs">
-          <button type="button" class="tab-btn active" data-precinct-party="ALL" role="tab" aria-selected="true" onclick="ElectionApp.setPrecinctPartyFilter('ALL')">All Contests</button>
-          <button type="button" class="tab-btn" data-precinct-party="REP" role="tab" aria-selected="false" onclick="ElectionApp.setPrecinctPartyFilter('REP')">Republican</button>
-          <button type="button" class="tab-btn" data-precinct-party="DEM" role="tab" aria-selected="false" onclick="ElectionApp.setPrecinctPartyFilter('DEM')">Democratic</button>
-          <button type="button" class="tab-btn" data-precinct-party="IND" role="tab" aria-selected="false" onclick="ElectionApp.setPrecinctPartyFilter('IND')">Non-Partisan</button>
+        <div class="filter-tabs" role="group" aria-label="Party Filter">
+          <button type="button" class="tab-btn active" data-precinct-party="ALL" aria-pressed="true" onclick="ElectionApp.setPrecinctPartyFilter('ALL')">All Contests</button>
+          <button type="button" class="tab-btn" data-precinct-party="REP" aria-pressed="false" onclick="ElectionApp.setPrecinctPartyFilter('REP')">Republican</button>
+          <button type="button" class="tab-btn" data-precinct-party="DEM" aria-pressed="false" onclick="ElectionApp.setPrecinctPartyFilter('DEM')">Democratic</button>
+          <button type="button" class="tab-btn" data-precinct-party="IND" aria-pressed="false" onclick="ElectionApp.setPrecinctPartyFilter('IND')">Non-Partisan</button>
         </div>
       </div>
 
@@ -172,14 +180,7 @@
   </button>
 
   <!-- Load Data Payload and App Controller -->
-  <script src="./data.js" defer></script>
+  <script src="./functions/src/validate.js" defer></script>
   <script src="./app.js" defer></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.ElectionApp && window.ElectionApp.initPrecinctPage) {
-        window.ElectionApp.initPrecinctPage();
-      }
-    });
-  </script>
 </body>
 </html>

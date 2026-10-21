@@ -44,7 +44,26 @@
     local: local && !draft,
     /** Poll manifest.json for changes (only where publishDraft writes one). */
     usesManifest: !draft && !(local && !draft),
+    /** A fetch this script started early for `file` (see data-files below), handed out once. */
+    takeEarly: function (file) {
+      var p = early[file] || null;
+      delete early[file];
+      return p;
+    },
   };
+
+  // <script src="results-config.js" data-files="summary.json"> in <head> starts the page's data
+  // requests (and the manifest's) before app.js has even downloaded, for a faster first paint.
+  var early = {};
+  var script = document.currentScript;
+  var files = ((script && script.getAttribute('data-files')) || '').split(/\s+/).filter(Boolean);
+  if (files.length && window.fetch) {
+    if (window.RESULTS.usesManifest) files.unshift('manifest.json');
+    files.forEach(function (f) {
+      early[f] = fetch(url(f, { bust: true }), { cache: 'no-store' });
+      early[f].catch(function () { /* app.js reports it when it takes the request */ });
+    });
+  }
 
   if (!draft) return;
   document.title = '[DRAFT] ' + document.title;
