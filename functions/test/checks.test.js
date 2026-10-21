@@ -215,8 +215,11 @@ test('decreases against what is published', () => {
   assert.match(grouped.detail, /^.+: \d+ → \d+$/m);
   const dec = fires(checks, 'votes-decreased', 'warn');
   assert.ok(dec.some((c) => c.title === 'Total ballots went down'));
-  assert.ok(dec.some((c) => c.title === 'Candidate total went down' && c.refs[0].candidate));
-  assert.ok(dec.some((c) => c.title === 'Contest total went down'));
+  // Ballots, then one grouped warning for contest totals and one for candidate totals.
+  assert.deepEqual(dec.map((c) => c.title.replace(/\(\d+\)/, '(n)')), ['Total ballots went down', 'Contest totals that went down (n)', 'Candidate totals that went down (n)']);
+  for (const g of dec.slice(1)) assert.equal(g.refs.length, g.detail.split('\n').length);
+  assert.ok(dec[2].refs.every((r) => r.contest && r.candidate));
+  assert.ok(dec[1].refs.every((r) => r.contest && !r.candidate));
 });
 
 test('contests and candidates added or removed; status label', () => {
