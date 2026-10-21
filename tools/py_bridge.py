@@ -4,6 +4,7 @@ over a batch of inputs in one process.
 
 stdin:  {"op": <op>, "inputs": [...]}
 stdout: [{"ok": <result>} | {"error": "<ExceptionType>"}, ...]   (one per input, same order)
+        non-finite floats are sent as the strings "inf", "-inf", "nan" (JSON has no Infinity)
 
 ops:
   csv                 input: base64 bytes -> read_csv_robust rows (utf-8-sig, errors=ignore, universal newlines)
@@ -14,6 +15,7 @@ ops:
   dumps               input: any JSON     -> json.dumps(x, sort_keys=True)
   parse               input: [base64 bytes, is_ed] -> convert_data.parse_election_csv
   merge               input: [early b64 | null, ed b64 | null] -> convert_data.merge_parsed_data of both
+  stats_turnout       input: [ballots str, voters str] -> repr of a STATISTICS row's turnout (convert_data.py:103)
 """
 import base64
 import csv
@@ -58,6 +60,12 @@ def merge(arg, tmp):
     return convert_data.merge_parsed_data(*parsed)
 
 
+def stats_turnout(arg, _tmp):
+    ballots_val = convert_data.clean_num(arg[0])
+    voters_val = convert_data.clean_num(arg[1])
+    return repr(round((ballots_val / voters_val * 100), 2) if voters_val > 0 else 0.0)
+
+
 OPS = {
     'csv': lambda x, _: read_csv_bytes(base64.b64decode(x)),
     'clean_num': lambda x, _: convert_data.clean_num(x),
@@ -67,7 +75,19 @@ OPS = {
     'dumps': lambda x, _: json.dumps(x, sort_keys=True),
     'parse': parse,
     'merge': merge,
+    'stats_turnout': stats_turnout,
 }
+
+
+def jsonable(v):
+    """JSON has no Infinity/NaN: send non-finite floats as "inf" / "-inf" / "nan"."""
+    if isinstance(v, float) and (v != v or v in (float('inf'), float('-inf'))):
+        return 'nan' if v != v else ('inf' if v > 0 else '-inf')
+    if isinstance(v, list):
+        return [jsonable(x) for x in v]
+    if isinstance(v, dict):
+        return {k: jsonable(x) for k, x in v.items()}
+    return v
 
 
 def main():
@@ -77,11 +97,11 @@ def main():
     with tempfile.TemporaryDirectory(prefix='pybridge-') as tmp:
         for x in req['inputs']:
             try:
-                out.append({'ok': op(x, tmp)})
+                out.append({'ok': jsonable(op(x, tmp))})
             except Exception as e:  # the error type is part of the contract
                 out.append({'error': type(e).__name__})
     sys.stdout.reconfigure(encoding='utf-8')
-    json.dump(out, sys.stdout, ensure_ascii=False)
+    json.dump(out, sys.stdout, ensure_ascii=False, allow_nan=False)
 
 
 if __name__ == '__main__':

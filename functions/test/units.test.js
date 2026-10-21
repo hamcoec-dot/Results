@@ -230,3 +230,17 @@ test('outputs: data.js wrapper and file shapes', () => {
   assert.equal(JSON.parse(out.files['summary.json']).metadata.lastUpdated, 'L');
   assert.equal(out.objects.summary.config.enablePrecinctResults, false);
 });
+
+test('pyTrueDiv: exact int division, correctly rounded, with Python signs and errors', () => {
+  assert.throws(() => py.pyTrueDiv(1n, 0n), RangeError); // ZeroDivisionError
+  assert.ok(Object.is(py.pyTrueDiv(0n, 5n), 0));
+  assert.ok(Object.is(py.pyTrueDiv(0n, -5n), -0)); // Python: 0 / -5 == -0.0
+  assert.equal(py.pyTrueDiv(-7n, 2n), -3.5);
+  assert.equal(py.pyTrueDiv(7n, -2n), -3.5);
+  assert.equal(py.pyTrueDiv(10n ** 26n + 7n, 1923n), 5.200208008320333e+22);
+  assert.equal(py.pyTrueDiv(2n ** 53n + 1n, 1n), 2 ** 53); // the tie rounds to even
+  assert.equal(py.pyTrueDiv(2n ** 53n + 3n, 1n), 2 ** 53 + 4);
+  assert.equal(py.pyTrueDiv(1n, 3n), 1 / 3);
+  assert.equal(py.pyIntBig(' 1_000 '), 1000n);
+  assert.equal(py.pyIntBig('1.5'), null);
+});
