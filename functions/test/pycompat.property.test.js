@@ -6,19 +6,24 @@ const assert = require('node:assert/strict');
 const { fc, fcParams } = require('./helpers/fc-config');
 const { pythonAvailable, pyBridge } = require('./helpers/fixtures');
 const { pyRound2, pyFloatRepr, pyDumps } = require('../src/pycompat');
-const { cleanNum, cleanContestName } = require('../src/parse');
+const { cleanNum, cleanContestName, statsTurnout } = require('../src/parse');
 const { readCsv } = require('../src/csv');
 
 const skip = !pythonAvailable() && 'python not found';
 const N = Math.min(fcParams().numRuns, 5000);
 const sample = (arb, n = N) => fc.sample(arb, { numRuns: n, ...(process.env.FC_SEED ? { seed: Number(process.env.FC_SEED) } : {}) });
 
+/** The bridge sends non-finite floats as "inf" / "-inf" / "nan"; do the same to JS results. */
+const nonFinite = (v) => (typeof v === 'number' && !Number.isFinite(v) ? (Number.isNaN(v) ? 'nan' : v > 0 ? 'inf' : '-inf')
+  : Array.isArray(v) ? v.map(nonFinite)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, nonFinite(x)])) : v);
+
 /** Assert JS(x) equals Python(x) for every sampled x; Python errors must be JS errors too. */
 function agree(op, inputs, js) {
   const py = pyBridge(op, inputs);
   inputs.forEach((x, i) => {
     let got;
-    try { got = { ok: js(x) }; } catch (e) { got = { error: e.name }; }
+    try { got = { ok: nonFinite(js(x)) }; } catch (e) { got = { error: e.name }; }
     if (py[i].error) assert.ok(got.error, `${op}(${JSON.stringify(x)}): Python raised ${py[i].error}, JS returned ${JSON.stringify(got.ok)}`);
     else assert.deepEqual(got, py[i], `${op}(${JSON.stringify(x)})`);
   });
@@ -31,6 +36,29 @@ const word = fc.constantFrom('District', 'district', 'DISTRICT', '28', 'East', '
   'REFERENDUM', 'Council', 'of', 'Ōta', 'Σίσυφος', 'ΣΊΣΥΦΟΣ', '１２');
 const mixed = fc.array(fc.oneof(tricky, word, fc.string({ maxLength: 3 })), { maxLength: 12 }).map((a) => a.join(''));
 const sepWords = fc.array(fc.oneof(word, word, tricky), { maxLength: 10 }).map((a) => a.join(' '));
+
+test('STATISTICS turnout matches Python, ints past 2^53 included (exact int division)', { skip }, () => {
+  const digits = (min, max) => fc.integer({ min, max }).chain((n) => fc.array(fc.constantFrom(...'0123456789'), { minLength: n, maxLength: n }))
+    .map((a) => a.join('').replace(/^0+(?=.)/, ''));
+  const cell = fc.oneof(
+    digits(1, 6),
+    digits(15, 40),
+    digits(16, 30).map((s) => BigInt(s).toLocaleString('en-US')),
+    fc.tuple(digits(1, 20), digits(1, 3)).map(([a, b]) => `${a}.${b}`),
+    fc.constantFrom('0', '-0', '', 'x', '9007199254740993', '-100000000000000000000000007'),
+  );
+  agree('stats_turnout', sample(fc.tuple(cell, cell)), ([b, v]) => pyFloatRepr(statsTurnout(b, v)));
+  // A tie at the third decimal past 2^53 cents (pyRound2 used to lose the last digit there).
+  assert.equal(pyFloatRepr(pyRound2(379441490032668.125)), '379441490032668.1');
+  // The fuzz case that found it: 1e26 + 7 ballots over 1,923 voters.
+  assert.equal(pyFloatRepr(statsTurnout('100000000000000000000000007', '1923')), '5.200208008320333e+24');
+});
+
+test('round(x, 2) on exact ties (x = n + k/8) at every magnitude up to 2^49 matches Python', { skip }, () => {
+  const tie = fc.tuple(fc.integer({ min: 0, max: 48 }), fc.double({ min: 0, max: 1, noNaN: true }), fc.constantFrom(1, 3, 5, 7), fc.boolean())
+    .map(([e, f, k, neg]) => (neg ? -1 : 1) * (Math.floor(f * 2 ** e) + k / 8));
+  agree('round2', sample(tie), (x) => pyFloatRepr(pyRound2(x)));
+});
 
 test('clean_num matches Python', { skip }, () => {
   const numLike = fc.oneof(

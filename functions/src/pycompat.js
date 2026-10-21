@@ -26,10 +26,13 @@ function pyRound2(x) {
   // (x = n + k/8 with k odd at the third decimal), so those few cases are fixed up here.
   // (Above 2^49 every double is a multiple of 1/8 but none has a fractional part to round.)
   if (Math.abs(x) < 2 ** 49 && Number.isInteger(x * 8) && Math.abs(x).toFixed(3).endsWith('5')) {
+    // The tie goes to the even cent. Cents are counted as a BigInt (past ~9e13 they exceed 2^53), and
+    // the decimal text is converted once, so the result is the double nearest that decimal, as in Python.
     const s = Math.abs(x).toFixed(3);
-    const cents = Number(s.slice(0, -1).replace('.', ''));
-    const even = cents % 2 === 0 ? cents : cents + 1;
-    return Math.sign(x) * (even / 100) || 0;
+    let cents = BigInt(s.slice(0, -1).replace('.', ''));
+    if (cents % 2n !== 0n) cents += 1n;
+    const digits = cents.toString().padStart(3, '0');
+    return Math.sign(x) * Number(`${digits.slice(0, -2)}.${digits.slice(-2)}`) || 0;
   }
   return Number(x.toFixed(2));
 }
@@ -83,6 +86,37 @@ const FLOAT_RE = new RegExp(
 function pyInt(s) {
   const m = INT_RE.exec(s);
   return m ? Number(toAsciiDigits(m[1]).replace(/_/g, '')) || 0 : null; // -0 -> 0, as int('-0')
+}
+
+/** int(s) exactly, as a BigInt (Python ints have no size limit), or null. */
+function pyIntBig(s) {
+  const m = INT_RE.exec(s);
+  return m ? BigInt(toAsciiDigits(m[1]).replace(/_/g, '')) : null;
+}
+
+const bitLength = (n) => n.toString(2).length;
+
+/**
+ * a / b for ints as Python computes it: the exact quotient, correctly rounded to a double (ties to
+ * even). Plain a / b on Numbers rounds each int first, so past 2^53 it can be one ulp off.
+ */
+function pyTrueDiv(a, b) {
+  if (b === 0n) throw new RangeError('division by zero');
+  const neg = (a < 0n) !== (b < 0n);
+  const x = a < 0n ? -a : a;
+  const y = b < 0n ? -b : b;
+  if (x === 0n) return neg ? -0 : 0;
+  // Scale so the integer quotient has at least 65 bits, then keep a sticky bit for any remainder:
+  // Number(BigInt) rounds to nearest-even, and the sticky bit stops a false tie.
+  let shift = Math.max(0, 65 - (bitLength(x) - bitLength(y)));
+  const num = x << BigInt(shift);
+  let q = num / y;
+  if (num % y !== 0n) {
+    q = (q << 1n) | 1n;
+    shift += 1;
+  }
+  const r = Number(q) / 2 ** shift;
+  return neg ? -r : r;
 }
 
 /** float(s) for decimal text (no inf/nan spellings: callers only pass text containing '.'). */
@@ -161,5 +195,5 @@ const FLOAT_KEYS = new Set(['percentage', 'turnoutPercent']);
 const pyStrFloat = pyFloatRepr;
 
 module.exports = {
-  PY_WS, pyStrip, pyLowerChars, pyRound2, pyFloatRepr, pyStrFloat, pyInt, pyFloat, pyCompare, pyDumps, FLOAT_KEYS, toAsciiDigits,
+  PY_WS, pyStrip, pyLowerChars, pyRound2, pyFloatRepr, pyStrFloat, pyInt, pyIntBig, pyTrueDiv, pyFloat, pyCompare, pyDumps, FLOAT_KEYS, toAsciiDigits,
 };

@@ -11,7 +11,7 @@
  *   d2  county and status come from the last non-empty header cell, not column 4.
  *   d3  STATISTICS rows of the 5-column export (5 cells, 3 on continuation pages) are read.
  */
-const { PY_WS, pyStrip, pyLowerChars, pyInt, pyFloat, pyRound2 } = require('./pycompat');
+const { PY_WS, pyStrip, pyLowerChars, pyInt, pyIntBig, pyTrueDiv, pyFloat, pyRound2 } = require('./pycompat');
 const { readCsv } = require('./csv');
 
 const FIXES = Object.freeze({ d1: true, d2: true, d3: true });
@@ -30,6 +30,30 @@ function cleanNum(val) {
   const clean = pyStrip(String(val ?? '').replaceAll(',', ''));
   const n = clean.includes('.') ? pyFloat(clean) : pyInt(clean);
   return n ?? 0;
+}
+
+/** clean_num's int, exactly (BigInt), when the cell is an int; null for a float or unreadable cell. */
+function cleanIntExact(val) {
+  const clean = pyStrip(String(val ?? '').replaceAll(',', ''));
+  return clean.includes('.') ? null : pyIntBig(clean);
+}
+
+/**
+ * ballots / voters as convert_data.py computes it. Two ints divide exactly in Python, so when either
+ * is past 2^53 (and so rounded as a Number) the cells are divided as BigInts instead.
+ */
+function statsRatio(ballotsCell, votersCell, ballots, voters) {
+  if (Number.isSafeInteger(ballots) && Number.isSafeInteger(voters)) return ballots / voters;
+  const a = cleanIntExact(ballotsCell);
+  const b = cleanIntExact(votersCell);
+  return a !== null && b !== null ? pyTrueDiv(a, b) : ballots / voters;
+}
+
+/** A STATISTICS row's turnout: round(ballots / voters * 100, 2), 0 when there are no voters. */
+function statsTurnout(ballotsCell, votersCell) {
+  const voters = cleanNum(votersCell);
+  const ballots = cleanNum(ballotsCell);
+  return voters > 0 ? pyRound2(statsRatio(ballotsCell, votersCell, ballots, voters) * 100) : 0;
 }
 
 // Python's \w and \b for str patterns (Unicode letters, numbers, underscore); '.' excludes only \n.
@@ -141,7 +165,7 @@ function parseStats(rows, fixes) {
         rep: cleanNum(row[v + 2]),
         dem: cleanNum(row[v + 3]),
         gen: cleanNum(row[v + 4]),
-        turnoutPercent: voters > 0 ? pyRound2((ballots / voters) * 100) : 0,
+        turnoutPercent: statsTurnout(row[v + 1], row[v]),
       });
     }
   }
@@ -257,6 +281,6 @@ function parseElectionCsv(input, opts) {
 }
 
 module.exports = {
-  parseElectionCsv, parseRows, cleanNum, cleanContestName, parseReporting, findTotals, partyOf, statsRowName,
+  parseElectionCsv, parseRows, cleanNum, cleanContestName, parseReporting, findTotals, partyOf, statsRowName, statsTurnout,
   ParseError, FIXES, LEGACY,
 };
