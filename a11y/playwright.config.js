@@ -5,7 +5,7 @@ const { defineConfig, devices } = require('@playwright/test');
 
 const PORT = 8124;
 // The tests about what the pages do (not axe or screenshots, which are pinned to Chromium).
-const BEHAVIOUR = /(dom-oracle|features|live-updates|resilience|xss)\.spec\.js$/;
+const BEHAVIOUR = /(^|[\\/])(dom-oracle|features|keyboard|live-updates|resilience|xss)\.spec\.js$/;
 
 const others = [
   { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
@@ -27,7 +27,8 @@ module.exports = defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   // Hamilton County's time zone and locale, so times like "Results updated 9:58 PM" read the same
   // on a UTC CI runner as on a county machine.
-  use: { baseURL: `http://127.0.0.1:${PORT}/`, timezoneId: 'America/New_York', locale: 'en-US' },
+  // On CI a failed test keeps a trace (DOM snapshots, console, network), uploaded as an artifact.
+  use: { baseURL: `http://127.0.0.1:${PORT}/`, timezoneId: 'America/New_York', locale: 'en-US', trace: process.env.CI ? 'retain-on-failure' : 'off' },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
     ...others,

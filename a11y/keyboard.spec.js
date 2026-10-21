@@ -5,12 +5,19 @@
 // fullscreen API (iPhone Safari) instead of throwing when pressed.
 const { test, expect } = require('@playwright/test');
 
+/**
+ * Tab forward until `selector` has focus, then Shift+Tab backward if it was not ahead. Firefox's Tab
+ * leaves the page for the browser's toolbar at the end instead of wrapping to the top as Chromium does.
+ */
 async function tabTo(page, selector, max = 300) {
-  for (let i = 0; i < max; i++) {
-    if (await page.evaluate((s) => document.activeElement && document.activeElement.matches(s), selector)) return;
-    await page.keyboard.press('Tab');
+  const here = () => page.evaluate((s) => document.activeElement && document.activeElement.matches(s), selector);
+  for (const key of ['Tab', 'Shift+Tab']) {
+    for (let i = 0; i < max; i++) {
+      if (await here()) return;
+      await page.keyboard.press(key);
+    }
   }
-  throw new Error(`${selector} is not reachable with Tab`);
+  throw new Error(`${selector} is not reachable with Tab or Shift+Tab`);
 }
 
 function noErrors(page) {
@@ -115,11 +122,16 @@ test('slideshow by keyboard: pause/play, next/prev, speed, jump menu, fullscreen
   await expect.poll(slide).not.toBe(s0);
   await expect(page.locator('#slide-viewport .slide-card').first()).toBeVisible();
 
-  await tabTo(page, '#btn-fullscreen');
-  await page.keyboard.press('Enter');
-  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-  await page.keyboard.press('Enter'); // focus stays on the button: press again to leave
-  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+  // Where the browser has no fullscreen (iPhone), the button is hidden instead.
+  if (await page.evaluate(() => !document.fullscreenEnabled)) {
+    await expect(page.locator('#btn-fullscreen')).toBeHidden();
+  } else {
+    await tabTo(page, '#btn-fullscreen');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+    await page.keyboard.press('Enter'); // focus stays on the button: press again to leave
+    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+  }
   expect(errors).toEqual([]);
 });
 

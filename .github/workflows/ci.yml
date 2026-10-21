@@ -76,6 +76,12 @@ jobs:
       - name: Admin flows in Firefox (on fresh emulators)
         working-directory: .
         run: npm run a11y:admin:firefox
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-admin-results
+          path: test-results
+          if-no-files-found: ignore
 
   pages:
     # Layers 10 and 12: axe (WCAG 2.1 AA) and live-update tests on the public pages.
