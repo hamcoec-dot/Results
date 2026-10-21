@@ -77,6 +77,7 @@ Public pages (index/reporting/precincts/scrolling on GitHub Pages)
   When none hold, it copies the objects as they are into `elections/{eid}/v/{dataVersion}/` and then over `current/*`. The file order is fixed: `precincts`, `reporting` and `data.js` in parallel, then `summary.json`, then `manifest.json` last, because the pages poll `manifest.json` for `dataVersion`. It then writes the versions doc, the audit entry, and `election.currentVersion`. Last, it runs the **live check**: it fetches `https://storage.googleapis.com/<bucket>/current/summary.json?t=…` and compares its sha256. The result is returned and stored as `liveCheck`.
 - **`extendDraft({electionId, draftId})`** re-checks the hashes and `baseVersion`, then resets the 2 h expiry. This meets WCAG 2.2.1 Timing Adjustable.
 - **`discardDraft({electionId, draftId})`** sets the status to `discarded` and deletes the draft objects.
+- **`createSettingsDraft({electionId})`** rebuilds the published files from the selected uploads under the election's current settings (max precincts, Precinct Results page), with no new file. It gets the same review screen (an info check lists the changed settings) and the same `publishDraft` path. Refused before the first publish.
 - **`createRollbackDraft({electionId, version})`** builds a draft from a stored version. It gets the same review screen and the same `publishDraft` path, and its diff shows what will revert. There is no blind rollback.
 - **`upsertElection`** changes to settings that touch the outputs (max precincts, precinct-page toggle) do not change the public pages directly. The admin page offers "Create draft with new settings", which rebuilds from the selected uploads, goes to review, and is then published.
 
@@ -592,4 +593,10 @@ Pages must stay fast and lag-free, including on mid-range phones on 4G.
 - **Logic lives in `functions/src/service.js`** over injected db/bucket/clock interfaces; `index.js` only wires Firebase.
   `service.test.js` runs the full callable contract on in-memory fakes; `test/emulator/` re-runs it on the emulators.
 - **Mutation testing** runs nightly as one shard per source file (each mutant reruns about 5 s of suites).
+- **`dataVersion` covers the page config (fix d4).** `merge.js` hashes only the contests, so a settings-only change
+  (precinct page toggle, or a max-precincts change that caps nothing) kept the same version. The `no-change` check
+  then fired, publish overwrote the immutable `v/<version>/` archive, and pages polling the manifest never refetched.
+  In FIXES mode `pipeline.js` hashes the contests plus the config; LEGACY keeps the Python hash for parity.
+- **Settings drafts** (`createSettingsDraft`) share `buildDraft` with uploads. They skip the upload-history checks
+  (`duplicate-upload`, `older-export`), since the same files were checked when uploaded, and add `settings-changed` (info).
 

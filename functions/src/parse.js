@@ -10,12 +10,14 @@
  *   d1  ED files no longer mark every listed precinct reported; merge.js infers it (see there).
  *   d2  county and status come from the last non-empty header cell, not column 4.
  *   d3  STATISTICS rows of the 5-column export (5 cells, 3 on continuation pages) are read.
+ *   d4  dataVersion also covers the page config (pipeline.js), so a settings-only change (precinct page
+ *       toggle, max precincts) is a new version: pages refetch it and the version archive isn't overwritten.
  */
 const { PY_WS, pyStrip, pyLowerChars, pyInt, pyFloat, pyRound2 } = require('./pycompat');
 const { readCsv } = require('./csv');
 
-const FIXES = Object.freeze({ d1: true, d2: true, d3: true });
-const LEGACY = Object.freeze({ d1: false, d2: false, d3: false });
+const FIXES = Object.freeze({ d1: true, d2: true, d3: true, d4: true });
+const LEGACY = Object.freeze({ d1: false, d2: false, d3: false, d4: false });
 
 /** Raised where the legacy parser raises (an IndexError on a malformed header). */
 class ParseError extends Error {

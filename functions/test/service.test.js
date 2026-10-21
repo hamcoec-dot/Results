@@ -276,6 +276,60 @@ test('auditLive: served bytes must equal the published version', async () => {
   assert.deepEqual(lastAudit.problems, ['manifest.json could not be fetched or is not JSON']);
 });
 
+test('settings draft: the selected files rebuilt under new settings, reviewed and published as a new version', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  await assert.rejects(env.svc.createSettingsDraft(ADMIN, { electionId: EID }), (e) => e.code === 'failed-precondition' && /Upload a file instead/.test(e.message));
+  const early = await draftOf(env, 'early', '02-After EV');
+  await publish(env, early);
+  const ed = await draftOf(env, 'ed', '03-After 5 Reporting');
+  await publish(env, ed);
+  const uploadsBefore = (await env.db.list(paths.uploads(EID))).length;
+
+  await env.svc.upsertElection(ADMIN, { ...SETTINGS, enablePrecinctResults: false });
+  const r = await env.svc.createSettingsDraft(ADMIN, { electionId: EID });
+  assert.equal(r.status, 'ready');
+  const doc = await env.db.get(paths.draft(EID, r.draftId));
+  assert.deepEqual([doc.kind, doc.uploadId, doc.earlyUploadId, doc.edUploadId], ['settings', null, ed.doc.earlyUploadId, ed.doc.edUploadId]);
+  assert.equal(doc.confirmCount, ed.doc.confirmCount);
+  assert.notEqual(doc.dataVersion, ed.doc.dataVersion, 'a settings-only change is a new version');
+  const ids = doc.checks.map((c) => c.id);
+  assert.ok(ids.includes('settings-changed'));
+  for (const quiet of ['duplicate-upload', 'older-export', 'no-change']) assert.ok(!ids.includes(quiet), quiet);
+  assert.match(doc.checks.find((c) => c.id === 'settings-changed').detail, /Precinct Results page: shown → hidden\./);
+  assert.equal((await env.db.list(paths.uploads(EID))).length, uploadsBefore, 'no new upload is recorded');
+  const review = JSON.parse(await env.publicBucket.read(`drafts/${r.draftId}/review.json`));
+  assert.equal(review.file.kind, 'settings');
+
+  const p = await publish(env, { draftId: r.draftId, doc });
+  assert.equal(p.dataVersion, doc.dataVersion);
+  const live = JSON.parse(await env.publicBucket.read('current/summary.json'));
+  assert.deepEqual(live.config, { enablePrecinctResults: false, precinctCap: 92 });
+  assert.equal(JSON.parse(await env.publicBucket.read('current/manifest.json')).dataVersion, doc.dataVersion);
+  // The previous version's archive is untouched (rollback still restores the page as it was).
+  const prior = JSON.parse(await env.publicBucket.read(`elections/${EID}/v/${ed.doc.dataVersion}/summary.json`));
+  assert.deepEqual(prior.config, { enablePrecinctResults: true, precinctCap: 92 });
+  const e = await env.db.get(paths.election(EID));
+  assert.deepEqual([e.selectedEarlyUploadId, e.selectedEdUploadId], [ed.doc.earlyUploadId, ed.doc.edUploadId]);
+
+  // Rebuilding again with nothing changed: the same version, so the reviewer is told nothing changed.
+  const same = await env.svc.createSettingsDraft(ADMIN, { electionId: EID });
+  const sameDoc = await env.db.get(paths.draft(EID, same.draftId));
+  assert.equal(sameDoc.dataVersion, doc.dataVersion);
+  assert.ok(sameDoc.checks.some((c) => c.id === 'no-change'));
+  assert.match(sameDoc.checks.find((c) => c.id === 'settings-changed').detail, /No settings differ/);
+});
+
+test('settings draft: a missing stored upload is refused with the fix', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  const early = await draftOf(env, 'early', '02-After EV');
+  await publish(env, early);
+  const up = await env.db.get(paths.upload(EID, early.doc.earlyUploadId));
+  await env.privateBucket.deletePrefix(up.storagePath);
+  await assert.rejects(env.svc.createSettingsDraft(ADMIN, { electionId: EID }), (e) => e.code === 'failed-precondition' && /Upload the file again/.test(e.message));
+});
+
 test('settings: validation with the fix in the message; one active election', async () => {
   const env = setup();
   const r = await env.svc.upsertElection(ADMIN, SETTINGS);

@@ -186,6 +186,21 @@ test('D4: lastUpdated is the real time in America/New_York, in the placeholder f
   assert.ok([before, Date.now()].map((t) => formatLastUpdated(new Date(t))).includes(meta.lastUpdated));
 });
 
+test('d4: dataVersion covers the page config; LEGACY keeps the contests-only hash', () => {
+  const { early, ed } = caseInputs('samples-92-04-10-reporting');
+  const on = buildResults({ early, ed }, { lastUpdated: 'x', config: { enablePrecinctResults: true, precinctCap: 92 } });
+  const off = buildResults({ early, ed }, { lastUpdated: 'x', config: { enablePrecinctResults: false, precinctCap: 92 } });
+  assert.deepEqual(on.merged.contests, off.merged.contests);
+  assert.notEqual(on.merged.dataVersion, off.merged.dataVersion, 'a settings-only change is a new version');
+  assert.equal(JSON.parse(off.outputs.files['summary.json']).metadata.dataVersion, off.merged.dataVersion);
+  assert.ok(off.verify.every((c) => c.pass));
+  const again = buildResults({ early, ed }, { lastUpdated: 'y', config: { precinctCap: 92, enablePrecinctResults: false } });
+  assert.equal(again.merged.dataVersion, off.merged.dataVersion, 'key order of the config does not matter');
+  const legacyOn = buildResults({ early, ed }, { lastUpdated: 'x', fixes: { ...FIXES, d4: false }, config: { enablePrecinctResults: true, precinctCap: 92 } });
+  const legacyOff = buildResults({ early, ed }, { lastUpdated: 'x', fixes: { ...FIXES, d4: false }, config: { enablePrecinctResults: false, precinctCap: 92 } });
+  assert.equal(legacyOn.merged.dataVersion, legacyOff.merged.dataVersion, 'without d4 only the contests are hashed');
+});
+
 test('dataVersion ignores lastUpdated (same inputs, same version and bytes)', () => {
   const { early, ed } = caseInputs('samples-92-04-10-reporting');
   const a = buildResults({ early, ed }, { lastUpdated: 'A' });

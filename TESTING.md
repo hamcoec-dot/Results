@@ -126,6 +126,7 @@ cases now pass `verify.py` with 0 failures.
 | Copy order: archive, data files, summary, manifest last (written at publish) | `publish.test.js` › copy plan, `service.test.js` › full night |
 | Concurrent publishes: exactly one wins; the lease is released on failure and expires | `service.test.js`, `test/emulator/integration.test.js` |
 | Rollback goes through a draft and the same publish path | `service.test.js` › rollback |
+| A settings change (max precincts, Precinct Results page) is rebuilt from the selected uploads with no re-upload, reviewed, and published as a new version; the previous version's archive is untouched | `service.test.js` › settings draft; `fixes.test.js` › d4; `checks.test.js` › settings rebuild; `test/emulator/integration.test.js` › settings draft |
 | Live check fails when the public URL serves other bytes; auditLive detects drift | `service.test.js` |
 | Upload limits: 5,000,000 characters, gzip bombs refused, same hash for text and gzip | `publish.test.js` › upload |
 | Election settings validated with the fix in the message (max precincts 1–999) | `service.test.js` › settings |

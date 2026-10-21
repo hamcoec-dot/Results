@@ -113,6 +113,7 @@ const warm = { minInstances: ELECTION_NIGHT_MIN_INSTANCES };
 exports.ping = onCall(warm, async (req) => ({ ok: true, admin: Boolean((await requireAdmin(req)).uid) }));
 exports.upsertElection = adminCall('upsertElection');
 exports.createDraft = adminCall('createDraft', { ...warm, memory: '1GiB', timeoutSeconds: 120 });
+exports.createSettingsDraft = adminCall('createSettingsDraft', { ...warm, memory: '1GiB', timeoutSeconds: 120 });
 exports.createRollbackDraft = adminCall('createRollbackDraft', { memory: '512MiB' });
 exports.publishDraft = adminCall('publishDraft', warm);
 exports.extendDraft = adminCall('extendDraft', warm);

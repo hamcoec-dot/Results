@@ -18,6 +18,7 @@
     document.getElementById('election-select').addEventListener('change', function (e) { selectElection(e.target.value); });
     document.getElementById('settings-form').addEventListener('submit', saveSettings);
     document.getElementById('upload-form').addEventListener('submit', upload);
+    document.getElementById('settings-draft-btn').addEventListener('click', settingsDraft);
   });
 
   // ---------- elections & settings ----------
@@ -52,6 +53,8 @@
     f.makeActive.checked = Boolean(d.active);
     ['id', 'name', 'date', 'county', 'cap'].forEach(function (k) { setFieldError(k, ''); });
     document.getElementById('upload-form').hidden = !current;
+    // A settings rebuild needs published files to rebuild.
+    document.getElementById('settings-draft-btn').closest('.settings-draft').hidden = !(current && current.data.currentVersion);
     renderPublished();
     renderAuditBanner();
     if (current) { loadDrafts(); loadHistory(); loadUploads(); } else {
@@ -101,7 +104,7 @@
     };
     C.busy(f.querySelector('button[type=submit]'), 'Saving…', function () { return C.call('upsertElection', data); })
       .then(function (r) {
-        C.announce(r.created ? 'Election created.' : 'Settings saved. Changes to max precincts apply to the next draft.');
+        C.announce(r.created ? 'Election created.' : 'Settings saved. They apply to the next draft; use "Create draft with these settings" to apply them to what is published now.');
         return loadElections(r.id);
       }, function (e) {
         var field = e.details && e.details.field;
@@ -167,7 +170,7 @@
         discard.addEventListener('click', function () { discardDraft(x.id, discard); });
         return h('tr', null,
           h('th', { scope: 'row' }, statusLabel(x.d.status)),
-          h('td', null, x.d.kind === 'rollback' ? 'Rollback to ' + x.d.rollbackOf : x.d.kind),
+          h('td', null, x.d.kind === 'rollback' ? 'Rollback to ' + x.d.rollbackOf : x.d.kind === 'settings' ? 'Settings change' : x.d.kind),
           h('td', null, C.when(x.d.createdAt) + ' (' + C.ago(x.d.createdAt) + ')'),
           h('td', null, x.d.createdBy),
           h('td', null, h('span', { class: 'row' }, review, discard)));
@@ -230,6 +233,12 @@
           h('td', null, btn));
       })));
     }, function (e) { C.clear(el).appendChild(h('p', null, 'Could not load history: ' + C.errorText(e))); });
+  }
+
+  function settingsDraft(ev) {
+    var btn = ev.currentTarget;
+    C.busy(btn, 'Rebuilding with the saved settings…', function () { return C.call('createSettingsDraft', { electionId: current.id }); })
+      .then(function (r) { location.href = 'review.html?' + C.cfg.carry + 'e=' + encodeURIComponent(current.id) + '&draft=' + r.draftId; }, function () {});
   }
 
   function rollback(version, btn) {
