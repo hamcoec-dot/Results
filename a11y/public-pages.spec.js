@@ -64,6 +64,7 @@ for (const [file, ready] of Object.entries(PAGES)) {
 
 for (const mode of ['dark-mode-toggle', 'contrast-toggle']) {
   test(`index.html with #${mode}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' }); // colours at rest, not mid-transition
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto('index.html');
     await page.locator(PAGES['index.html']).first().waitFor();
@@ -73,6 +74,7 @@ for (const mode of ['dark-mode-toggle', 'contrast-toggle']) {
 }
 
 test('precinct reporting dialog', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto('index.html');
   await page.locator('#contests-container .reporting-btn').first().click();
@@ -83,6 +85,7 @@ test('precinct reporting dialog', async ({ page }) => {
 });
 
 test('precincts.html by contest', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto('precincts.html');
   await page.locator(PAGES['precincts.html']).first().waitFor();
