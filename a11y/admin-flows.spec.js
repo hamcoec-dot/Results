@@ -84,11 +84,28 @@ test.describe('admin flows (emulators)', () => {
     ];
     const viewer = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
     let opened = false;
+    let before = null; // the reference for what is live before this step
     for (const [kind, sample, id] of night) {
       await signIn(page);
       await upload(page, kind, sample);
-      await publishFromReview(page);
       const want = golden(id);
+      // The review's diff: every candidate's published → draft votes are the previous step's and
+      // this step's reference numbers (plan: "compare the review's contest diff with the CSVs").
+      await page.selectOption('#contest-filter', 'all');
+      const diff = await page.locator('#contests table').evaluateAll((tables) => Object.fromEntries(tables.map((t) => [
+        t.querySelector('caption').textContent.replace(/: published → draft$/, ''),
+        Array.from(t.querySelectorAll('tbody tr')).map((r) => [r.querySelector('th').textContent, r.cells[2].textContent, r.cells[3].textContent]),
+      ])));
+      expect(Object.keys(diff).sort(), sample).toEqual(want.contests.map((c) => c.title).sort());
+      for (const c of want.contests) {
+        const old = before && before.contests.find((x) => x.title === c.title);
+        expect(diff[c.title], `${sample} review / ${c.title}`).toEqual(c.candidates.map((x) => {
+          const was = old && old.candidates.find((y) => y.name === x.name);
+          return [was ? x.name : `${x.name} (added)`, was ? fmt(was.votes) : '—', fmt(x.votes)];
+        }));
+      }
+      await publishFromReview(page);
+      before = want;
       if (!opened) {
         await viewer.goto('index.html?emulator');
         opened = true;
