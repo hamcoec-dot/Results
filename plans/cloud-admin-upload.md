@@ -420,7 +420,7 @@ Keep `convert_data.py`, `verify.py`, `server_monitor.py` and `Run_Monitor.bat` a
 4. **Accessibility baseline audit and fixes for the existing public pages, then `app.js` and the pages switched to `RESULTS_BASE_URL`, with `results-config.js`, `?draft` mode and the live-update pause controls.**
    Layers 8, 9 and 12, the DOM oracle, and `validate.js` wired into `app.js`.
 
-   **Status (2026-10-21): built in PR #3.** Not done: visual regression (layer 9). Related PRs: #4 (settings drafts, fix d4), #5
+   **Status (2026-10-21): built in PR #3.** Visual regression (layer 9) is local only, with Windows baselines. Related PRs: #4 (settings drafts, fix d4), #5
    (parity fixes), #6 (Phase 5 prep: deploy workflow, smoke and load tools, rehearsal). Decisions: Appendix C.
 5. **README, GCP project setup for both staging and prod, `nightly.yml` and `deploy.yml`, first deploy, invoker grants, CORS, uptime checks and alerts, layers 13–15 on staging, a dry run with the `Web Results Samples` 00→06 sequence, and the first mock-election rehearsal.**
 
