@@ -1247,6 +1247,8 @@ window.ElectionApp = (function() {
     if (slideshowActive || !electionData) return;
     slideshowActive = true;
     currentSlideIndex = 0;
+    const fsBtn = document.getElementById('btn-fullscreen');
+    if (fsBtn) fsBtn.hidden = !fullscreenSupported();
     renderTicker();
     populateSlideJumpMenu();
     renderPlayPause();
@@ -1640,15 +1642,25 @@ window.ElectionApp = (function() {
     startSlideTimer();
   }
 
+  /**
+   * Fullscreen, standard or webkit-prefixed (older Safari). iPhone Safari has no element fullscreen
+   * at all, so the button is hidden there (initSlideshow) instead of throwing when pressed.
+   */
+  function fullscreenSupported() {
+    const el = document.documentElement;
+    return !!(el.requestFullscreen || el.webkitRequestFullscreen) && document.fullscreenEnabled !== false && document.webkitFullscreenEnabled !== false;
+  }
+
   function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        console.error('Fullscreen request failed:', err);
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+    const el = document.documentElement;
+    const current = document.fullscreenElement || document.webkitFullscreenElement;
+    const call = current ? (document.exitFullscreen || document.webkitExitFullscreen) : (el.requestFullscreen || el.webkitRequestFullscreen);
+    if (!call) return;
+    try {
+      const result = call.call(current ? document : el); // a promise in current browsers, undefined in old Safari
+      if (result && typeof result.catch === 'function') result.catch(err => console.warn('Fullscreen request failed:', err));
+    } catch (err) {
+      console.warn('Fullscreen request failed:', err);
     }
   }
 

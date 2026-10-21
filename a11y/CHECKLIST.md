@@ -28,6 +28,8 @@ they can't. Record the date, browser and result of each run at the bottom.
 - [ ] Slideshow:
   - [ ] the controls come before the slide;
   - [ ] Pause/Play, Prev/Next, the speed and jump menus and Fullscreen all work from the keyboard.
+    (`a11y/keyboard.spec.js` automates this and the summary and precinct pages' controls in Chromium. By hand,
+    check that the focus ring is visible, and use the real keyboard on a projector machine.)
 - [ ] "Pause live updates": Space/Enter toggles it; it is still paused after a reload in the same tab.
 - [ ] Admin: sign-in → upload → review → acknowledge → publish → rollback, all by keyboard.
   `a11y/admin-keyboard.spec.js` automates the path in Chromium: every control can be reached and focus goes into and
