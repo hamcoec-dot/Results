@@ -677,6 +677,7 @@ window.ElectionApp = (function() {
     });
 
     if (filteredContests.length === 0) {
+      renderedCards.delete(container);
       container.innerHTML = `
         <div style="background:var(--surface); border:1px solid var(--border); padding:40px; text-align:center; border-radius:var(--radius-md); font-weight:600; color:var(--neutral-muted);">
           No matching contests found.
@@ -685,15 +686,14 @@ window.ElectionApp = (function() {
       return;
     }
 
-    let html = '';
-    filteredContests.forEach(contest => {
+    const cards = filteredContests.map(contest => {
       const cTitleEsc = escapeHtml(contest.title);
       const cSlug = slugify(contest.title);
       const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
       const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
 
-      html += `
-        <article id="contest-card-${cSlug}" class="contest-card" aria-labelledby="contest-title-${cSlug}">
+      let html = `
+        <article id="contest-card-${cSlug}" class="contest-card" data-key="${cSlug}" aria-labelledby="contest-title-${cSlug}">
           <header class="contest-header">
             <div>
               <h2 id="contest-title-${cSlug}" class="contest-title">${cTitleEsc}</h2>
@@ -743,9 +743,35 @@ window.ElectionApp = (function() {
           </div>
         </article>
       `;
+      return { key: cSlug, html: html.trim() };
     });
 
-    container.innerHTML = html;
+    patchCards(container, cards);
+  }
+
+  // Last markup rendered per contest card, so a live update replaces only the cards that changed.
+  const renderedCards = new WeakMap();
+
+  /**
+   * Show cards [{key, html}] in container. When the same cards are on screen in the same order
+   * (a live update with unchanged filters), only cards whose markup changed are swapped, in one
+   * pass; otherwise the list is rebuilt.
+   */
+  function patchCards(container, cards) {
+    const previous = renderedCards.get(container);
+    const sameList = previous && previous.length === cards.length && container.children.length === cards.length
+      && cards.every((c, i) => previous[i].key === c.key);
+    if (!sameList) {
+      container.innerHTML = cards.map(c => c.html).join('');
+    } else {
+      cards.forEach((c, i) => {
+        if (previous[i].html === c.html) return;
+        const t = document.createElement('template');
+        t.innerHTML = c.html;
+        container.replaceChild(t.content.firstElementChild, container.children[i]);
+      });
+    }
+    renderedCards.set(container, cards);
   }
 
   function renderReportingTable() {

@@ -1591,3 +1591,9 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
     min-height: 1.5em !important;
   }
 }
+
+/* Off-screen contest cards skip layout and paint until scrolled near (rendering budget) */
+.contests-grid > .contest-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
+}

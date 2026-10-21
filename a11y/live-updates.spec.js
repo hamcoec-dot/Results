@@ -14,8 +14,8 @@ const V03 = 'samples-92-03-5-reporting'; // Governor 92 of 92
 
 const DRAFT_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
 
-function manifestFor(dir, updatedAt) {
-  const summary = read(dir, 'summary.json');
+function manifestFor(dir, updatedAt, override) {
+  const summary = override?.['summary.json'] ?? read(dir, 'summary.json');
   return JSON.stringify({
     dataVersion: JSON.parse(summary).metadata.dataVersion,
     updatedAt,
@@ -33,7 +33,7 @@ async function fakeBucket(page, state) {
     const [prefix, ...rest] = object.split('/');
     const file = rest.pop();
     let body;
-    if (prefix === 'current' && file === 'manifest.json') body = manifestFor(state.dir, state.updatedAt);
+    if (prefix === 'current' && file === 'manifest.json') body = manifestFor(state.dir, state.updatedAt, state.override);
     else if (prefix === 'current' || (prefix === 'drafts' && rest[0] === DRAFT_ID)) body = state.override?.[file] ?? read(state.dir, file);
     if (body === undefined) return route.fulfill({ status: 404, body: '' });
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body });
@@ -148,4 +148,23 @@ test('the reporting page shows exact per-precinct flags from reporting.json', as
   await page.getByRole('button', { name: /Reported/ }).click();
   const shown = await page.locator('#modal-precinct-grid .precinct-chip span:first-child').allTextContents();
   expect(shown.sort()).toEqual(expected);
+});
+
+test('a live update replaces only the contest cards that changed', async ({ page }) => {
+  const state = { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' };
+  await fakeBucket(page, state);
+  await page.goto('index.html?emulator');
+  await expect(firstCard(page)).toContainText('92 of 92');
+  await page.evaluate(() => document.querySelectorAll('#contests-container > article').forEach((el, i) => { el.dataset.mark = String(i); }));
+
+  const next = JSON.parse(read(V03, 'summary.json'));
+  next.latest.contests[1].candidates[0].votes += 7;
+  next.latest.contests[1].totalVotes += 7;
+  next.metadata.dataVersion = 'abcdefabcdef';
+  state.override = { 'summary.json': JSON.stringify(next) };
+  await poll(page);
+  await expect(page.locator('#contests-container > article').nth(1)).not.toHaveAttribute('data-mark', '1');
+  const marks = await page.locator('#contests-container > article').evaluateAll((els) => els.map((el) => el.dataset.mark ?? null));
+  expect(marks.filter((m) => m === null)).toHaveLength(1);
+  expect(marks[1]).toBeNull();
 });
