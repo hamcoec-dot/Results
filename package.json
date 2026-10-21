@@ -5,7 +5,7 @@
   "scripts": {
     "a11y": "playwright test --config a11y/playwright.config.js",
     "perf": "npm --prefix perf ci --no-audit --no-fund && node perf/lighthouse.mjs",
-    "a11y:admin": "npx --yes firebase-tools@13.35.1 emulators:exec --project demo-hcec --only auth,firestore,storage,functions \"node tools/seed-emulator.js && playwright test --config a11y/playwright.config.js admin\"",
+    "a11y:admin": "npx --yes firebase-tools@13.35.1 emulators:exec --project demo-hcec --only auth,firestore,storage,functions \"node tools/seed-emulator.js && playwright test --config a11y/playwright.config.js --workers=1 admin\"",
     "perf:admin": "npm --prefix perf ci --no-audit --no-fund && node perf/lighthouse.mjs --pages admin.html,review.html",
     "lint:html": "html-validate index.html reporting.html precincts.html scrolling.html admin.html review.html"
   },
