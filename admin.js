@@ -18,6 +18,7 @@
     document.getElementById('election-select').addEventListener('change', function (e) { selectElection(e.target.value); });
     document.getElementById('settings-form').addEventListener('submit', saveSettings);
     document.getElementById('upload-form').addEventListener('submit', upload);
+    document.getElementById('settings-draft-btn').addEventListener('click', settingsDraft);
   });
 
   // ---------- elections & settings ----------
@@ -52,6 +53,8 @@
     f.makeActive.checked = Boolean(d.active);
     ['id', 'name', 'date', 'county', 'cap'].forEach(function (k) { setFieldError(k, ''); });
     document.getElementById('upload-form').hidden = !current;
+    // A settings rebuild needs published files to rebuild.
+    document.getElementById('settings-draft-btn').closest('.settings-draft').hidden = !(current && current.data.currentVersion);
     renderPublished();
     renderAuditBanner();
     if (current) { loadDrafts(); loadHistory(); loadUploads(); } else {
@@ -101,7 +104,7 @@
     };
     C.busy(f.querySelector('button[type=submit]'), 'Saving…', function () { return C.call('upsertElection', data); })
       .then(function (r) {
-        C.announce(r.created ? 'Election created.' : 'Settings saved. Changes to max precincts apply to the next draft.');
+        C.announce(r.created ? 'Election created.' : 'Settings saved. They apply to the next draft; use "Create draft with these settings" to apply them to what is published now.');
         return loadElections(r.id);
       }, function (e) {
         var field = e.details && e.details.field;
@@ -134,6 +137,7 @@
     document.getElementById('file-error').textContent = file ? (/\.csv$/i.test(file.name) ? '' : 'Choose the .csv export (Custom Table Report).') : 'Choose the CSV file.';
     if (!kind) { f.querySelector('input[name=kind]').focus(); return; }
     if (!file || !/\.csv$/i.test(file.name)) { f.file.focus(); return; }
+    if (!current) { C.announce('Choose or save an election first.', { alert: true }); return; }
     var btn = f.querySelector('button[type=submit]');
     C.busy(btn, 'Processing file…', function () {
       return file.text().then(encode).then(function (payload) {
@@ -147,6 +151,25 @@
 
   // ---------- lists ----------
 
+  /**
+   * Show "Loading…" in a list. If it takes over 15 s (a poor connection), say so and offer Retry
+   * instead of leaving the section blank. Returns a token; a result whose token is no longer the
+   * list's latest (it was reloaded meanwhile) is ignored.
+   */
+  function loading(el, what, retry) {
+    var token = {};
+    el.loadToken = token;
+    C.clear(el).appendChild(h('p', null, 'Loading ' + what + '…'));
+    clearTimeout(el.loadTimer); // a reload replaces the previous load's timer
+    el.loadTimer = setTimeout(function () {
+      if (el.loadToken !== token || !el.textContent.startsWith('Loading')) return;
+      var again = h('button', { class: 'btn', type: 'button' }, 'Retry');
+      again.addEventListener('click', retry);
+      C.clear(el).appendChild(h('p', null, 'Still loading ' + what + '. Check the connection, or ', again));
+    }, 15000);
+    return token;
+  }
+
   function table(caption, heads, rows) {
     if (!rows.length) return h('p', null, 'None.');
     var id = 't' + Math.random().toString(36).slice(2, 8);
@@ -159,7 +182,9 @@
 
   function loadDrafts() {
     var el = document.getElementById('drafts');
+    var token = loading(el, 'drafts', loadDrafts);
     db.collection('elections/' + current.id + '/drafts').where('status', 'in', ['ready', 'blocked', 'stale']).get().then(function (snap) {
+      if (el.loadToken !== token) return;
       var docs = snap.docs.map(function (d) { return { id: d.id, d: d.data() }; }).sort(function (a, b) { return b.d.createdAt.localeCompare(a.d.createdAt); });
       C.clear(el).appendChild(table('Drafts not yet published', ['Status', 'Kind', 'Created', 'By', 'Actions'], docs.map(function (x) {
         var review = h('a', { class: 'btn', href: 'review.html?' + C.cfg.carry + 'e=' + encodeURIComponent(current.id) + '&draft=' + x.id }, 'Review');
@@ -167,12 +192,12 @@
         discard.addEventListener('click', function () { discardDraft(x.id, discard); });
         return h('tr', null,
           h('th', { scope: 'row' }, statusLabel(x.d.status)),
-          h('td', null, x.d.kind === 'rollback' ? 'Rollback to ' + x.d.rollbackOf : x.d.kind),
+          h('td', null, x.d.kind === 'rollback' ? 'Rollback to ' + x.d.rollbackOf : x.d.kind === 'settings' ? 'Settings change' : x.d.kind),
           h('td', null, C.when(x.d.createdAt) + ' (' + C.ago(x.d.createdAt) + ')'),
           h('td', null, x.d.createdBy),
           h('td', null, h('span', { class: 'row' }, review, discard)));
       })));
-    }, function (e) { C.clear(el).appendChild(h('p', null, 'Could not load drafts: ' + C.errorText(e))); });
+    }, function (e) { if (el.loadToken === token) C.clear(el).appendChild(h('p', null, 'Could not load drafts: ' + C.errorText(e))); });
   }
 
   function statusLabel(s) {
@@ -206,10 +231,12 @@
 
   function loadHistory() {
     var el = document.getElementById('history');
+    var token = loading(el, 'published versions', loadHistory);
     Promise.all([
       db.collection('elections/' + current.id + '/versions').get(),
       db.collection('elections/' + current.id + '/uploads').get(),
     ]).then(function (res) {
+      if (el.loadToken !== token) return;
       var uploads = {};
       res[1].docs.forEach(function (d) { uploads[d.id] = d.data(); });
       var name = function (id) { return id && uploads[id] ? uploads[id].filename : '—'; };
@@ -229,7 +256,13 @@
           h('td', null, h('code', null, x.id), x.v.rollbackOf ? ' (rollback)' : ''),
           h('td', null, btn));
       })));
-    }, function (e) { C.clear(el).appendChild(h('p', null, 'Could not load history: ' + C.errorText(e))); });
+    }, function (e) { if (el.loadToken === token) C.clear(el).appendChild(h('p', null, 'Could not load history: ' + C.errorText(e))); });
+  }
+
+  function settingsDraft(ev) {
+    var btn = ev.currentTarget;
+    C.busy(btn, 'Rebuilding with the saved settings…', function () { return C.call('createSettingsDraft', { electionId: current.id }); })
+      .then(function (r) { location.href = 'review.html?' + C.cfg.carry + 'e=' + encodeURIComponent(current.id) + '&draft=' + r.draftId; }, function () {});
   }
 
   function rollback(version, btn) {
@@ -242,7 +275,9 @@
 
   function loadUploads() {
     var el = document.getElementById('uploads');
+    var token = loading(el, 'uploads', loadUploads);
     db.collection('elections/' + current.id + '/uploads').get().then(function (snap) {
+      if (el.loadToken !== token) return;
       var docs = snap.docs.map(function (d) { return d.data(); }).sort(function (a, b) { return b.uploadedAt.localeCompare(a.uploadedAt); });
       C.clear(el).appendChild(table('Every uploaded file, newest first', ['Uploaded', 'By', 'Kind', 'File', { t: 'Size', n: true }, 'sha256'], docs.map(function (u) {
         return h('tr', null,
@@ -253,6 +288,6 @@
           h('td', { class: 'n' }, C.num(u.size)),
           h('td', null, h('code', null, u.sha256.slice(0, 12) + '…')));
       })));
-    }, function (e) { C.clear(el).appendChild(h('p', null, 'Could not load uploads: ' + C.errorText(e))); });
+    }, function (e) { if (el.loadToken === token) C.clear(el).appendChild(h('p', null, 'Could not load uploads: ' + C.errorText(e))); });
   }
 }());

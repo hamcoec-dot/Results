@@ -11,7 +11,8 @@
       "test/parity.test.js",
       "test/checks.test.js",
       "test/validate.test.js",
-      "test/snapshots.test.js"
+      "test/snapshots.test.js",
+      "test/retry.test.js"
     ]
   },
   "coverageAnalysis": "perTest",
@@ -22,7 +23,8 @@
     "src/merge.js",
     "src/verify.js",
     "src/checks.js",
-    "src/validate.js"
+    "src/validate.js",
+    "src/retry.js"
   ],
   "ignorePatterns": [
     "coverage",

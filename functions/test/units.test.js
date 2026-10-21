@@ -230,3 +230,35 @@ test('outputs: data.js wrapper and file shapes', () => {
   assert.equal(JSON.parse(out.files['summary.json']).metadata.lastUpdated, 'L');
   assert.equal(out.objects.summary.config.enablePrecinctResults, false);
 });
+
+test('pyTrueDiv: exact int division, correctly rounded, with Python signs and errors', () => {
+  assert.throws(() => py.pyTrueDiv(1n, 0n), RangeError); // ZeroDivisionError
+  assert.ok(Object.is(py.pyTrueDiv(0n, 5n), 0));
+  assert.ok(Object.is(py.pyTrueDiv(0n, -5n), -0)); // Python: 0 / -5 == -0.0
+  assert.equal(py.pyTrueDiv(-7n, 2n), -3.5);
+  assert.equal(py.pyTrueDiv(7n, -2n), -3.5);
+  assert.equal(py.pyTrueDiv(10n ** 26n + 7n, 1923n), 5.200208008320333e+22);
+  assert.equal(py.pyTrueDiv(2n ** 53n + 1n, 1n), 2 ** 53); // the tie rounds to even
+  assert.equal(py.pyTrueDiv(2n ** 53n + 3n, 1n), 2 ** 53 + 4);
+  assert.equal(py.pyTrueDiv(1n, 3n), 1 / 3);
+  assert.equal(py.pyIntBig(' 1_000 '), 1000n);
+  assert.equal(py.pyIntBig('1.5'), null);
+});
+
+test('statsTurnout: as convert_data.py, ints past 2^53 divided exactly (values from Python)', () => {
+  const { statsTurnout } = require('../src/parse');
+  const repr = (x) => py.pyFloatRepr(x);
+  for (const [ballots, voters, expected] of [
+    ['100000000000000000000000007', '1923', '5.200208008320333e+24'], // plain Numbers give ...334e+24
+    ['1,000,000,000,000,000,000,000,007', '1,923', '5.200208008320333e+22'],
+    ['123456789012345678901234567', '3', '4.1152263004115226e+27'],
+    ['-100000000000000000000000007', '1923', '-5.200208008320333e+24'],
+    ['9007199254740993', '3', '3.002399751580331e+17'],
+    ['100000000000000000000000007', '1923.0', '5.200208008320334e+24'], // a float cell: Python divides floats
+    ['1.5', '100000000000000000000000000', '0.0'],
+    ['x', '5', '0.0'],
+    ['5', '0', '0.0'],
+  ]) {
+    assert.equal(repr(statsTurnout(ballots, voters)), expected, `${ballots} / ${voters}`);
+  }
+});

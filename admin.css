@@ -78,8 +78,8 @@ table.data thead th { background: var(--primary-light); position: sticky; top: 0
 table.data tbody th { position: sticky; left: 0; background: var(--surface); z-index: 1; }
 tr.down td { background: #fef2f2; }
 
-/* Contest cards (one per contest; long lists skip off-screen layout) */
-.contest { content-visibility: auto; contain-intrinsic-size: auto 320px; }
+/* Contest cards (one per contest). No content-visibility: its placeholder heights changed as cards
+   scrolled into view, moving the Publish button under the pointer and putting jumps off target. */
 .contest[hidden] { display: none; }
 .contest h3 { scroll-margin-top: 80px; }
 .contest-meta { color: var(--neutral-muted); font-size: .92rem; margin: 0 0 8px; }
@@ -119,3 +119,6 @@ pre.trace { overflow: auto; max-height: 360px; font-size: .85rem; background: va
 }
 @media (prefers-reduced-motion: reduce) { .admin * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 @media (forced-colors: active) { .sev, .badge, .check { border: 1px solid CanvasText; } }
+
+/* Touch target: the header link is at least 44 px tall (project standard) */
+.admin .navbar-brand, header .navbar-brand { display: inline-flex; align-items: center; min-height: 44px; }

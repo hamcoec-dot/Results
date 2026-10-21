@@ -53,11 +53,19 @@
         });
       }
       updatePublish();
-      startCountdown();
-      document.getElementById('publish-btn').addEventListener('click', openPublish);
-      document.getElementById('publish-form').addEventListener('submit', submitPublish);
-      document.getElementById('extend-btn').addEventListener('click', extend);
-      document.getElementById('discard-btn').addEventListener('click', discard);
+      // load() runs again when the reviewer signs out and back in. Bind once: the named handlers
+      // would be deduplicated anyway, but the search/filter closures and the countdown would pile up.
+      if (!S.bound) {
+        S.bound = true;
+        startCountdown();
+        document.getElementById('publish-btn').addEventListener('click', openPublish);
+        document.getElementById('publish-form').addEventListener('submit', submitPublish);
+        document.getElementById('extend-btn').addEventListener('click', extend);
+        document.getElementById('discard-btn').addEventListener('click', discard);
+        var timer;
+        document.getElementById('contest-search').addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(applyFilter, 150); });
+        document.getElementById('contest-filter').addEventListener('change', applyFilter);
+      }
       C.announce('Draft loaded.');
     }, function (e) { C.announce('Could not load the draft: ' + C.errorText(e), { alert: true }); });
   }
@@ -73,7 +81,7 @@
     countdownText = h('span', { 'aria-live': 'off' });
     C.clear(document.getElementById('status-bar')).appendChild(h('p', { class: 'row' },
       h('span', null, 'Draft ', h('code', null, draftId.slice(0, 8) + '…')),
-      h('span', null, '· ' + (d.kind === 'rollback' ? 'Rollback to ' + d.rollbackOf : 'Kind: ' + d.kind)),
+      h('span', null, '· ' + (d.kind === 'rollback' ? 'Rollback to ' + d.rollbackOf : d.kind === 'settings' ? 'Settings change (same files)' : 'Kind: ' + d.kind)),
       h('span', null, '· Based on ' + (d.baseVersion || 'nothing published')),
       h('span', null, '· ' + counts.block + ' blocking, ' + counts.warn + ' warnings, ' + counts.info + ' info'),
       h('span', null, '· Status: ' + d.status),
@@ -202,19 +210,24 @@
     var list = S.review.contests;
     S.contests = [];
     var i = 0;
+    // Each card is filtered as it is added, so the list only grows by the cards that will stay and
+    // the Publish panel below moves as little as possible while the chunks render.
+    el.setAttribute('aria-busy', 'true');
     var chunk = function () {
       var frag = document.createDocumentFragment();
-      for (var end = Math.min(i + 8, list.length); i < end; i++) frag.appendChild(contestCard(list[i], i));
+      var shows = matcher();
+      for (var end = Math.min(i + 8, list.length); i < end; i++) {
+        var card = contestCard(list[i], i);
+        card.hidden = !shows(S.contests[S.contests.length - 1]);
+        frag.appendChild(card);
+      }
       el.appendChild(frag);
       if (i < list.length) return C.yieldToMain().then(chunk);
+      el.setAttribute('aria-busy', 'false');
       applyFilter();
       return null;
     };
-    var search = document.getElementById('contest-search');
     var filter = document.getElementById('contest-filter');
-    var timer;
-    search.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(applyFilter, 150); });
-    filter.addEventListener('change', applyFilter);
     if (!list.some(function (c) { return c.changed; })) filter.value = 'all';
     return chunk();
   }
@@ -257,14 +270,20 @@
     return card;
   }
 
-  function applyFilter() {
+  /** The current filter and search, as a test of one S.contests entry. */
+  function matcher() {
     var q = document.getElementById('contest-search').value.trim().toLowerCase();
     var f = document.getElementById('contest-filter').value;
     var test = { changed: function (c) { return c.changed; }, leader: function (c) { return c.leaderChanged; }, down: function (c) { return c.decreased; },
       close: function (c) { return c.closeMargin !== null; }, all: function () { return true; } }[f];
+    return function (x) { return test(x.c) && (!q || x.text.indexOf(q) >= 0); };
+  }
+
+  function applyFilter() {
+    var shows = matcher();
     var shown = 0;
     S.contests.forEach(function (x) {
-      var on = test(x.c) && (!q || x.text.indexOf(q) >= 0);
+      var on = shows(x);
       x.el.hidden = !on;
       if (on) shown++;
     });
@@ -348,7 +367,7 @@
   function summarySentence() {
     var r = S.review;
     var hl = r.headline.precinctsReporting;
-    var kind = { zero: 'Zero report', early: 'Early/ABS update', ed: 'Election Day update', rollback: 'Rollback' }[r.file.kind] || r.file.kind;
+    var kind = { zero: 'Zero report', early: 'Early/ABS update', ed: 'Election Day update', rollback: 'Rollback', settings: 'Settings change' }[r.file.kind] || r.file.kind;
     return 'Publish ' + kind + ': ' + (hl.current === null ? 'first publish, ' : hl.current + ' → ') + hl.draft + ' of ' + hl.of + ' precincts reporting, '
       + r.counts.changed + ' contests changed, ' + r.counts.leaderChanges + ' leader change' + (r.counts.leaderChanges === 1 ? '' : 's') + '.';
   }

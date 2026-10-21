@@ -4,7 +4,7 @@
   "id": "rollback",
   "severity": "warn",
   "title": "This is a rollback",
-  "detail": "Republishing version 33b01fe2c0bd (first published Nov 3 9:10 PM). Every number below reverts to it.",
+  "detail": "Republishing version 73f8afb7b23c (first published Nov 3 9:10 PM). Every number below reverts to it.",
   "refs": []
  },
  {

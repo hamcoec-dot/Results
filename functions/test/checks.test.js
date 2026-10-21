@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const { caseInputs } = require('./helpers/fixtures');
 const { buildResults } = require('../src/pipeline');
 const { readCsv, CsvError } = require('../src/csv');
-const { runChecks, runRollbackChecks, unreadableCheck, normalizeDate, closeMargin, CHECK_IDS, REPORTING_MISMATCH_SEVERITY } = require('../src/checks');
+const { runChecks, runRollbackChecks, unreadableCheck, normalizeDate, closeMargin, describeSettingsChange, CHECK_IDS, REPORTING_MISMATCH_SEVERITY } = require('../src/checks');
 
 const ELECTION = { name: '2026-11-03 General', date: '2026-11-03', precinctCap: 92 };
 const S = (id) => caseInputs(`samples-92-${id}`);
@@ -256,6 +256,24 @@ test('rollback drafts: acknowledge the rollback, see every reversal, and the fil
   const bad = { ...r3.outputs.files, 'summary.json': r3.outputs.files['summary.json'].replace('"totalVotes":1430', '"totalVotes":1431') };
   fires(runRollbackChecks({ latest, files: bad, current: null, version: 'v' }), 'output-invalid', 'block');
   assert.deepEqual(runRollbackChecks({ latest, files: r3.outputs.files, current: null, version: 'v' }).map((c) => c.id), ['rollback']);
+});
+
+test('settings rebuild: an info check lists exactly what changed; upload-history checks stay quiet', () => {
+  const run = (settingsChange, history) => runChecks({ kind: 'ed', rows: readCsv(ED3), result: buildResults({ early: EV, ed: ED3 }, { lastUpdated: 'x' }),
+    election: ELECTION, upload: { sha256: 'abc' }, history, settingsChange });
+  const [c] = fires(run({ before: { enablePrecinctResults: true, precinctCap: 92 }, after: { enablePrecinctResults: false, precinctCap: 94 } }), 'settings-changed', 'info');
+  assert.equal(c.detail, 'Max precincts: 92 → 94. Precinct Results page: shown → hidden.');
+  assert.equal(describeSettingsChange({ before: { enablePrecinctResults: true, precinctCap: 92 }, after: { enablePrecinctResults: true, precinctCap: 92 } }),
+    'No settings differ from what is published; only the build time changes.');
+  assert.equal(describeSettingsChange({ before: null, after: { enablePrecinctResults: true, precinctCap: 92 } }),
+    'No settings were published before. Publishing: Max precincts 92, Precinct Results page shown.');
+  // A config published before precinctCap was added to it reads as the defaults.
+  assert.equal(describeSettingsChange({ before: { enablePrecinctResults: true }, after: { enablePrecinctResults: true, precinctCap: 94 } }),
+    'Max precincts: 92 → 94.');
+  const quiet = run({ before: null, after: { enablePrecinctResults: true, precinctCap: 92 } }, {});
+  silent(quiet, 'duplicate-upload');
+  silent(quiet, 'older-export');
+  silent(check('ed', ED3), 'settings-changed');
 });
 
 test('every check id has a test', () => {

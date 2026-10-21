@@ -10,6 +10,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineInt, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { createService, ServiceError } = require('./service');
+const { withRetry } = require('./retry');
 
 admin.initializeApp();
 setGlobalOptions({ region: 'us-east1', maxInstances: 10 });
@@ -40,22 +41,24 @@ function firestoreAdapter(fs) {
 }
 
 function bucketAdapter(bucket) {
+  // Every call here is safe to repeat (retry.js), so dropped connections are retried.
+  const retry = (op, p) => (fn) => withRetry(fn, { onRetry: (e, n) => logger.warn('bucket retry', { op, path: p, attempt: n, error: e.message }) });
   return {
-    write: (p, d, { contentType, cacheControl, gzip } = {}) => bucket.file(p).save(d, {
+    write: (p, d, { contentType, cacheControl, gzip } = {}) => retry('write', p)(() => bucket.file(p).save(d, {
       resumable: false, gzip: Boolean(gzip), contentType, metadata: cacheControl ? { cacheControl } : undefined,
-    }),
+    })),
     // download() undoes gzip content-encoding, so hashes are of the bytes that were written.
-    read: async (p) => {
+    read: (p) => retry('read', p)(async () => {
       const f = bucket.file(p);
       const [exists] = await f.exists();
       return exists ? (await f.download())[0] : null;
-    },
+    }),
     // Copy keeps the source's metadata (content type, gzip encoding); then patch cache-control only.
-    copy: async (from, to, { cacheControl } = {}) => {
+    copy: (from, to, { cacheControl } = {}) => retry('copy', to)(async () => {
       await bucket.file(from).copy(bucket.file(to));
       if (cacheControl) await bucket.file(to).setMetadata({ cacheControl });
-    },
-    deletePrefix: (prefix) => bucket.deleteFiles({ prefix }),
+    }),
+    deletePrefix: (prefix) => retry('deletePrefix', prefix)(() => bucket.deleteFiles({ prefix })),
   };
 }
 
@@ -113,6 +116,7 @@ const warm = { minInstances: ELECTION_NIGHT_MIN_INSTANCES };
 exports.ping = onCall(warm, async (req) => ({ ok: true, admin: Boolean((await requireAdmin(req)).uid) }));
 exports.upsertElection = adminCall('upsertElection');
 exports.createDraft = adminCall('createDraft', { ...warm, memory: '1GiB', timeoutSeconds: 120 });
+exports.createSettingsDraft = adminCall('createSettingsDraft', { ...warm, memory: '1GiB', timeoutSeconds: 120 });
 exports.createRollbackDraft = adminCall('createRollbackDraft', { memory: '512MiB' });
 exports.publishDraft = adminCall('publishDraft', warm);
 exports.extendDraft = adminCall('extendDraft', warm);

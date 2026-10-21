@@ -1,0 +1,43 @@
+// npm run a11y: axe (WCAG 2.1 A + AA) on the public pages at 320, 375 and 1280 px, plus the
+// behaviour tests, in Chromium (--project chromium). npm run e2e:browsers runs the behaviour tests
+// in Firefox, WebKit and on emulated Pixel 7 and iPhone 14 as well (plan: layer 8).
+const { defineConfig, devices } = require('@playwright/test');
+
+const PORT = 8124;
+// The tests about what the pages do (not axe or screenshots, which are pinned to Chromium).
+const BEHAVIOUR = /(^|[\\/])(dom-oracle|features|keyboard|live-updates|resilience|xss)\.spec\.js$/;
+
+const others = [
+  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  { name: 'pixel-7', use: { ...devices['Pixel 7'] } },
+  { name: 'iphone-14', use: { ...devices['iPhone 14'] } },
+].map((p) => ({ ...p, testMatch: BEHAVIOUR }));
+// The signed-in admin specs in Firefox too (npm run a11y:admin:firefox, CI job emulator). WebKit is left
+// out: Playwright's Windows WebKit build drops Firestore requests at random (seen 2026-10-21). Check
+// Safari by hand on an iPad and an iPhone (a11y/CHECKLIST.md).
+const ADMIN_SPECS = /admin(-flows|-keyboard)?.spec.js$/;
+
+module.exports = defineConfig({
+  testDir: __dirname,
+  testMatch: '*.spec.js',
+  fullyParallel: true,
+  // Screenshots are Chromium only, so their names carry the OS but not the project.
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{-platform}{ext}',
+  reporter: process.env.CI ? 'github' : 'list',
+  // Hamilton County's time zone and locale, so times like "Results updated 9:58 PM" read the same
+  // on a UTC CI runner as on a county machine.
+  // On CI a failed test keeps a trace (DOM snapshots, console, network), uploaded as an artifact.
+  use: { baseURL: `http://127.0.0.1:${PORT}/`, timezoneId: 'America/New_York', locale: 'en-US', trace: process.env.CI ? 'retain-on-failure' : 'off' },
+  projects: [
+    { name: 'chromium', use: { browserName: 'chromium' } },
+    ...others,
+    { name: 'firefox-admin', use: { ...devices['Desktop Firefox'] }, testMatch: ADMIN_SPECS },
+  ],
+  webServer: {
+    command: `npx http-server .. -p ${PORT} -c-1 -a 127.0.0.1 -s`,
+    cwd: __dirname,
+    url: `http://127.0.0.1:${PORT}/index.html`,
+    reuseExistingServer: !process.env.CI,
+  },
+});

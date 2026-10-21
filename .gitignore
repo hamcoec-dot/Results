@@ -13,3 +13,7 @@ __pycache__/
 # Mutation testing (Stryker)
 functions/reports/
 functions/.stryker-tmp/
+
+# Playwright (npm run a11y)
+test-results/
+playwright-report/

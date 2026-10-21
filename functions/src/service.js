@@ -50,7 +50,10 @@ const paths = {
   draftFile: (id, f) => `drafts/${id}/${f}`,
 };
 
-const latestFromDataJs = (text) => JSON.parse(text.replace(/^[^=]*= /, '').replace(/;\n$/, '')).latest;
+const bundleFromDataJs = (text) => JSON.parse(text.replace(/^[^=]*= /, '').replace(/;\n$/, ''));
+const latestFromDataJs = (text) => bundleFromDataJs(text).latest;
+/** The page config block an election's settings publish (summary/reporting/precincts.json `config`). */
+const pageConfig = (e) => ({ enablePrecinctResults: e.enablePrecinctResults !== false, precinctCap: e.precinctCap ?? 92 });
 
 function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.now }) {
   const iso = (ms) => new Date(ms).toISOString();
@@ -73,6 +76,11 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
   const publishedLatest = async (eid, version) => {
     const text = version ? await readText(publicBucket, P.versionPath(eid, version, 'data.js')) : null;
     return text ? latestFromDataJs(text) : null;
+  };
+  /** The page config a published version carries, or null before the first publish. */
+  const publishedConfig = async (eid, version) => {
+    const text = version ? await readText(publicBucket, P.versionPath(eid, version, 'data.js')) : null;
+    return text ? bundleFromDataJs(text).config ?? null : null;
   };
   /** sha256 of each stored draft object, as it is now. */
   async function rehash(draftId, files) {
@@ -122,6 +130,65 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     const otherId = isEd ? election.selectedEarlyUploadId ?? null : election.selectedEdUploadId ?? null;
     const otherDoc = otherId ? await db.get(paths.upload(eid, otherId)) : null;
     const otherText = otherDoc ? await readText(privateBucket, otherDoc.storagePath) : null;
+
+    return buildDraft(actor, {
+      eid, election, t, draftId, kind: upload.kind,
+      subject: upload,
+      early: isEd ? otherText : upload.text,
+      ed: isEd ? upload.text : otherText,
+      ids: { uploadId, earlyUploadId: isEd ? otherId : uploadId, edUploadId: isEd ? uploadId : otherId },
+      meta: { kind: upload.kind, filename: upload.filename, size: upload.size, sha256: upload.sha256,
+        lastModified: upload.lastModified, uploadedAt: iso(t), uploadedBy: actor.email },
+      otherSlot: otherDoc ? { kind: otherDoc.kind, filename: otherDoc.filename, uploadedAt: otherDoc.uploadedAt } : null,
+      history,
+      fileTime: upload.lastModified,
+      auditDetail: `${upload.kind} ${upload.filename}`,
+    });
+  }
+
+  /**
+   * Rebuilds the published files under the election's current settings (max precincts, precinct page)
+   * from the uploads already selected, with no new file. Same review and publish path as an upload.
+   */
+  async function createSettingsDraft(actor, data) {
+    const eid = data?.electionId;
+    const election = await requireElection(eid);
+    const earlyId = election.selectedEarlyUploadId ?? null;
+    const edId = election.selectedEdUploadId ?? null;
+    if (!earlyId && !edId) {
+      throw new ServiceError('failed-precondition', 'Nothing has been published for this election yet, so there is no file to rebuild. Upload a file instead; it uses the new settings.');
+    }
+    const [earlyDoc, edDoc] = await Promise.all([earlyId, edId].map((id) => (id ? db.get(paths.upload(eid, id)) : null)));
+    const [earlyText, edText] = await Promise.all([earlyDoc, edDoc].map((d) => (d ? readText(privateBucket, d.storagePath) : null)));
+    if ((earlyId && earlyText === null) || (edId && edText === null)) {
+      throw new ServiceError('failed-precondition', 'A selected upload is missing from storage, so the draft cannot be rebuilt. Upload the file again.');
+    }
+    const subjectDoc = edDoc ?? earlyDoc;
+    const t = now();
+    const draftId = P.newDraftId();
+    return buildDraft(actor, {
+      eid, election, t, draftId, kind: 'settings',
+      subject: { kind: subjectDoc.kind, text: edDoc ? edText : earlyText, sha256: subjectDoc.sha256, lastModified: subjectDoc.lastModified },
+      early: earlyText,
+      ed: edText,
+      ids: { uploadId: null, earlyUploadId: earlyId, edUploadId: edId },
+      meta: { kind: 'settings', filename: subjectDoc.filename, size: subjectDoc.size, sha256: subjectDoc.sha256,
+        lastModified: subjectDoc.lastModified, uploadedAt: subjectDoc.uploadedAt, uploadedBy: subjectDoc.uploadedBy },
+      otherSlot: edDoc && earlyDoc ? { kind: earlyDoc.kind, filename: earlyDoc.filename, uploadedAt: earlyDoc.uploadedAt } : null,
+      // The same files were checked when they were uploaded: no duplicate or older-export warnings.
+      history: {},
+      settingsChange: { before: await publishedConfig(eid, election.currentVersion), after: pageConfig(election) },
+      fileTime: election.currentFileTime ?? null,
+      auditDetail: `settings ${JSON.stringify(pageConfig(election))}`,
+    });
+  }
+
+  /**
+   * The shared draft build: results from the two slots under the election's current settings, the
+   * checks (described against `subject`, the file in the slot being changed), the review files and the
+   * draft doc. Used by an upload (createDraft) and a settings rebuild (createSettingsDraft).
+   */
+  async function buildDraft(actor, { eid, election, t, draftId, kind, subject, early, ed, ids, meta, otherSlot, history, settingsChange = null, fileTime, auditDetail }) {
     const precinctCap = election.precinctCap ?? 92;
     const settings = electionView(election);
     const current = await publishedLatest(eid, election.currentVersion);
@@ -131,13 +198,13 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     const lines = [];
     let rows = [];
     try {
-      rows = readCsv(upload.text, lines);
-      result = buildResults(isEd ? { early: otherText, ed: upload.text } : { early: upload.text, ed: otherText }, {
+      rows = readCsv(subject.text, lines);
+      result = buildResults({ early, ed }, {
         precinctCap,
-        config: { enablePrecinctResults: election.enablePrecinctResults !== false, precinctCap },
+        config: pageConfig(election),
         lastUpdated: formatLastUpdated(new Date(t)),
       });
-      checks = runChecks({ kind: upload.kind, rows, result, current, election: settings, upload, history });
+      checks = runChecks({ kind: subject.kind, rows, result, current, election: settings, upload: subject, history, settingsChange });
     } catch (e) {
       if (!(e instanceof CsvError || e instanceof ParseError)) throw e;
       checks = [unreadableCheck(e)];
@@ -148,25 +215,22 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     if (result) {
       const { review, trace } = buildReview({
         result, current, source: { rows, lines }, election: settings,
-        meta: { draftId, baseVersion: election.currentVersion ?? null, kind: upload.kind, filename: upload.filename, size: upload.size,
-          sha256: upload.sha256, lastModified: upload.lastModified, uploadedAt: iso(t), uploadedBy: actor.email },
-        otherSlot: otherDoc ? { kind: otherDoc.kind, filename: otherDoc.filename, uploadedAt: otherDoc.uploadedAt } : null,
+        meta: { draftId, baseVersion: election.currentVersion ?? null, ...meta },
+        otherSlot,
       });
       outputSha256 = await writeDraftFiles(draftId, { ...result.outputs.files, 'review.json': JSON.stringify(review), 'trace.json': JSON.stringify(trace) });
     }
     const status = !result || checks.some((c) => c.severity === 'block') ? 'blocked' : 'ready';
     await db.set(paths.draft(eid, draftId), {
-      status, kind: upload.kind, uploadId,
-      earlyUploadId: isEd ? otherId : uploadId,
-      edUploadId: isEd ? uploadId : otherId,
+      status, kind, ...ids,
       baseVersion: election.currentVersion ?? null,
       dataVersion: result ? result.merged.dataVersion : null,
       confirmCount: result ? result.merged.overallPrecinctsReporting : null,
-      fileTime: upload.lastModified,
+      fileTime,
       outputSha256, checks, rollbackOf: null,
       expiresAt: P.expiryFrom(t), createdAt: iso(t), createdBy: actor.email,
     });
-    await audit(actor, 'draft', eid, `${upload.kind} ${upload.filename} -> ${status}`, { draftId });
+    await audit(actor, 'draft', eid, `${auditDetail} -> ${status}`, { draftId });
     return { draftId, status, counts: countBy(checks) };
   }
 
@@ -346,7 +410,7 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     return result;
   }
 
-  return { createDraft, createRollbackDraft, publishDraft, extendDraft, discardDraft, upsertElection, auditLive };
+  return { createDraft, createSettingsDraft, createRollbackDraft, publishDraft, extendDraft, discardDraft, upsertElection, auditLive };
 }
 
 function countBy(checks) {

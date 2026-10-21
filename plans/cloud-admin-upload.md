@@ -77,6 +77,7 @@ Public pages (index/reporting/precincts/scrolling on GitHub Pages)
   When none hold, it copies the objects as they are into `elections/{eid}/v/{dataVersion}/` and then over `current/*`. The file order is fixed: `precincts`, `reporting` and `data.js` in parallel, then `summary.json`, then `manifest.json` last, because the pages poll `manifest.json` for `dataVersion`. It then writes the versions doc, the audit entry, and `election.currentVersion`. Last, it runs the **live check**: it fetches `https://storage.googleapis.com/<bucket>/current/summary.json?t=…` and compares its sha256. The result is returned and stored as `liveCheck`.
 - **`extendDraft({electionId, draftId})`** re-checks the hashes and `baseVersion`, then resets the 2 h expiry. This meets WCAG 2.2.1 Timing Adjustable.
 - **`discardDraft({electionId, draftId})`** sets the status to `discarded` and deletes the draft objects.
+- **`createSettingsDraft({electionId})`** rebuilds the published files from the selected uploads under the election's current settings (max precincts, Precinct Results page), with no new file. It gets the same review screen (an info check lists the changed settings) and the same `publishDraft` path. Refused before the first publish.
 - **`createRollbackDraft({electionId, version})`** builds a draft from a stored version. It gets the same review screen and the same `publishDraft` path, and its diff shows what will revert. There is no blind rollback.
 - **`upsertElection`** changes to settings that touch the outputs (max precincts, precinct-page toggle) do not change the public pages directly. The admin page offers "Create draft with new settings", which rebuilds from the selected uploads, goes to review, and is then published.
 
@@ -419,6 +420,9 @@ Keep `convert_data.py`, `verify.py`, `server_monitor.py` and `Run_Monitor.bat` a
 3. **`admin.html`/`admin.js`, `review.html`/`review.js`, and `firebase-config.js`.** Build them mobile-first and to AA from the start, and add the `a11y/` test harness.
 4. **Accessibility baseline audit and fixes for the existing public pages, then `app.js` and the pages switched to `RESULTS_BASE_URL`, with `results-config.js`, `?draft` mode and the live-update pause controls.**
    Layers 8, 9 and 12, the DOM oracle, and `validate.js` wired into `app.js`.
+
+   **Status (2026-10-21): built in PR #3.** Visual regression (layer 9) is local only, with Windows baselines. Related PRs: #4 (settings drafts, fix d4), #5
+   (parity fixes), #6 (Phase 5 prep: deploy workflow, smoke and load tools, rehearsal). Decisions: Appendix C.
 5. **README, GCP project setup for both staging and prod, `nightly.yml` and `deploy.yml`, first deploy, invoker grants, CORS, uptime checks and alerts, layers 13–15 on staging, a dry run with the `Web Results Samples` 00→06 sequence, and the first mock-election rehearsal.**
 
 Phases 3 and 4 can run in parallel once phase 2's callable contract is fixed. Every phase that touches UI must pass `npm run a11y`, `npm run perf`, and the manual checklists below before it is done. Phase 2 must also meet the function latency budgets.
@@ -592,4 +596,55 @@ Pages must stay fast and lag-free, including on mid-range phones on 4G.
 - **Logic lives in `functions/src/service.js`** over injected db/bucket/clock interfaces; `index.js` only wires Firebase.
   `service.test.js` runs the full callable contract on in-memory fakes; `test/emulator/` re-runs it on the emulators.
 - **Mutation testing** runs nightly as one shard per source file (each mutant reruns about 5 s of suites).
+- **`dataVersion` covers the page config (fix d4).** `merge.js` hashes only the contests, so a settings-only change
+  (precinct page toggle, or a max-precincts change that caps nothing) kept the same version. The `no-change` check
+  then fired, publish overwrote the immutable `v/<version>/` archive, and pages polling the manifest never refetched.
+  In FIXES mode `pipeline.js` hashes the contests plus the config; LEGACY keeps the Python hash for parity.
+- **Settings drafts** (`createSettingsDraft`) share `buildDraft` with uploads. They skip the upload-history checks
+  (`duplicate-upload`, `older-export`), since the same files were checked when uploaded, and add `settings-changed` (info).
 
+
+## Appendix C — Decisions made while building (Phase 4)
+- **Local mode is lenient.** With `?local`, or by default while `PUBLIC_BASE` is null, the pages read `./` as before.
+  The legacy monitor's files there fail `validate.js` (LEGACY flags can exceed a contest's total: 93 of 92), so local
+  mode logs validation errors and still renders. Bucket and draft modes are strict: invalid data is never shown,
+  the last good data stays, and the status reads "Live updates delayed — retrying" (retry after 15 s).
+- **Files per page:** summary and slideshow pages read `summary.json`. The precinct page reads `precincts.json`.
+  The reporting page reads `summary.json` + `reporting.json`, because `reporting.json` has no vote totals,
+  `voteFor` or early ballots. The summary page fetches `reporting.json` only when its precinct dialog is first
+  opened, and requires the same `dataVersion`. `data.js` is only the error fallback.
+- **`results-config.js` runs in `<head>`** with `data-files="…"` and starts the data (and manifest) requests early.
+  `app.js` takes them with `RESULTS.takeEarly(file)`. Every bucket request carries a cache-buster: the manifest is
+  under 1 KB, and the data files are fetched only when `dataVersion` changes.
+- **The status line uses the manifest's `updatedAt`** ("Results updated 9:42 PM"). Without a manifest (local or
+  draft), it uses `metadata.lastUpdated`. The text is written only when it changes, so each update is announced once.
+- **Filter buttons are toggle buttons** (`aria-pressed` in a `role="group"`), not tabs, because there are no tab panels.
+  Reporting buttons use `data-contest` plus a delegated click handler. The old inline `onclick` with
+  `escapeJsString` broke on titles containing `"`.
+- **Precinct dialog:** focus moves to Close, Tab is trapped, and Escape returns focus to the opener. A live update
+  re-points the open dialog at the same contest.
+- **Dark theme:** `--primary` and `--secondary` are lighter (`#60a5fa`, `#f87171`) so text in those colours passes
+  4.5:1. Filled controls use the new `--on-fill` text token (dark text in dark mode).
+- **No `content-visibility` on the public contest cards** (the plan suggested it). With 63 cards, its placeholder heights
+  made the jump menu and `#contest` links land far off target. Lighthouse and the long-task test show the same
+  results without it. Jumps scroll to just below the sticky navbar, whose height is measured at run time.
+- **Lighthouse lives in `perf/` with its own `package.json`.** Its puppeteer download helpers carry high-severity
+  advisories that would fail the root `npm audit`. It is a local tool, not run in CI. The a11y harness
+  (Playwright + axe) is the root package and the CI job `pages`.
+- **Requests time out after 20 s.** Without a timeout, a request that never answered left the poll in flight, and live
+  updates stopped for good. The data files are at most about 5 KB gzipped, so 20 s is ample even on 2G.
+- **CSV exports guard against formula injection.** Text starting with `=`, `+`, `-`, `@`, a tab or a CR gets a
+  leading apostrophe. Numbers are written as numbers.
+- **Cross-browser:**
+  - The behaviour specs run in Chromium, Firefox, WebKit and on emulated Pixel 7 and iPhone 14 (CI job `browsers`).
+  - The signed-in admin specs run in Chromium and Firefox.
+  - WebKit is left out of the admin specs: Playwright's Windows WebKit build drops Firestore requests at random, so
+    Safari on an iPad and an iPhone is a manual checklist item.
+  - axe and screenshots stay on Chromium.
+- **Tests run in America/New_York with the en-US locale.** "Results updated 9:58 PM" must read the same on a UTC CI
+  runner.
+- **The storage retry (#10) is also cherry-picked onto this branch.** The Storage emulator's connection resets also
+  happen on Linux CI, and the admin E2E uploads more than 20 files.
+- **The election-night E2E checks precincts reporting against the CSV's "R of T" headers, not the golden output.**
+  The golden output keeps the legacy reporting rule (D1/D2), so after 03 it says 92 of 92 where the file says 5 of 92.
+  Votes and percentages are compared with the golden output.
