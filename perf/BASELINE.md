@@ -41,6 +41,8 @@ What changed for performance:
 - CLS: the live-status line reserves its height; the slideshow ticker values keep a minimum width.
 - Polling (bucket mode): `manifest.json` only, under 1 KB, every 60 s; the page's JSON is fetched only when
   `dataVersion` changes; no polling while the tab is hidden, paused, or in a draft view.
+- A live update on the summary page replaces only the changed contest cards; off-screen cards skip rendering
+  (`content-visibility: auto`).
 - Searches are debounced 150 ms; the precinct pickers are built with a `DocumentFragment`.
 
 LCP is now the hero heading, painted when the data arrives, so it moved from 1.20 s to 1.35 s; it stays well
@@ -49,8 +51,8 @@ inside the 2.5 s budget. Served **without** compression (a plain local server), 
 
 ## Not yet covered
 
-- INP and long tasks during a live refresh: re-renders still rebuild the contest list (`innerHTML`), not only
-  the changed cells. Measured TBT is 0–12 ms with 63 contests, but a keyed, chunked update is still to do.
-- `content-visibility: auto` for off-screen contest cards.
+- Long tasks during a live refresh are not measured automatically yet. The summary page swaps only the contest
+  cards whose markup changed (keyed by contest; checked in `a11y/live-updates.spec.js`); the reporting table and
+  the precinct views still rebuild on an update.
 - `<link rel="preconnect">` to `storage.googleapis.com`: add in Phase 5 together with `PUBLIC_BASE`.
 - Lighthouse is not in CI yet (it needs Chrome and is noisy on shared runners); run it before a release.
