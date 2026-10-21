@@ -321,3 +321,29 @@ test.describe('publish guard rails (emulators)', () => {
     await context.close();
   });
 });
+
+test.describe('admin lists on a stalled connection (emulators)', () => {
+  test.skip(!emulators, 'set EMULATORS=1 with the emulators running and seeded (npm run a11y:admin)');
+  test.setTimeout(120000);
+
+  test('a list that never loads says so after 15 s and offers Retry', async ({ page }) => {
+    await page.goto('admin.html?emulator');
+    await page.waitForFunction(() => !document.getElementById('signin').hidden || !document.getElementById('app').hidden, null, { timeout: 15000 });
+    if (await page.locator('#signin').isVisible()) {
+      await page.fill('#email', ADMIN.email);
+      await page.fill('#password', ADMIN.password);
+      await page.click('#signin-form button[type="submit"]');
+    }
+    await expect(page.locator('#uploads')).toContainText(/None.|Every uploaded file/, { timeout: 15000 }); // loaded once
+    // From now on Firestore never answers (requests are held, not refused).
+    await page.route('http://127.0.0.1:8181/**', () => {});
+    const select = page.locator('#election-select');
+    const value = await select.inputValue();
+    await select.selectOption('__new__'); // "+ New election…"
+    await select.selectOption(value); // back: reloads the three lists
+    await expect(page.locator('#drafts')).toContainText('Loading drafts…');
+    await expect(page.locator('#drafts')).toContainText('Still loading drafts', { timeout: 20000 });
+    await expect(page.locator('#uploads').getByRole('button', { name: 'Retry' })).toBeVisible();
+    await page.unroute('http://127.0.0.1:8181/**');
+  });
+});
