@@ -85,5 +85,16 @@ accessibility is checked by `npm run a11y:admin`.
   - The summary cards, reporting rows and by-precinct cards are swapped per changed item, in batches of 8 with
     `scheduler.yield()`, using one cached `Intl.NumberFormat`.
   - A desktop CPU throttled 4× is not a real phone: run the manual checklist on devices.
+- Review screen responsiveness (budget: each filter, search keystroke and warning tick < 100 ms) is measured by
+  `a11y/admin-review-timing.spec.js` on the emulators, with the Event Timing API (input to next paint, as INP):
+
+  ```
+  PERF=1 npm run a11y:admin
+  ```
+
+  It reviews sample 05 (63 contests, all changed) at 412 px and 4× CPU: 8 filter changes by keyboard, 8 search
+  keystrokes and 15 warning ticks. `STRICT=1` fails on a miss.
+  - **Result (2026-10-21): worst 32 ms** (filters 0–32 ms, keystrokes 0–24 ms, ticks 16 ms). Event Timing reports
+    only interactions over 16 ms, so 0 means under 16 ms.
 - `<link rel="preconnect">` to `storage.googleapis.com`: add in Phase 5 together with `PUBLIC_BASE`.
 - Lighthouse is not in CI yet (it needs Chrome and is noisy on shared runners); run it before a release.
