@@ -24,9 +24,10 @@ function manifestFor(dir, updatedAt, override) {
   });
 }
 
-/** A fake public bucket: `state.dir` is what current/ holds; every request is logged. */
+/** A fake public bucket: `state.dir` is what current/ holds; every request is logged (sizes in state.bytes). */
 async function fakeBucket(page, state) {
   const log = [];
+  state.bytes = [];
   await page.route('http://127.0.0.1:9199/**', (route) => {
     const object = decodeURIComponent(new URL(route.request().url()).pathname.split('/o/')[1]);
     log.push(object);
@@ -36,6 +37,7 @@ async function fakeBucket(page, state) {
     if (prefix === 'current' && file === 'manifest.json') body = manifestFor(state.dir, state.updatedAt, state.override);
     else if (prefix === 'current' || (prefix === 'drafts' && rest[0] === DRAFT_ID)) body = state.override?.[file] ?? read(state.dir, file);
     if (body === undefined) return route.fulfill({ status: 404, body: '' });
+    state.bytes.push(Buffer.byteLength(body));
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body });
   });
   return log;
@@ -252,17 +254,15 @@ test('the 60 s poll: an unchanged poll moves under 1 KB; a hidden tab makes no r
   await page.clock.install();
   const state = { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' };
   const log = await fakeBucket(page, state);
-  const sizes = [];
-  page.on('response', async (r) => { if (r.url().includes('9199')) sizes.push((await r.body()).length); });
   await page.goto('index.html?emulator');
   await expect(firstCard(page)).toBeVisible();
 
-  log.length = 0; sizes.length = 0;
+  log.length = 0;
+  state.bytes.length = 0;
   await page.clock.runFor(61000);
   await expect.poll(() => log.length).toBe(1);
   expect(log).toEqual(['current/manifest.json']);
-  await expect.poll(() => sizes.length).toBe(1);
-  expect(sizes[0]).toBeLessThanOrEqual(1024);
+  expect(state.bytes[0]).toBeLessThanOrEqual(1024);
 
   // Hidden: no timer, no requests, however long.
   await page.evaluate(() => {
