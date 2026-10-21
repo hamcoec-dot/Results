@@ -58,3 +58,31 @@ jobs:
       - name: Smoke test of what the public is served
         if: ${{ inputs.smoke }}
         run: node tools/smoke-public.js "${{ inputs.bucket }}" --origin https://govotehamiltontn.gov
+
+      # Layers 13-14 on staging only (plan: Environments and CI). Both need something published, like the smoke test.
+      - name: Load test of the manifest poll (p95 under 300 ms, no errors)
+        if: ${{ inputs.smoke && inputs.environment == 'staging' }}
+        run: node tools/load-manifest.js "https://storage.googleapis.com/${{ inputs.bucket }}/current/manifest.json" --requests 2000 --concurrency 200 --max-p95 300
+
+      # Passive scans only (spider + passive rules, no attacks). Warnings are reported, not failed: GitHub
+      # Pages' headers can't be changed. Rules marked FAIL in .zap/rules.tsv fail the run.
+      - name: ZAP baseline of the public pages
+        if: ${{ inputs.environment == 'staging' }}
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://govotehamiltontn.gov/Results/
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-I'
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-pages
+      - name: ZAP baseline of the staging bucket
+        if: ${{ inputs.smoke && inputs.environment == 'staging' }}
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://storage.googleapis.com/${{ inputs.bucket }}/current/manifest.json
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-I'
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-bucket

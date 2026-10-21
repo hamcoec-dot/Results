@@ -36,9 +36,9 @@ Generate a fixture by hand: `node tools/gen-fixture.js --seed 42 --kind ed --lay
 | 10 | Accessibility | Phase 3/4 | — |
 | 11 | Performance | Phase 3/4 | — |
 | 12 | Resilience / chaos | Phase 4 | — |
-| 13 | Dependency & secret security | `npm audit` + gitleaks + osv-scanner in CI (Phase 0); ZAP in Phase 5 | `.github/workflows/ci.yml` |
-| 14 | Load (k6) | Phase 5 | — |
-| 15 | Staging smoke | Phase 5 | — |
+| 13 | Dependency & secret security | `npm audit` + gitleaks + osv-scanner in CI; ZAP baseline (passive) of the Pages site and staging bucket on each deploy | `.github/workflows/ci.yml`; `deploy-target.yml`, `.zap/rules.tsv` |
+| 14 | Load | 2,000 manifest fetches against staging on each deploy (Node, in place of k6): p95 < 300 ms, 0 errors | `tools/load-manifest.js` in `deploy-target.yml` |
+| 15 | Staging smoke | served bytes, Cache-Control, gzip, CORS, no listing, on each deploy | `tools/smoke-public.js` in `deploy-target.yml` |
 
 ## Oracles
 

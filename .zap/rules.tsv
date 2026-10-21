@@ -1,0 +1,4 @@
+10003	FAIL	(Vulnerable JS Library)
+10062	FAIL	(PII Disclosure)
+10098	FAIL	(Cross-Domain Misconfiguration)
+90022	FAIL	(Application Error Disclosure)
