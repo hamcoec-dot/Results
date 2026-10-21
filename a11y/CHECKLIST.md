@@ -30,6 +30,10 @@ they can't. Record the date, browser and result of each run at the bottom.
   - [ ] Pause/Play, Prev/Next, the speed and jump menus and Fullscreen all work from the keyboard.
 - [ ] "Pause live updates": Space/Enter toggles it; it is still paused after a reload in the same tab.
 - [ ] Admin: sign-in → upload → review → acknowledge → publish → rollback, all by keyboard.
+  `a11y/admin-keyboard.spec.js` automates the path in Chromium: every control can be reached and focus goes into and
+  out of each dialog. By hand, check what it can't: that the focus ring is visible at every step, and that the order
+  makes sense. The review page's tab order is long: every contest table is a scroll region, so use the headings or the
+  skip link.
   - [ ] The publish dialog traps focus and Escape closes it.
 
 ## Screen readers
