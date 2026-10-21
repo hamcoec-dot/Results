@@ -15,6 +15,8 @@ test('parseArgs: required values, and anything odd refused', () => {
     [['--project', 'Bad_Project', ...OK.slice(2)], /not a project id/],
     [[...OK.slice(0, 2), '--bucket', 'a"b', ...OK.slice(4)], /not a bucket name/],
     [[...OK.slice(0, 4), '--email', 'x" & del'], /not an email address/],
+    [[...OK.slice(0, 4), '--email', 'a%PATH%@example.org'], /not an email address/], // cmd.exe would expand it
+    [[...OK.slice(0, 4), '--email', 'a@b'], /not an email address/],
     [[...OK, '--sms', '423-555-1234'], /E\.164/],
     [[...OK, '--force'], /unknown argument/],
   ]) assert.throws(() => parseArgs(args), msg);

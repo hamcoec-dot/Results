@@ -32,7 +32,8 @@ function parseArgs(argv) {
   for (const k of ['project', 'bucket', 'email']) if (!out[k]) throw new Error(`--${k} is required`);
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(out.project)) throw new Error(`not a project id: ${out.project}`);
   if (!/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(out.bucket)) throw new Error(`not a bucket name: ${out.bucket}`);
-  if (!/^[^@\s"]+@[^@\s"]+\.[^@\s"]+$/.test(out.email)) throw new Error(`not an email address: ${out.email}`);
+  // Plain address characters only: on Windows the value passes through cmd.exe, which expands %VAR% even in quotes.
+  if (!/^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/.test(out.email)) throw new Error(`not an email address: ${out.email}`);
   if (out.sms && !/^\+[1-9]\d{7,14}$/.test(out.sms)) throw new Error(`SMS number must be E.164, e.g. +14235551234: ${out.sms}`);
   return out;
 }
