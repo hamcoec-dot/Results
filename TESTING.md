@@ -41,7 +41,7 @@ Generate a fixture by hand: `node tools/gen-fixture.js --seed 42 --kind ed --lay
 | 5 | Mutation (Stryker) | configured: csv, pycompat, parse, merge, verify, checks, validate; break < 85 %; nightly, one shard per file | `functions/stryker.config.json`, `.github/workflows/nightly.yml` |
 | 6 | Security rules | **done** (emulator, CI job `emulator`) | `test/emulator/rules.test.js` (`npm run test:emulator`) |
 | 7 | Function integration | **done**: full contract on in-memory fakes; refusals, publish, tamper and race on the emulators | `service.test.js`; `test/emulator/integration.test.js` |
-| 8 | E2E + DOM oracle | Phase 4 | — |
+| 8 | E2E + DOM oracle | **public pages done**: every contest, candidate, vote, percentage and R-of-T on the summary page; every reporting row and the exact Reported/Pending precinct lists; the precinct page by contest (every precinct × candidate, status, total) and by precinct — all equal to the golden JSON the page read | `a11y/dom-oracle.spec.js` (`npm run a11y`) |
 | 9 | Visual regression | Phase 3/4 | — |
 | 10 | Accessibility | **public pages done** (Phase 4): axe WCAG 2.1 A+AA at 320/375/1280 px, dark and high-contrast themes, the precinct dialog, the by-contest table, every `?draft` view; no horizontal page scroll. admin.html / review.html signed out and signed in (dashboard, field errors, upload → review checks) at the same widths | `a11y/public-pages.spec.js` (`npm run a11y`, CI job `pages`); `a11y/admin.spec.js` (`npm run a11y:admin` on the emulators, CI job `emulator`) |
 | 11 | Performance | **public pages measured** (Phase 4): Lighthouse mobile, budgets checked; baseline and results in `perf/BASELINE.md` | `perf/lighthouse.mjs` (`npm run perf`, local; needs Chrome) |
