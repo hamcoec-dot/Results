@@ -168,3 +168,30 @@ test('a live update replaces only the contest cards that changed', async ({ page
   expect(marks.filter((m) => m === null)).toHaveLength(1);
   expect(marks[1]).toBeNull();
 });
+
+test('default mode (no ?local/?emulator/?draft, PUBLIC_BASE unset) reads ./ only, as the live site does today', async ({ page, baseURL }) => {
+  const urls = [];
+  page.on('request', (r) => urls.push(r.url()));
+  await page.goto('index.html');
+  await expect(firstCard(page)).toBeVisible();
+  const data = urls.filter((u) => /\.(json|js)(\?|$)/.test(u) && !/\/(app|results-config)\.js|validate\.js/.test(u));
+  expect(data.length).toBeGreaterThan(0);
+  for (const u of data) expect(u.startsWith(baseURL), u).toBe(true);
+  expect(data.some((u) => u.includes('manifest.json'))).toBe(false);
+});
+
+test('when the page JSON is missing, data.js is the fallback and results still show', async ({ page }) => {
+  await page.route('**/summary.json*', (route) => route.fulfill({ status: 404, body: '' }));
+  const urls = [];
+  page.on('request', (r) => urls.push(new URL(r.url()).pathname));
+  await page.goto('index.html');
+  await expect(firstCard(page)).toBeVisible();
+  expect(urls).toContain('/data.js');
+  await expect(status(page)).toHaveText(/^Results updated /);
+});
+
+test('when nothing can be loaded, the status says so and keeps retrying', async ({ page }) => {
+  await page.route(/\/(summary\.json|data\.js)/, (route) => route.fulfill({ status: 503, body: '' }));
+  await page.goto('index.html');
+  await expect(status(page)).toHaveText('Results could not be loaded. Retrying…');
+});
