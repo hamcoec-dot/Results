@@ -119,3 +119,6 @@ pre.trace { overflow: auto; max-height: 360px; font-size: .85rem; background: va
 }
 @media (prefers-reduced-motion: reduce) { .admin * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 @media (forced-colors: active) { .sev, .badge, .check { border: 1px solid CanvasText; } }
+
+/* Touch target: the header link is at least 44 px tall (project standard) */
+.admin .navbar-brand, header .navbar-brand { display: inline-flex; align-items: center; min-height: 44px; }
