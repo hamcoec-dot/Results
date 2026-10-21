@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "npm",
+  "testRunner": "tap",
+  "tap": {
+    "testFiles": [
+      "test/units.test.js",
+      "test/edges.test.js",
+      "test/verify.test.js",
+      "test/fixes.test.js",
+      "test/parity.test.js",
+      "test/checks.test.js",
+      "test/validate.test.js"
+    ]
+  },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/csv.js",
+    "src/pycompat.js",
+    "src/parse.js",
+    "src/merge.js",
+    "src/verify.js",
+    "src/checks.js",
+    "src/validate.js"
+  ],
+  "ignorePatterns": [
+    "coverage",
+    "reports",
+    ".stryker-tmp"
+  ],
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html",
+    "json"
+  ],
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "thresholds": {
+    "high": 90,
+    "low": 85,
+    "break": 85
+  },
+  "timeoutMS": 20000,
+  "concurrency": 6,
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  }
+}

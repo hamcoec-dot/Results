@@ -1,0 +1,67 @@
+name: nightly
+
+# Layer 3 at full depth (100,000 runs) and layer 5 (Stryker mutation score >= 85 %).
+on:
+  schedule:
+    - cron: '17 7 * * *' # 03:17 America/New_York (EDT)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  property:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Property tests at 100,000 runs
+        run: npm run test:nightly
+        env:
+          PYTHON: python
+
+  mutation:
+    # One shard per source file: each mutant reruns the deterministic suites (~5 s), so the
+    # whole set (~2,600 mutants) takes hours in one job and ~35 min per shard.
+    strategy:
+      fail-fast: false
+      matrix:
+        file: [csv, pycompat, parse, merge, verify, checks, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Stryker on src/${{ matrix.file }}.js (breaks below 85 %)
+        run: npm run mutation -- --mutate src/${{ matrix.file }}.js
+        env:
+          PYTHON: python
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report-${{ matrix.file }}
+          path: functions/reports/mutation
+          if-no-files-found: ignore

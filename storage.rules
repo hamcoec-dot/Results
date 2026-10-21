@@ -1,0 +1,11 @@
+rules_version = '2';
+// Default (private) bucket: raw uploads. No client access at all; the functions use the Admin SDK.
+// The public results bucket is not governed by these rules: it is plain IAM
+// (allUsers: roles/storage.legacyObjectReader = read an object by name, never list).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

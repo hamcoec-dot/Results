@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "hcec-election-results",
+    "staging": "hcec-election-results-staging"
+  }
+}

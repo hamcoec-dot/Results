@@ -96,6 +96,7 @@ Each check returns `{id, severity, title, detail, refs}`, where `refs` points at
   - A contest's votes are greater than ballots × vote-for. This is an overvote at the contest level and means the parse or file is wrong.
   - A candidate's votes are below 0, or a value that should be a number is not.
   - `kind=zero` and any vote or ballot count is greater than 0.
+- **Precinct-reporting mismatch (severity to be decided):** `merge.js` lists in `diagnostics.reportingMismatches` any contest whose reported precincts (ED votes non-zero and changed vs the Early file) don't add up to the CSV's "R of T". Never seen in the real exports. *The user still has to choose block or warn before Phase 2 builds `checks.js`.*
 - **Warn: must be acknowledged one by one.** Each warning has its own checkbox, and the acknowledgements are stored with the version.
   - The title differs from the election name. Wording often drifts, so this only warns.
   - The number of precincts in the file differs from max precincts. It warns rather than blocks until real exports confirm that the STATISTICS rows hold only real precincts.
@@ -349,7 +350,7 @@ Reference device: a mid-range Android (Moto G Power class), emulated in Lighthou
 
 ## Node port (`functions/src/`)
 Port it one-for-one so the behaviour stays the same, then fix the known defects behind explicit inputs.
-- **`csv.js`:** an RFC4180 CSV reader with quoted commas. Use the `csv-parse/sync` dependency so there is no hand-rolled parser.
+- **`csv.js`:** a port of CPython's `_csv` reader (excel dialect, `utf-8-sig`, `errors=ignore`). *Changed in Phase 1:* csv-parse diverged from Python on malformed files and was ~50× slower; Python parity on random bytes is now a property test. csv-parse stays as an independent reader in tests.
 - **`parse.js`:** `parseElectionCsv(text, isEd)`, ported from `convert_data.py:40`.
   - Fixed cells: title `rows[1][0]`, date `rows[2][0]`.
   - **Fix:** county and status are taken from the last non-empty cell of rows 2 and 0, so both the 5-column and 8-column exports work. The existing defaults stay as fallbacks.
@@ -566,3 +567,29 @@ Pages must stay fast and lag-free, including on mid-range phones on 4G.
 - Callable 403 / CORS error: missing run.invoker grant.
 - Public page stale: check Cache-Control on current/*.json; hard refresh.
 ```
+
+## Appendix B — Decisions made while building (Phases 1–2)
+- **Reported precincts (D1)** are inferred per contest: ED votes not all zero **and** changed vs the Early-slot file.
+  This matches every contest's "R of T" in all real exports in `Test_Files/` (user: those files are the real
+  election-night format, and the per-precinct list must be exact). Write-ins are ignored. A contest where the
+  inference and R disagree → `reporting-mismatch` check; **severity still to be chosen by the user** (block by default).
+- **`csv.js`** ports CPython's `_csv` reader instead of using csv-parse (exact parity on malformed files; ~50× faster).
+- **Check severities changed by real data:** `overvote` and `ballots-over-registered` are **warn**. The real 8-column
+  exports' STATISTICS ballots leave out early votes that contest rows include, so a block would stop legitimate files.
+  `date-unreadable` is warn and `date-mismatch` is block. New blocks: `reporting-inconsistent` (page headers of
+  one contest disagree; the parser keeps the first) and `output-invalid` (the draft's files fail `validate.js`, so the
+  pages would reject them). Close races and overvotes are **one grouped warning each**, not one per contest.
+- **Acknowledgements name check `key`s** (`id:n`, unique within a draft), since one id can occur more than once.
+- **The typed precinct count is enforced server-side**: `publishDraft` takes `confirmCount`, compared with the draft's.
+- **`metadata.lastUpdated` is the draft build time** (the reviewed bytes are published unchanged, at most 2 h later).
+  **`manifest.json` is written fresh at publish** with `updatedAt` = publish time and the reviewed files' sha256s;
+  pages should show the manifest time as "Results updated".
+- **`extendDraft`** applies only the integrity rules (exists, ready, not stale, files unchanged), so an expired draft
+  can be extended. The bucket lifecycle still deletes drafts after 2 days.
+- **Publish lease:** a second publish while one runs fails with `aborted` / `busy`; once the first finishes, a retry is `stale`.
+- **SDKs:** `firebase-admin@13.10.0` (12.x carries `node-forge` advisories with no patch) and `firebase-functions@6.6.0`.
+  npm `overrides` pin patched `qs`, `uuid` (deps call only `v4`) and `@grpc/grpc-js`; `npm audit` reports 0.
+- **Logic lives in `functions/src/service.js`** over injected db/bucket/clock interfaces; `index.js` only wires Firebase.
+  `service.test.js` runs the full callable contract on in-memory fakes; `test/emulator/` re-runs it on the emulators.
+- **Mutation testing** runs nightly as one shard per source file (each mutant reruns about 5 s of suites).
+
