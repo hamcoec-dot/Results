@@ -163,3 +163,18 @@ for (const theme of ['dark-mode-toggle', 'contrast-toggle']) {
     });
   }
 }
+
+// 2.4.1 / 2.4.7: the first Tab shows "Skip to main content"; following it moves focus into <main>.
+for (const [file, ready] of Object.entries(PAGES)) {
+  test(`${file} skip link`, async ({ page }) => {
+    await page.goto(file);
+    await page.locator(ready).first().waitFor();
+    await page.keyboard.press('Tab');
+    const skip = page.locator('a.skip-link');
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeInViewport();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => !!document.activeElement.closest('#main-content'))).toBe(true);
+  });
+}
