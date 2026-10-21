@@ -96,7 +96,7 @@ Each check returns `{id, severity, title, detail, refs}`, where `refs` points at
   - A contest's votes are greater than ballots × vote-for. This is an overvote at the contest level and means the parse or file is wrong.
   - A candidate's votes are below 0, or a value that should be a number is not.
   - `kind=zero` and any vote or ballot count is greater than 0.
-- **Precinct-reporting mismatch (severity to be decided):** `merge.js` lists in `diagnostics.reportingMismatches` any contest whose reported precincts (ED votes non-zero and changed vs the Early file) don't add up to the CSV's "R of T". Never seen in the real exports. *The user still has to choose block or warn before Phase 2 builds `checks.js`.*
+- **Precinct-reporting mismatch (warn, user decision 2026-10-21):** `merge.js` lists in `diagnostics.reportingMismatches` any contest whose reported precincts (ED votes non-zero and changed vs the Early file) don't add up to the CSV's "R of T". Never seen in the real exports. The warning must be acknowledged; the CSV's count is what publishes.
 - **Warn: must be acknowledged one by one.** Each warning has its own checkbox, and the acknowledgements are stored with the version.
   - The title differs from the election name. Wording often drifts, so this only warns.
   - The number of precincts in the file differs from max precincts. It warns rather than blocks until real exports confirm that the STATISTICS rows hold only real precincts.
@@ -572,7 +572,7 @@ Pages must stay fast and lag-free, including on mid-range phones on 4G.
 - **Reported precincts (D1)** are inferred per contest: ED votes not all zero **and** changed vs the Early-slot file.
   This matches every contest's "R of T" in all real exports in `Test_Files/` (user: those files are the real
   election-night format, and the per-precinct list must be exact). Write-ins are ignored. A contest where the
-  inference and R disagree → `reporting-mismatch` check; **severity still to be chosen by the user** (block by default).
+  inference and R disagree → `reporting-mismatch` check; **warn** (user decision 2026-10-21): it must be acknowledged before publishing.
 - **`csv.js`** ports CPython's `_csv` reader instead of using csv-parse (exact parity on malformed files; ~50× faster).
 - **Check severities changed by real data:** `overvote` and `ballots-over-registered` are **warn**. The real 8-column
   exports' STATISTICS ballots leave out early votes that contest rows include, so a block would stop legitimate files.

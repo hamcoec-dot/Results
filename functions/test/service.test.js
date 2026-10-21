@@ -299,3 +299,17 @@ test('settings: validation with the fix in the message; one active election', as
   await assert.rejects(env.svc.createDraft(ADMIN, { electionId: '../x', kind: 'ed', filename: 'a.csv', csv: 'x' }), (err) => err.code === 'invalid-argument');
   await assert.rejects(env.svc.createDraft(ADMIN, { electionId: EID, kind: 'x', filename: 'a.csv', csv: 'x' }), (err) => err.code === 'invalid-argument');
 });
+
+test('reporting mismatch: the draft is ready, but publishes only once the warning is acknowledged', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  await publish(env, await draftOf(env, 'early', '02-After EV'));
+  const six = SAMPLE('03-After 5 Reporting').replaceAll(',5 of 92 Precincts Reporting,', ',6 of 92 Precincts Reporting,');
+  const d = await draftOf(env, 'ed', six);
+  assert.equal(d.status, 'ready');
+  const mismatch = d.doc.checks.find((c) => c.id === 'reporting-mismatch');
+  assert.equal(mismatch.severity, 'warn');
+  const others = d.doc.checks.filter((c) => c.severity === 'warn' && c.key !== mismatch.key).map((c) => c.key);
+  await assert.rejects(publish(env, d, { acknowledged: others }), refusal('unacknowledged'));
+  assert.equal((await publish(env, d)).liveCheck.ok, true);
+});

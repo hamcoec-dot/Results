@@ -15,8 +15,8 @@
  *     (EV test: 1,224 precinct rows "over"; ED test: WALDEN 399 + 585 governor votes on 325 ballots).
  *     A block would stop a legitimate election-night file.
  *   - a date the parser cannot read is a warn; a date it reads and that differs is a block.
- *   - REPORTING_MISMATCH_SEVERITY: the user has not chosen yet (see plans/cloud-admin-upload.md);
- *     it defaults to block, the safe side, and is one constant to change.
+ *   - reporting-mismatch is a WARN (user decision, 2026-10-21): the CSV's count is still published,
+ *     and the reviewer must acknowledge which precincts are flagged before publishing.
  */
 const { pyStrip, pyInt } = require('./pycompat');
 const { voteForNumber } = require('./merge');
@@ -24,7 +24,7 @@ const { cleanContestName, parseReporting } = require('./parse');
 const { eachContestBlock, candidateColumns } = require('./verify');
 const { validateFile } = require('./validate');
 
-const REPORTING_MISMATCH_SEVERITY = 'block';
+const REPORTING_MISMATCH_SEVERITY = 'warn';
 const KINDS = ['zero', 'early', 'ed'];
 
 /** Every check id this module can emit (TESTING.md: each must have a test). */

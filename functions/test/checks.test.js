@@ -132,7 +132,8 @@ test('reporting-inconsistent: page headers of one contest disagree', () => {
   assert.match(c.detail, /^Governor: 7 of 92 vs 5 of 92./);
 });
 
-test('reporting-mismatch (severity is the pending decision)', () => {
+test('reporting-mismatch is a warning that must be acknowledged', () => {
+  assert.equal(REPORTING_MISMATCH_SEVERITY, 'warn');
   const six = text(ED3).replace(',5 of 92 Precincts Reporting,', ',6 of 92 Precincts Reporting,');
   const [c] = fires(check('ed', six), 'reporting-mismatch', REPORTING_MISMATCH_SEVERITY);
   assert.match(c.detail, /^Governor: the file says 6 reporting, but 5 precinct\(s\) show new votes: SIGNAL MOUNTAIN A, /);
