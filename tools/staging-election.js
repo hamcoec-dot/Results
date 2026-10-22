@@ -10,10 +10,10 @@
  *
  * !! PUBLISHING ANY ELECTION OVERWRITES THE BUCKET'S current/ FILES !!
  * current/* is one set per public bucket, not per election: publishDraft copies to current/ whether or
- * not the election is `active` (that flag only picks which election auditLive watches). So after a run
- * the public pages pointed at this bucket show the test results, and auditLive on a real active election
- * reports a mismatch until that election is published again. On staging that is the point. On production
- * it replaces what voters see, so the tool refuses hcec-election-results unless --allow-production.
+ * not the election is `active`. The tool makes the test election the active one (only the active election
+ * may publish), so after a run the pages pointed at this bucket show the test results. On staging that is
+ * the point. On production it replaces what voters see, so the tool refuses hcec-election-results unless
+ * --allow-production.
  *
  * Signs in as a bot admin (uid staging-bot): makes the Auth user and admins/{uid} with the Admin SDK,
  * gives the user a new random password for this run and signs in with email/password from the client
@@ -127,10 +127,11 @@ async function main() {
     await call('ping', {});
     console.log(`${project}: signed in as ${BOT_UID}; election ${electionId}; ${publish ? 'publishing' : 'drafts only'} ${steps.join(' ')} (${set})`);
 
-    // Never makeActive: a test election must not displace the real one auditLive watches.
+    // makeActive: only the active election may publish (current/ is one set per bucket). Staging has no
+    // real election to displace; production gets here only with --allow-production, for a rehearsal.
     await call('upsertElection', {
       id: electionId, name: '2026-11-03 General', date: '2026-11-03', county: 'Hamilton', precinctCap: Number(set),
-      enablePrecinctResults: true, makeActive: false,
+      enablePrecinctResults: true, makeActive: true,
     });
     // A run from 00 starts from an empty election, as on the night: a Zero file merged with a previous
     // run's selected ED file would be blocked (zero-file-has-votes). currentVersion is kept, so publishes
@@ -139,12 +140,6 @@ async function main() {
     if (steps[0] === '00' && (existing.selectedEarlyUploadId || existing.selectedEdUploadId)) {
       await db.doc(`elections/${electionId}`).update({ selectedEarlyUploadId: null, selectedEdUploadId: null });
       console.log(`Cleared ${electionId}'s selected uploads from a previous run.`);
-    }
-    const others = (await db.collection('elections').where('active', '==', true).get()).docs.filter((d) => d.id !== electionId);
-    for (const d of others) {
-      if (publish && d.data().currentVersion) {
-        console.log(`WARNING: ${d.id} is active and published (${d.data().currentVersion}); this run replaces the current/ files its pages read, and its auditLive will report a mismatch until it is published again.`);
-      }
     }
 
     for (const prefix of steps) {

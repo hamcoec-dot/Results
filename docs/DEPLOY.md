@@ -49,7 +49,7 @@ Then the workflow runs the smoke test. Start it from the Actions tab: **staging-
 tick **test_election** when you run **deploy** (staging only; it publishes right after the staging deploy).
 
 It signs in as the bot admin `staging-bot`. It creates the Auth user (a new random password each run) and
-`admins/staging-bot`, and deletes that doc at the end. The test election is never made active.
+`admins/staging-bot`, and deletes that doc at the end. The test election is made the active election (only the active election can publish).
 
 **It replaces the bucket's `current/` files.** Those files are shared by every election in the project, active
 or not. The tool refuses `hcec-election-results` unless `--allow-production` is passed (rehearsal only).
