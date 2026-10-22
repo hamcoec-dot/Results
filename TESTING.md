@@ -140,6 +140,8 @@ cases now pass `verify.py` with 0 failures.
 | Rollback goes through a draft and the same publish path | `service.test.js` › rollback |
 | A settings change (max precincts, Precinct Results page) is rebuilt from the selected uploads with no re-upload, reviewed, and published as a new version; the previous version's archive is untouched | `service.test.js` › settings draft; `fixes.test.js` › d4; `checks.test.js` › settings rebuild; `test/emulator/integration.test.js` › settings draft |
 | Live check fails when the public URL serves other bytes; auditLive detects drift | `service.test.js` |
+| auditLive never reports a publish in progress: skipped while the lease is held (or a publish starts or finishes mid-check), a mismatch is re-checked before it is reported; an expired lease is audited | `service.test.js` › auditLive mid-publish, auditLive skips when a publish starts or finishes, auditLive re-checks a mismatch |
+| The mismatch alert needs 2 auditLive runs in a row; the other alerts' thresholds | `monitoring.test.js` › mismatch alert needs 2 entries |
 | Upload limits: 5,000,000 characters, gzip bombs refused, same hash for text and gzip | `publish.test.js` › upload |
 | Election settings validated with the fix in the message (max precincts 1–999) | `service.test.js` › settings |
 | Non-admins read nothing; admins never write; the private bucket denies all clients | `test/emulator/rules.test.js` |
