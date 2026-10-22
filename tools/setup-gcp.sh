@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # One-time Google Cloud setup for docs/DEPLOY.md, run in Google Cloud Shell (no install needed):
 #
-#   git clone https://github.com/hamcoec-dot/Results && cd Results && bash tools/setup-gcp.sh
+#   git clone -b claude/project-thread-joz1m0 https://github.com/hamcoec-dot/Results && cd Results && bash tools/setup-gcp.sh
 #
-# Needs both Firebase projects to exist already, on the Blaze plan, with Firestore and Storage created
-# (step 1 of the setup guide). Safe to run again: anything that already exists is left as it is.
-# At the end it prints the three GitHub repository variables to copy into GitHub.
+# Creates both Firebase projects if they don't exist yet, links them to the billing account of an
+# existing project (BILLING_FROM, default ballotboxdelivery; or set BILLING_ACCOUNT=<id>), and
+# creates their Firestore databases in us-east1. Safe to run again: anything that already exists is
+# left as it is. At the end it prints the three GitHub repository variables to copy into GitHub.
+# Still done by hand in the Firebase console: Storage "Get started", Email/Password sign-in, admins.
 #
 # Other project ids (if the default ones were taken): bash tools/setup-gcp.sh <prod-id> <staging-id>
 set -uo pipefail
@@ -20,10 +22,63 @@ ok()   { echo "  ok: $*"; }
 step() { echo; echo "== $*"; }
 fail() { echo; echo "STOPPED: $*"; echo "Copy everything above this line and send it to Claude."; exit 1; }
 
-for p in "$PROD" "$STAGING"; do
-  gcloud projects describe "$p" --format='value(projectId)' >/dev/null 2>&1 \
-    || fail "project $p not found, or this account can't see it. Check the id in the Firebase console."
-done
+BILLING_FROM=${BILLING_FROM:-ballotboxdelivery}
+
+create_project() {
+  local p=$1
+  step "$p: project"
+  if gcloud projects describe "$p" --format='value(projectId)' >/dev/null 2>&1; then
+    ok "project already exists"
+  else
+    gcloud projects create "$p" --name="$p" \
+      || fail "could not create project $p. Project ids are shared across all of Google, so it may be taken."
+    ok "project created"
+  fi
+
+  if [ "$(gcloud billing projects describe "$p" --format='value(billingEnabled)' 2>/dev/null)" = "True" ]; then
+    ok "billing (Blaze) already on"
+  else
+    gcloud billing projects link "$p" --billing-account="$BILLING_ACCOUNT" >/dev/null \
+      || fail "could not link billing account $BILLING_ACCOUNT to $p"
+    ok "billing (Blaze) on"
+  fi
+
+  gcloud services enable firebase.googleapis.com firestore.googleapis.com --project="$p" \
+    || fail "could not turn on Firebase for $p"
+  if curl -sf -H "Authorization: Bearer $(gcloud auth print-access-token)" -H "X-Goog-User-Project: $p" \
+       "https://firebase.googleapis.com/v1beta1/projects/$p" >/dev/null; then
+    ok "Firebase already on"
+  else
+    curl -sf -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" -H "X-Goog-User-Project: $p" \
+      -H "Content-Type: application/json" -d '{}' \
+      "https://firebase.googleapis.com/v1beta1/projects/$p:addFirebase" >/dev/null \
+      || fail "could not add Firebase to $p"
+    for _ in $(seq 1 30); do
+      curl -sf -H "Authorization: Bearer $(gcloud auth print-access-token)" -H "X-Goog-User-Project: $p" \
+        "https://firebase.googleapis.com/v1beta1/projects/$p" >/dev/null && break
+      sleep 5
+    done
+    ok "Firebase added"
+  fi
+
+  if gcloud firestore databases describe --database='(default)' --project="$p" >/dev/null 2>&1; then
+    ok "Firestore database already exists"
+  else
+    gcloud firestore databases create --database='(default)' --location=us-east1 --type=firestore-native \
+      --project="$p" >/dev/null || fail "could not create the Firestore database in $p"
+    ok "Firestore database created (us-east1)"
+  fi
+}
+
+if [ -z "${BILLING_ACCOUNT:-}" ]; then
+  BILLING_ACCOUNT=$(gcloud billing projects describe "$BILLING_FROM" --format='value(billingAccountName)' 2>/dev/null)
+  BILLING_ACCOUNT=${BILLING_ACCOUNT#billingAccounts/}
+fi
+[ -n "$BILLING_ACCOUNT" ] || fail "could not find the billing account of $BILLING_FROM. Run: gcloud billing accounts list"
+echo "Billing account: $BILLING_ACCOUNT (the one $BILLING_FROM uses)"
+
+create_project "$STAGING"
+create_project "$PROD"
 
 POOL_NUMBER=$(gcloud projects describe "$POOL_PROJECT" --format='value(projectNumber)')
 
@@ -123,3 +178,7 @@ echo "  GCP_WIF_PROVIDER       projects/$POOL_NUMBER/locations/global/workloadId
 echo "  GCP_DEPLOY_SA_STAGING  $SA_NAME@$STAGING.iam.gserviceaccount.com"
 echo "  GCP_DEPLOY_SA_PROD     $SA_NAME@$PROD.iam.gserviceaccount.com"
 echo "================================================================"
+echo
+echo "Still to do by hand at console.firebase.google.com, in both projects (see the setup guide):"
+echo "  Storage > Get started (production mode, us-east1); Authentication > Email/Password on, sign-up off;"
+echo "  add yourself as a user and as a document in the admins collection."
