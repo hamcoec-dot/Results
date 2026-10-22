@@ -2,7 +2,7 @@
 'use strict';
 /**
  * One-time Cloud Monitoring setup for one project (plan: Rehearsal and election-night assurance):
- *   1. email (and optionally SMS) notification channels;
+ *   1. email (one per --email; give it more than once) and optionally SMS notification channels;
  *   2. an uptime check on <bucket>/current/manifest.json every minute from 3 regions, which must
  *      contain "dataVersion";
  *   3. alert: the uptime check fails in 2 or more regions;
@@ -12,7 +12,7 @@
  *
  * Usage (needs gcloud signed in with Monitoring Admin and Logs Configuration Writer):
  *   node tools/setup-monitoring.js --project hcec-election-results-staging \
- *     --bucket hcec-election-results-staging-results --email elections@example.org [--sms +14235551234]
+ *     --bucket hcec-election-results-staging-results --email elections@example.org [--email oncall@example.org] [--sms +14235551234]
  * Add --dry-run to print the gcloud commands and files without running them. Running it twice
  * creates a second set; docs/MONITORING.md shows how to list and delete them.
  */
@@ -22,18 +22,21 @@ const os = require('node:os');
 const path = require('node:path');
 
 function parseArgs(argv) {
-  const out = { dryRun: false };
+  const out = { dryRun: false, emails: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dry-run') out.dryRun = true;
-    else if (['--project', '--bucket', '--email', '--sms'].includes(a)) out[a.slice(2)] = argv[++i];
+    else if (a === '--email') out.emails.push(argv[++i]);
+    else if (['--project', '--bucket', '--sms'].includes(a)) out[a.slice(2)] = argv[++i];
     else throw new Error(`unknown argument ${a}`);
   }
-  for (const k of ['project', 'bucket', 'email']) if (!out[k]) throw new Error(`--${k} is required`);
+  for (const k of ['project', 'bucket']) if (!out[k]) throw new Error(`--${k} is required`);
+  if (!out.emails.length) throw new Error('--email is required');
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(out.project)) throw new Error(`not a project id: ${out.project}`);
   if (!/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(out.bucket)) throw new Error(`not a bucket name: ${out.bucket}`);
   // Plain address characters only: on Windows the value passes through cmd.exe, which expands %VAR% even in quotes.
-  if (!/^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/.test(out.email)) throw new Error(`not an email address: ${out.email}`);
+  for (const e of out.emails) if (!/^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/.test(e ?? '')) throw new Error(`not an email address: ${e}`);
+  if (new Set(out.emails).size !== out.emails.length) throw new Error('the same --email is given twice');
   if (out.sms && !/^\+[1-9]\d{7,14}$/.test(out.sms)) throw new Error(`SMS number must be E.164, e.g. +14235551234: ${out.sms}`);
   return out;
 }
@@ -99,7 +102,7 @@ function plan(o) {
   const g = (...args) => ['gcloud', ...args, `--project=${o.project}`];
   return {
     channels: [
-      g('beta', 'monitoring', 'channels', 'create', '--display-name=Election results email', '--type=email', `--channel-labels=email_address=${o.email}`, '--format=value(name)'),
+      ...o.emails.map((e) => g('beta', 'monitoring', 'channels', 'create', `--display-name=Election results email ${e}`, '--type=email', `--channel-labels=email_address=${e}`, '--format=value(name)')),
       ...(o.sms ? [g('beta', 'monitoring', 'channels', 'create', '--display-name=Election results SMS', '--type=sms', `--channel-labels=number=${o.sms}`, '--format=value(name)')] : []),
     ],
     uptime: g('monitoring', 'uptime', 'create', 'Election results manifest',
@@ -163,7 +166,7 @@ function main() {
   const policies = allPolicies(checkId, channels);
   policies.forEach((policy, i) => run(p.policy(write(`policy-${i}.json`, policy))));
   console.log(`\nDone: ${channels.length} channel(s), uptime check ${checkId}, ${LOG_METRICS.length} log metrics, ${policies.length} alert policies.`);
-  console.log('Confirm the email (and SMS) channel, then test the alerts: docs/MONITORING.md.');
+  console.log('Confirm each email (and SMS) channel, then test the alerts: docs/MONITORING.md.');
 }
 
 if (require.main === module) {
