@@ -111,7 +111,7 @@
       obj(r, 'config', d.config);
       if (!obj(r, 'latest', d.latest)) return;
       var l = d.latest;
-      ['totalVoters', 'totalBallots', 'ballotsRep', 'ballotsDem', 'ballotsGen', 'earlyBallotsCast'].forEach(function (k) { count(r, 'latest.' + k, l[k]); });
+      ['totalVoters', 'totalBallots', 'ballotsRep', 'ballotsDem', 'ballotsGen', 'earlyBallotsCast', 'earlyVotingTotal'].forEach(function (k) { count(r, 'latest.' + k, l[k]); });
       pct(r, 'latest.turnoutPercent', l.turnoutPercent);
       overall(r, 'latest', l);
       contestList(r, 'latest.contests', l.contests, function (p, c) { str(r, p + '.voteFor', c.voteFor); candidates(r, p, c); });

@@ -48,6 +48,7 @@ const CORRUPTIONS = [
   ['summary.json', (d) => { d.latest.overallPrecinctsReporting = 99; }, /overall precincts reporting/],
   ['summary.json', (d) => { d.latest.totalBallots = Infinity; }, /totalBallots/],
   ['summary.json', (d) => { d.latest.turnoutPercent = '5%'; }, /turnoutPercent/],
+  ['summary.json', (d) => { d.latest.earlyVotingTotal = '<img src=x onerror=alert(1)>'; }, /earlyVotingTotal: expected a whole number/],
   ['summary.json', (d) => { d.latest = []; }, /latest: expected an object/],
   ['summary.json', (d) => { d.metadata.dataVersion = 'abc'; }, /dataVersion: expected 12 hex/],
   ['summary.json', (d) => { d.metadata.lastUpdated = 5; }, /lastUpdated/],

@@ -649,7 +649,7 @@ window.ElectionApp = (function() {
 
     if (statEarlyVal) {
       const earlyRep = earlyVotingReported(data);
-      const earlyTot = data.earlyVotingTotal || 1;
+      const earlyTot = Number(data.earlyVotingTotal) || 1;
       const earlyBadge = earlyRep > 0 ? '&#x2705;' : '&#x23F3;';
       statEarlyVal.innerHTML = `${earlyBadge} Early &amp; Absentee: ${earlyRep} of ${earlyTot} (${earlyRep > 0 ? 'Complete' : 'Pending'})`;
     }
@@ -914,7 +914,7 @@ window.ElectionApp = (function() {
     if (!data || !data.contests) return;
 
     const earlyRep = earlyVotingReported(data);
-    const earlyTot = data.earlyVotingTotal || 1;
+    const earlyTot = Number(data.earlyVotingTotal) || 1;
     const earlyStatusBadge = earlyRep > 0 ? 
       '<span style="color:var(--status-reported); font-weight:700;">&#x2705; COMPLETE</span>' : 
       '<span style="color:var(--primary); font-weight:700;">&#x23F3; IN PROGRESS (0.0%)</span>';
@@ -1320,7 +1320,7 @@ window.ElectionApp = (function() {
     const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, precinctCap());
     const overallTotCapped = Math.min(data.overallPrecinctsTotal || precinctCap(), precinctCap());
     const earlyRep = earlyVotingReported(data);
-    const earlyTot = data.earlyVotingTotal || 1;
+    const earlyTot = Number(data.earlyVotingTotal) || 1;
 
     if (tStatus) tStatus.innerHTML = `&#x25CF; ${escapeHtml(data.statusLabel || 'UNOFFICIAL RESULTS')}`;
     if (tDate) tDate.textContent = formatCompactDate(data.electionDate) || data.electionDate || '';
@@ -1408,7 +1408,7 @@ window.ElectionApp = (function() {
       const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, precinctCap());
       const overallTotCapped = Math.min(data.overallPrecinctsTotal || precinctCap(), precinctCap());
       const earlyRep = earlyVotingReported(data);
-      const earlyTot = data.earlyVotingTotal || 1;
+      const earlyTot = Number(data.earlyVotingTotal) || 1;
 
       const repPct = data.totalBallots ? ((data.ballotsRep || 0) / data.totalBallots * 100) : 0;
       const demPct = data.totalBallots ? ((data.ballotsDem || 0) / data.totalBallots * 100) : 0;
@@ -2121,7 +2121,7 @@ window.ElectionApp = (function() {
       <header style="padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:var(--neutral-light);">
         <div>
           <h2 style="font-size:22px; font-weight:800; color:var(--neutral-dark); margin:0;">${escapeHtml(contest.title)}</h2>
-          <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${escapeHtml(contest.voteFor)} &bull; ${contest.precinctsReporting} of ${contest.precinctsTotal} Precincts Reporting</div>
+          <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${escapeHtml(contest.voteFor)} &bull; ${Number(contest.precinctsReporting) || 0} of ${Number(contest.precinctsTotal) || 0} Precincts Reporting</div>
         </div>
       </header>
       <div style="overflow-x:auto; padding:8px 0;" role="region" tabindex="0" aria-label="Precinct results for ${escapeHtml(contest.title)}, scrolls sideways">
