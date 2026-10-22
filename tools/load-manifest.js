@@ -9,6 +9,9 @@
  * Reports latency percentiles, errors and whether the CDN served the responses (Age, Cache-Control).
  * Exits 1 when any request fails or the p95 is over --max-p95 ms. No cache-buster is added, so the
  * edge cache is what gets measured, as for real visitors between polls.
+ * First, --concurrency untimed warm-up requests open the connections at once: opening hundreds of TLS
+ * connections in the same instant from one machine measures that machine, not the bucket (each real
+ * visitor opens their own). Their latencies are printed but not judged.
  */
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? Number(args.splice(i, 2)[1]) : dflt; };
@@ -45,8 +48,15 @@ async function main() {
       }
     }
   };
+  const workers = Math.min(concurrency, total);
+  const warm = (await Promise.all(Array.from({ length: workers }, async () => {
+    const t = performance.now();
+    try { await (await fetch(url)).arrayBuffer(); return performance.now() - t; } catch { return null; }
+  }))).filter((x) => x !== null).sort((a, b) => a - b);
+  if (warm.length) console.log(`warm-up (${workers} new connections at once, not judged): p50 ${pct(warm, 50).toFixed(0)}, p95 ${pct(warm, 95).toFixed(0)} ms`);
+
   const start = performance.now();
-  await Promise.all(Array.from({ length: Math.min(concurrency, total) }, worker));
+  await Promise.all(Array.from({ length: workers }, worker));
   const seconds = (performance.now() - start) / 1000;
 
   const sorted = times.sort((a, b) => a - b);

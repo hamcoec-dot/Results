@@ -27,6 +27,9 @@ The manual deploy in README › Deploy still works as before.
      --role=roles/iam.workloadIdentityUser \
      --member="principalSet://iam.googleapis.com/projects/<POOL_PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/attribute.repository/hamcoec-dot/Results"
    ```
+   For **production**, bind the job's GitHub environment instead, so only an approved production job can act as
+   the account (Google then enforces the approval too; `tools/setup-gcp.sh` does this):
+   `--member="principal://iam.googleapis.com/projects/<POOL_PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/subject/repo:hamcoec-dot/Results:environment:production"`
 3. **GitHub → Settings:**
    - **Environments:**
      - `staging`, no rules;
