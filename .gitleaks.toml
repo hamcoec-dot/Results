@@ -1,0 +1,12 @@
+# gitleaks (CI job security): the default rules, plus the Firebase web API keys in firebase-config.js.
+# Those are public identifiers that every browser loading admin.html receives, not secrets
+# (https://firebase.google.com/docs/projects/api-keys); access is enforced by Auth and the rules.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Firebase web API keys of hcec-election-results and hcec-election-results-staging"
+regexes = [
+  '''^AIzaSyAZC_zyGEyJ79c7b7HDPbKrSMOrpUH8kOQ$''',
+  '''^AIzaSyCCAmob-dyxj5iAnuhwKZ1_1-Y-Z7V9EW4$''',
+]
