@@ -1,8 +1,0 @@
-# Firebase web-app config (apiKey/appId) is a public identifier by design; restrict the keys in
-# GCP (API + HTTP-referrer restrictions) instead of hiding them.
-[extend]
-useDefault = true
-
-[allowlist]
-description = "Firebase web config in firebase-config.js"
-paths = ['''^firebase-config\.js$''']
