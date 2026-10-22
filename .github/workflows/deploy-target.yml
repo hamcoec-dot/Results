@@ -10,6 +10,7 @@ on:
       bucket: { type: string, required: true }
       service_account_var: { type: string, required: true }
       smoke: { type: boolean, default: true }
+      test_election: { type: boolean, default: false } # staging only; ignored for production
 
 permissions:
   contents: read
@@ -54,6 +55,16 @@ jobs:
               --member=allUsers --role=roles/run.invoker --project="${{ inputs.project }}" --quiet >/dev/null
             echo "invoker: $service"
           done
+
+      # The smoke, load and ZAP steps need something published. On staging this publishes the sample
+      # test election through the callables just deployed (it replaces the staging bucket's current/ files).
+      - name: Function dev dependencies (the firebase client SDK) for the test election
+        if: ${{ inputs.test_election && inputs.environment == 'staging' }}
+        working-directory: functions
+        run: npm ci
+      - name: Publish the staging test election (Web Results Samples 00→06)
+        if: ${{ inputs.test_election && inputs.environment == 'staging' }}
+        run: node tools/staging-election.js --project "${{ inputs.project }}"
 
       - name: Smoke test of what the public is served
         if: ${{ inputs.smoke }}
