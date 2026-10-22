@@ -1,8 +1,11 @@
 /**
  * Firebase web configuration for the admin and review pages (never loaded by the public pages).
  *
- * PHASE 5 TODO: paste the web app config of project `hcec-election-results` (Console → Project
- * settings → Your apps) over PROD below. These values are public identifiers, not secrets.
+ * The "HCEC Results Admin" web app of each project (Console → Project settings → Your apps).
+ * These values are public identifiers, not secrets.
+ *
+ * ?staging     use the staging project (hcec-election-results-staging) instead of production,
+ *              carried onto the linked admin and draft pages.
  *
  * Local development: open the page on localhost / 127.0.0.1 with ?emulator to use the Firebase
  * Emulator Suite (npm run test:emulator, or emulators:start — see README).
@@ -11,12 +14,20 @@
   'use strict';
 
   var PROD = {
-    apiKey: 'REPLACE_IN_PHASE_5',
+    apiKey: 'AIzaSyAZC_zyGEyJ79c7b7HDPbKrSMOrpUH8kOQ',
     authDomain: 'hcec-election-results.firebaseapp.com',
     projectId: 'hcec-election-results',
-    storageBucket: 'hcec-election-results.appspot.com',
-    appId: 'REPLACE_IN_PHASE_5',
+    storageBucket: 'hcec-election-results.firebasestorage.app',
+    appId: '1:451148363848:web:d2b06c968393489ec0c07d',
     publicBucket: 'hcec-election-results-results',
+  };
+  var STAGING = {
+    apiKey: 'AIzaSyCCAmob-dyxj5iAnuhwKZ1_1-Y-Z7V9EW4',
+    authDomain: 'hcec-election-results-staging.firebaseapp.com',
+    projectId: 'hcec-election-results-staging',
+    storageBucket: 'hcec-election-results-staging.firebasestorage.app',
+    appId: '1:579496488802:web:f95d66c5476ee08430c63b',
+    publicBucket: 'hcec-election-results-staging-results',
   };
   var EMULATOR = {
     apiKey: 'demo-key',
@@ -29,10 +40,12 @@
 
   var local = ['localhost', '127.0.0.1'].indexOf(location.hostname) >= 0;
   var emulator = local && /[?&]emulator\b/.test(location.search);
-  var cfg = emulator ? EMULATOR : PROD;
+  var staging = !emulator && /[?&]staging\b/.test(location.search);
+  var cfg = emulator ? EMULATOR : staging ? STAGING : PROD;
 
   window.RESULTS_ADMIN = {
     emulator: emulator,
+    staging: staging,
     publicBucket: cfg.publicBucket,
     /** Public URL of an object in the results bucket (drafts and current files). */
     publicUrl: function (path) {
@@ -40,8 +53,8 @@
         ? 'http://127.0.0.1:9199/download/storage/v1/b/' + cfg.publicBucket + '/o/' + encodeURIComponent(path) + '?alt=media'
         : 'https://storage.googleapis.com/' + cfg.publicBucket + '/' + path.split('/').map(encodeURIComponent).join('/');
     },
-    /** Query string to carry the emulator switch onto linked admin pages. */
-    carry: emulator ? 'emulator&' : '',
+    /** Query string to carry the emulator or staging switch onto linked admin and draft pages. */
+    carry: emulator ? 'emulator&' : staging ? 'staging&' : '',
   };
 
   if (typeof firebase === 'undefined') return;

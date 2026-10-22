@@ -7,7 +7,8 @@
  * Usage (Application Default Credentials with read access to Firestore and both buckets,
  * e.g. `gcloud auth application-default login`):
  *   node tools/export-election.js <electionId> [--project hcec-election-results] [--out <file.zip>]
- *        [--private-bucket <name>]   default <project>.appspot.com (the Firebase default bucket)
+ *        [--private-bucket <name>]   default <project>.firebasestorage.app (the Firebase default bucket;
+ *                                    <project>.appspot.com with --emulator)
  *   node tools/export-election.js <electionId> --emulator   the local emulators (demo-hcec)
  */
 const fs = require('node:fs');
@@ -19,7 +20,7 @@ const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args.spli
 const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args.splice(i, 2)[1] : dflt; };
 const emulator = flag('--emulator');
 const project = opt('--project', emulator ? 'demo-hcec' : 'hcec-election-results');
-const privateBucketName = opt('--private-bucket', `${project}.appspot.com`);
+const privateBucketName = opt('--private-bucket', emulator ? `${project}.appspot.com` : `${project}.firebasestorage.app`);
 const eid = args[0];
 const out = opt('--out', null) ?? `${eid}-records-${new Date().toISOString().slice(0, 10)}.zip`;
 if (!eid) {

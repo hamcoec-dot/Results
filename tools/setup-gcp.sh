@@ -122,7 +122,13 @@ setup_project() {
   # New projects build functions with this account, and it needs the builder role to do so.
   gcloud projects add-iam-policy-binding "$p" --member="serviceAccount:$compute" \
     --role=roles/cloudbuild.builds.builder --condition=None >/dev/null || fail "builder role on $p"
-  ok "functions can write the public bucket and be built"
+  # New organization projects don't give this account Editor, so grant what the functions use:
+  # Firestore, and the private default bucket that keeps every raw upload.
+  gcloud projects add-iam-policy-binding "$p" --member="serviceAccount:$compute" \
+    --role=roles/datastore.user --condition=None >/dev/null || fail "Firestore access on $p"
+  gcloud storage buckets add-iam-policy-binding "gs://$p.firebasestorage.app" --member="serviceAccount:$compute" \
+    --role=roles/storage.objectAdmin >/dev/null || fail "functions access to gs://$p.firebasestorage.app"
+  ok "functions can write the public bucket, use Firestore and the uploads bucket, and be built"
 
   step "$p: the deploy account GitHub signs in as ($sa)"
   if gcloud iam service-accounts describe "$sa" --project="$p" >/dev/null 2>&1; then
@@ -138,6 +144,9 @@ setup_project() {
     gcloud projects add-iam-policy-binding "$p" --member="serviceAccount:$sa" --role="$role" \
       --condition=None >/dev/null || fail "role $role for $sa"
   done
+  # tools/staging-election.js signs a custom token as this account to sign in its test admin.
+  gcloud iam service-accounts add-iam-policy-binding "$sa" --project="$p" --member="serviceAccount:$sa" \
+    --role=roles/iam.serviceAccountTokenCreator >/dev/null || fail "token signing for $sa"
   ok "deploy roles granted"
 
   # Only GitHub Actions runs from hamcoec-dot/Results may act as this account.
