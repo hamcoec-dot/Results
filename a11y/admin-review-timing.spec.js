@@ -3,7 +3,7 @@
 // INP measure: input to the next paint) on a real review of the largest sample. Needs the emulators
 // (npm run a11y:admin); timing depends on the machine, so it runs only with PERF=1 and reports,
 // and STRICT=1 also fails on a miss. Results are recorded in perf/BASELINE.md.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const path = require('node:path');
 
 const ADMIN = { email: 'admin@example.test', password: 'emulator-only-pw' };

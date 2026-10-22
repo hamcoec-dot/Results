@@ -1,7 +1,7 @@
 // Layer 8, DOM oracle (plan: Test strategy): every number a public page shows is the number in
 // the file it read. The pages are opened as a draft view on the Storage emulator's URLs, answered
 // from a golden output, so no emulator is needed and nothing polls.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const fs = require('node:fs');
 const path = require('node:path');
 

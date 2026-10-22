@@ -3,7 +3,7 @@
 // slideshow control. Each control must be reachable with Tab and work with Enter, Space or the arrow
 // keys; the dialog takes focus and gives it back. Also: Fullscreen is hidden where the browser has no
 // fullscreen API (iPhone Safari) instead of throwing when pressed.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 
 /**
  * Tab forward until `selector` has focus, then Shift+Tab backward if it was not ahead. Firefox's Tab

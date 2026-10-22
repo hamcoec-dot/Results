@@ -1,12 +1,11 @@
 // Behaviour of the public pages' controls: filters, search, the precinct picker in the URL, and the
 // CSV exports, whose numbers must equal the data the page shows (a DOM oracle for downloads).
-const { test, expect } = require('@playwright/test');
+// The pages run in their default mode: the production bucket's current/, answered by ./fixtures.
+const { test, expect, fixtureData } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const fs = require('node:fs');
-const path = require('node:path');
 
-const ROOT = path.join(__dirname, '..');
-const summary = JSON.parse(fs.readFileSync(path.join(ROOT, 'summary.json'), 'utf8')).latest;
-const precincts = JSON.parse(fs.readFileSync(path.join(ROOT, 'precincts.json'), 'utf8'));
+const summary = fixtureData('summary.json').latest;
+const precincts = fixtureData('precincts.json');
 
 /** A minimal RFC 4180 reader for the exports (quoted fields, doubled quotes). */
 function parseCsv(text) {
