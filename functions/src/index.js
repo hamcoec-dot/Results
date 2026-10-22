@@ -124,11 +124,13 @@ exports.discardDraft = adminCall('discardDraft');
 exports.auditLiveNow = adminCall('auditLive');
 
 // Every minute: re-verify what the public is served for the active election (audit + alert log).
-exports.auditLive = onSchedule({ schedule: 'every 1 minutes', timeZone: 'America/New_York' }, async () => {
+// Skipped while a publish holds its lease; a mismatch is re-checked 10 s later before it is logged.
+exports.auditLive = onSchedule({ schedule: 'every 1 minutes', timeZone: 'America/New_York', timeoutSeconds: 120 }, async () => {
   const active = (await db.collection('elections').where('active', '==', true).limit(1).get()).docs[0];
   if (!active) return;
   const r = await svc().auditLive({ uid: 'system', email: 'auditLive' }, { electionId: active.id });
-  // Cloud Monitoring alert policy matches this log line (README › Election-night monitoring).
+  if (r.skipped) logger.info('publish in progress, audit skipped', { election: active.id });
+  // Cloud Monitoring alert policy matches this log line (docs/MONITORING.md); it needs 2 within 2 minutes.
   if (!r.ok) logger.error('AUDIT_LIVE_MISMATCH', { election: active.id, problems: r.problems });
 });
 

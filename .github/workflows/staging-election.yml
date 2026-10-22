@@ -1,0 +1,57 @@
+name: staging-election
+
+# Publishes the hidden test election (Web Results Samples 00→06) to STAGING through the deployed
+# callables, then smoke-tests the staging bucket (plan: Implementation phases 5, the dry run). Run it
+# after the first staging deploy so deploy.yml's smoke, load and ZAP steps have published data.
+# Staging only: tools/staging-election.js refuses production. It replaces the staging bucket's current/ files.
+# The same publish also runs inside deploy.yml when its test_election box is ticked.
+# Signs in a bot admin with a per-run random password; the web API key comes from firebase-config.js.
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: 'Sample steps to publish, in order'
+        type: string
+        default: '00,01,02,03,04,05,06'
+      election:
+        description: 'Test election id (must start with test-)'
+        type: string
+        default: test-staging-dryrun
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation
+
+concurrency:
+  group: staging-election
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install function dependencies, dev included (the firebase client SDK)
+        working-directory: functions
+        run: npm ci
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA_STAGING }}
+
+      - name: Publish the test election through the callables
+        run: node tools/staging-election.js --project hcec-election-results-staging --election "$ELECTION" --steps "$STEPS"
+        env:
+          ELECTION: ${{ inputs.election }}
+          STEPS: ${{ inputs.steps }}
+
+      - name: Smoke test of what the public is served
+        run: node tools/smoke-public.js hcec-election-results-staging-results --origin https://govotehamiltontn.gov

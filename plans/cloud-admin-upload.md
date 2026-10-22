@@ -347,6 +347,10 @@ Reference device: a mid-range Android (Moto G Power class), emulated in Lighthou
     - checks that `dataVersion` is consistent across the files;
     - re-runs `validate.js`;
     - writes its result to `audit`, and on any mismatch sends a Cloud Monitoring alert and shows a red banner on admin.html.
+    - A publish copies `current/*` before it sets `currentVersion`, so for a few seconds they disagree. To avoid a false alert, `auditLive`:
+      - skips the check (info log "publish in progress, audit skipped"; lastAudit unchanged) while the publish lease is held and unexpired, read before and after the fetches;
+      - re-checks a mismatch 10 s later and reports it only if it is still there.
+    - The mismatch alert needs 2 runs in a row (2 `AUDIT_LIVE_MISMATCH` entries within 2 minutes). docs/MONITORING.md has the details.
 - **Post-election:** export the audit log and every version's files and acknowledgements as a ZIP, kept for records retention.
 
 ## Node port (`functions/src/`)

@@ -50,7 +50,7 @@ Generate a fixture by hand: `node tools/gen-fixture.js --seed 42 --kind ed --lay
 | 12 | Resilience / chaos | **live updates done**: manifest-only polls, invalid data kept off screen ("delayed — retrying"), pause toggle, draft never polls, lazy reporting.json; 500/503/404, truncated, empty and HTML-error bodies, a manifest whose dataVersion disagrees, a half-finished publish, a stalled request (20 s timeout) and a slow one, an aborted request, a skewed clock, a tab hidden for 2 h, a failed first load | `a11y/resilience.spec.js`, `a11y/live-updates.spec.js` (Storage emulator URLs answered from goldens, no emulator needed) |
 | 13 | Dependency & secret security | `npm audit` + gitleaks + osv-scanner in CI; ZAP baseline (passive) of the Pages site and staging bucket on each deploy | `.github/workflows/ci.yml`; `deploy-target.yml`, `.zap/rules.tsv` |
 | 14 | Load | 2,000 manifest fetches against staging on each deploy (Node, in place of k6): p95 < 300 ms, 0 errors | `tools/load-manifest.js` in `deploy-target.yml` |
-| 15 | Staging smoke | served bytes, Cache-Control, gzip, CORS, no listing, on each deploy | `tools/smoke-public.js` in `deploy-target.yml` |
+| 15 | Staging smoke | served bytes, Cache-Control, gzip, CORS, no listing, on each deploy | `tools/smoke-public.js` in `deploy-target.yml`; its published data from `tools/staging-election.js` (`staging-election.yml`, the 00→06 dry run) |
 
 ## Oracles
 
@@ -140,6 +140,8 @@ cases now pass `verify.py` with 0 failures.
 | Rollback goes through a draft and the same publish path | `service.test.js` › rollback |
 | A settings change (max precincts, Precinct Results page) is rebuilt from the selected uploads with no re-upload, reviewed, and published as a new version; the previous version's archive is untouched | `service.test.js` › settings draft; `fixes.test.js` › d4; `checks.test.js` › settings rebuild; `test/emulator/integration.test.js` › settings draft |
 | Live check fails when the public URL serves other bytes; auditLive detects drift | `service.test.js` |
+| auditLive never reports a publish in progress: skipped while the lease is held (or a publish starts or finishes mid-check), a mismatch is re-checked before it is reported; an expired lease is audited | `service.test.js` › auditLive mid-publish, auditLive skips when a publish starts or finishes, auditLive re-checks a mismatch |
+| The mismatch alert needs 2 auditLive runs in a row; the other alerts' thresholds | `monitoring.test.js` › mismatch alert needs 2 entries |
 | Upload limits: 5,000,000 characters, gzip bombs refused, same hash for text and gzip | `publish.test.js` › upload |
 | Election settings validated with the fix in the message (max precincts 1–999) | `service.test.js` › settings |
 | Non-admins read nothing; admins never write; the private bucket denies all clients | `test/emulator/rules.test.js` |
