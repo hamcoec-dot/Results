@@ -11,6 +11,7 @@
  *   privateBucket  write / read
  *   fetchLive(path) -> Buffer|null   the public URL of a public-bucket object, cache-busted
  *   now() -> ms
+ *   sleep(ms) -> Promise             auditLive's pause before it re-checks a mismatch
  *
  * Every method takes the already-authorised actor {uid, email} (index.js checks admins/{uid}).
  * Failures are ServiceError(code, message, details); codes are HttpsError codes.
@@ -39,6 +40,9 @@ const CONTENT_TYPES = { '.json': 'application/json; charset=utf-8', '.js': 'text
 const contentType = (f) => CONTENT_TYPES[f.slice(f.lastIndexOf('.'))];
 const DRAFT_FILES = [...P.PAGE_FILES, P.SUMMARY_FILE, ...P.REVIEW_FILES];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** auditLive waits this long and looks again before it reports a mismatch (a publish may be mid-copy). */
+const AUDIT_RECHECK_MS = 10 * 1000;
+const AUDIT_SKIPPED = 'publish in progress, audit skipped';
 
 const paths = {
   election: (eid) => `elections/${eid}`,
@@ -55,7 +59,7 @@ const latestFromDataJs = (text) => bundleFromDataJs(text).latest;
 /** The page config block an election's settings publish (summary/reporting/precincts.json `config`). */
 const pageConfig = (e) => ({ enablePrecinctResults: e.enablePrecinctResults !== false, precinctCap: e.precinctCap ?? 92 });
 
-function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.now }) {
+function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.now, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   const iso = (ms) => new Date(ms).toISOString();
   const audit = (actor, action, eid, detail, extra = {}) => db.add('audit', { action, eid, uid: actor.uid, email: actor.email, at: iso(now()), detail, ...extra });
 
@@ -391,23 +395,52 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     return { id: s.id, created: !existing };
   }
 
-  /** auditLive: re-verify what the public URLs serve against the published version. */
+  /**
+   * auditLive: re-verify what the public URLs serve against the published version.
+   * A publish copies current/* before it sets currentVersion, so for a few seconds the files and
+   * the version disagree. That is not a fault, so the audit is skipped while the publish lease is
+   * held and unexpired. The lease is read before and after the fetches, which also catches a
+   * publish that started or finished during them. A mismatch is reported only if it is still
+   * there AUDIT_RECHECK_MS later. A skipped audit leaves lastAudit as it was.
+   */
   async function auditLive(actor, data) {
     const eid = data?.electionId;
-    const election = await requireElection(eid);
+    await requireElection(eid);
+    let result = await auditOnce(eid);
+    let firstLook = null;
+    if (!result.ok && !result.skipped) {
+      firstLook = result.problems;
+      await sleep(AUDIT_RECHECK_MS);
+      result = await auditOnce(eid);
+    }
+    if (result.skipped) {
+      await audit(actor, 'auditLive', eid, AUDIT_SKIPPED, { ok: true, skipped: true });
+      return result;
+    }
+    const detail = result.ok ? `ok${firstLook ? ` on re-check (first look: ${firstLook.join('; ')})` : ''}` : result.problems.join('; ');
+    await audit(actor, 'auditLive', eid, detail, { ok: result.ok });
+    // The admin page's red banner reads this one field instead of querying the audit log.
+    await db.update(paths.election(eid), { lastAudit: { ok: result.ok, at: iso(now()), problems: result.problems.slice(0, 20) } });
+    return result;
+  }
+
+  /** One look at current/*: {ok, problems}, or {ok: true, skipped: true} if a publish was under way. */
+  async function auditOnce(eid) {
+    const publishing = (e) => Boolean(e.publishLock && now() < e.publishLock.until);
+    const skipped = { ok: true, skipped: true, problems: [] };
+    const before = await requireElection(eid);
+    if (publishing(before)) return skipped;
     const files = {};
     await Promise.all([...P.PAGE_FILES, P.SUMMARY_FILE].map(async (f) => {
       const b = await fetchLive(`current/${f}`);
       files[f] = b === null ? null : b.toString('utf8');
     }));
     const manifest = await fetchLive(`current/${P.MANIFEST_FILE}`);
-    const result = election.currentVersion
-      ? auditServed({ manifestText: manifest === null ? null : manifest.toString('utf8'), files, expectedVersion: election.currentVersion })
+    const after = await requireElection(eid);
+    if (publishing(after) || (after.currentVersion ?? null) !== (before.currentVersion ?? null)) return skipped;
+    return before.currentVersion
+      ? auditServed({ manifestText: manifest === null ? null : manifest.toString('utf8'), files, expectedVersion: before.currentVersion })
       : { ok: true, problems: [] };
-    await audit(actor, 'auditLive', eid, result.ok ? 'ok' : result.problems.join('; '), { ok: result.ok });
-    // The admin page's red banner reads this one field instead of querying the audit log.
-    await db.update(paths.election(eid), { lastAudit: { ok: result.ok, at: iso(now()), problems: result.problems.slice(0, 20) } });
-    return result;
   }
 
   return { createDraft, createSettingsDraft, createRollbackDraft, publishDraft, extendDraft, discardDraft, upsertElection, auditLive };
@@ -434,4 +467,4 @@ function validateSettings(d) {
   return { id: d.id, name, date: d.date, county, precinctCap: cap, enablePrecinctResults: d.enablePrecinctResults !== false, makeActive: d.makeActive === true };
 }
 
-module.exports = { createService, ServiceError, validateSettings, paths };
+module.exports = { createService, ServiceError, validateSettings, paths, AUDIT_RECHECK_MS };
