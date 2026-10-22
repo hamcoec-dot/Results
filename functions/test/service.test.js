@@ -181,6 +181,30 @@ test('the lock is released when a publish fails part-way, and a held lock expire
   assert.equal((await publish(env, d)).liveCheck.ok, true);
 });
 
+test('a second click on the same draft while it publishes is refused as busy, not a lost lock', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  const d = await draftOf(env, 'early', '02-After EV');
+  const results = await Promise.allSettled([publish(env, d), publish(env, d)]);
+  assert.deepEqual(results.map((r) => r.status).sort(), ['fulfilled', 'rejected']);
+  const lost = results.find((r) => r.status === 'rejected').reason;
+  assert.ok(refusal('busy')(lost), lost.message);
+  assert.equal((await env.db.get(paths.election(EID))).publishLock, null);
+});
+
+test('only the active election publishes: current/ is shared by every election', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  await env.svc.upsertElection(ADMIN, { ...SETTINGS, id: 'mock-2026', name: 'Mock election', makeActive: true });
+  assert.equal((await env.db.get(paths.election(EID))).active, false);
+  const d = await draftOf(env, 'early', '02-After EV');
+  await assert.rejects(publish(env, d), refusal('not-active'));
+  assert.equal(await env.publicBucket.read('current/manifest.json'), null);
+  assert.equal((await env.db.get(paths.election(EID))).publishLock ?? null, null);
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  assert.equal((await publish(env, d)).liveCheck.ok, true);
+});
+
 test('blocked and unreadable uploads never publish; nothing is written for an unreadable file', async () => {
   const env = setup();
   await env.svc.upsertElection(ADMIN, SETTINGS);

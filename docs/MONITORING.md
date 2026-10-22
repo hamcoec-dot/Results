@@ -24,6 +24,10 @@ It creates:
 - two log-based metrics (`audit_live_mismatch`, `callable_failed`);
 - the three alert policies.
 
+Set up production only after its first publish (the rehearsal's Zero): until `current/manifest.json` exists the
+uptime check fails everywhere and the unreachable alert fires. The tool uses `gcloud beta`; if gcloud asks to
+install the beta component, say yes.
+
 The SMS number uses the E.164 format (`+1` and ten digits). Then confirm the email channel from the
 message Google sends. In the console (Monitoring › Alerting › Edit notification channels), send a
 test notification to each channel.

@@ -62,6 +62,18 @@ for (const [file, ready] of Object.entries(PAGES)) {
   });
 }
 
+// ?staging shows test numbers on the official domain, so it is always marked as test data.
+test('index.html staging view is marked as test data', async ({ page }) => {
+  await routeDraft(page);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(`index.html?staging&draft=${DRAFT_ID}`);
+  await page.locator(PAGES['index.html']).first().waitFor();
+  await expect(page.locator('.draft-banner')).toHaveText(/^STAGING — TEST DATA, NOT REAL RESULTS/);
+  await expect(page).toHaveTitle(/^\[TEST\] /);
+  expect(page.url()).toContain('staging');
+  await audit(page);
+});
+
 for (const mode of ['dark-mode-toggle', 'contrast-toggle']) {
   test(`index.html with #${mode}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' }); // colours at rest, not mid-transition

@@ -45,29 +45,21 @@ Publishes the hidden election `test-staging-dryrun` to staging through the deplo
 - publish with the precincts-reporting count;
 - print the live check.
 
-Then the workflow runs the smoke test. Start it from the Actions tab: **staging-election → Run workflow**.
+Then the workflow runs the smoke test. Start it from the Actions tab: **staging-election → Run workflow**, or
+tick **test_election** when you run **deploy** (staging only; it publishes right after the staging deploy).
 
-It signs in as the bot admin `staging-bot`. It creates the Auth user and `admins/staging-bot`, and deletes that
-doc at the end. The test election is never made active.
+It signs in as the bot admin `staging-bot`. It creates the Auth user (a new random password each run) and
+`admins/staging-bot`, and deletes that doc at the end. The test election is made the active election (only the active election can publish).
 
 **It replaces the bucket's `current/` files.** Those files are shared by every election in the project, active
 or not. The tool refuses `hcec-election-results` unless `--allow-production` is passed (rehearsal only).
 
-One-time setup, on top of the setup above:
-1. Let the deploy account sign custom tokens as itself (IAM `signBlob`):
-   ```bash
-   SA=github-deploy@hcec-election-results-staging.iam.gserviceaccount.com
-   gcloud iam service-accounts add-iam-policy-binding $SA --project=hcec-election-results-staging \
-     --member=serviceAccount:$SA --role=roles/iam.serviceAccountTokenCreator
-   ```
-2. Add the repository variable `FIREBASE_WEB_API_KEY_STAGING`: the staging web app's `apiKey` (Firebase console
-   → Project settings). It is not a secret. The tool signs in from Node, which sends no `Referer`, so the key
-   must not be restricted to HTTP referrers. If it is, add a separate key restricted to the Identity Toolkit API.
+No setup beyond the above. The web API key is the staging one in `firebase-config.js` (not a secret; pass
+`--api-key` or `FIREBASE_WEB_API_KEY` to use another). The tool signs in from Node, which sends no `Referer`,
+so that key must not be restricted to HTTP referrers.
 
 By hand, with your own `gcloud auth application-default login`:
-`FIREBASE_WEB_API_KEY=… node tools/staging-election.js [--steps 00,01] [--publish false] [--set 94]`.
-Your account then needs the token-creator role on `github-deploy@…`. You can also pass
-`--service-account` with an account you can sign as.
+`node tools/staging-election.js [--steps 00,01] [--publish false] [--set 94]`.
 
 The same flow runs on the emulators, with no key or IAM:
 `node tools/staging-election.js --emulator`, then `node tools/smoke-public.js demo-hcec-results --emulator`.
@@ -133,6 +125,8 @@ node tools/smoke-public.js hcec-election-results-results        # what the publi
 node tools/load-manifest.js https://storage.googleapis.com/hcec-election-results-results/current/manifest.json \
   --requests 1000 --concurrency 100                              # election-night load sanity: p95 < 300 ms, no errors
 ```
+Before the rehearsal: the election-night load test, 2,000 simulated pages while 10 publishes are made (docs/LOAD-TEST.md).
+
 Both tools also run against the emulators:
 - `node tools/smoke-public.js demo-hcec-results --emulator` checks content only;
 - the load tool takes the emulator's manifest URL.

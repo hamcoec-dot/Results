@@ -10,27 +10,28 @@
  *
  * !! PUBLISHING ANY ELECTION OVERWRITES THE BUCKET'S current/ FILES !!
  * current/* is one set per public bucket, not per election: publishDraft copies to current/ whether or
- * not the election is `active` (that flag only picks which election auditLive watches). So after a run
- * the public pages pointed at this bucket show the test results, and auditLive on a real active election
- * reports a mismatch until that election is published again. On staging that is the point. On production
- * it replaces what voters see, so the tool refuses hcec-election-results unless --allow-production.
+ * not the election is `active`. The tool makes the test election the active one (only the active election
+ * may publish), so after a run the pages pointed at this bucket show the test results. On staging that is
+ * the point. On production it replaces what voters see, so the tool refuses hcec-election-results unless
+ * --allow-production.
  *
  * Signs in as a bot admin (uid staging-bot): makes the Auth user and admins/{uid} with the Admin SDK,
- * mints a custom token and signs in with the client SDK, as a browser would. admins/{uid} is deleted at
- * the end unless --keep-admin. Credentials are Google application-default credentials (in Actions:
- * google-github-actions/auth as github-deploy@<project>). createCustomToken on those credentials calls
- * IAM signBlob as --service-account, which needs roles/iam.serviceAccountTokenCreator on that account
- * (granted to itself; docs/DEPLOY.md › Staging test election).
+ * gives the user a new random password for this run (and re-enables it; it is disabled again at the end) and signs in with email/password from the client
+ * SDK, as a browser would (an Admin-SDK user can sign in with sign-up turned off). admins/{uid} is deleted
+ * at the end unless --keep-admin. Credentials are Google application-default credentials (in Actions:
+ * google-github-actions/auth as github-deploy@<project>); no token signing or extra IAM role is needed.
+ * The web API key defaults to the project's one in firebase-config.js (it is not a secret).
  *
  * Usage:
  *   FIREBASE_WEB_API_KEY=… node tools/staging-election.js [--project hcec-election-results-staging]
  *       [--api-key KEY] [--election test-staging-dryrun] [--steps 00,01,02,03,04,05,06] [--publish false]
- *       [--set 92|94] [--service-account EMAIL] [--keep-admin] [--allow-production]
+ *       [--set 92|94] [--keep-admin] [--allow-production]
  * The election id must start with "test-". A run that starts at 00 clears the test election's selected
  * uploads first, so it can be repeated.
  *   node tools/staging-election.js --emulator   the running emulators (project demo-hcec, no key or IAM needed)
  * Exits 1 if any step is refused, blocked or fails its live check.
  */
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -46,15 +47,22 @@ const emulator = flag('--emulator');
 const keepAdmin = flag('--keep-admin');
 const allowProduction = flag('--allow-production');
 const project = opt('--project', emulator ? 'demo-hcec' : 'hcec-election-results-staging');
-const apiKey = opt('--api-key', process.env.FIREBASE_WEB_API_KEY || (emulator ? 'demo-key' : ''));
+const apiKey = opt('--api-key', process.env.FIREBASE_WEB_API_KEY || (emulator ? 'demo-key' : configApiKey(project)));
 const electionId = opt('--election', 'test-staging-dryrun');
 const steps = opt('--steps', '00,01,02,03,04,05,06').split(',').map((s) => s.trim()).filter(Boolean);
 const publish = !/^(false|no|0)$/i.test(opt('--publish', 'true'));
 const set = opt('--set', '92');
-const serviceAccount = opt('--service-account', process.env.STAGING_BOT_SIGNER || `github-deploy@${project}.iam.gserviceaccount.com`);
+opt('--service-account'); // accepted and ignored: older docs passed the custom-token signer
+
+/** The web apiKey firebase-config.js uses for a project (the admin pages' own config), or ''. */
+function configApiKey(id) {
+  const text = fs.readFileSync(path.join(ROOT, 'firebase-config.js'), 'utf8');
+  const m = text.match(new RegExp(`apiKey: '([^']+)',[^}]*projectId: '${id}'`, 's'));
+  return m ? m[1] : '';
+}
 
 function usage(msg) {
-  console.error(`${msg}\nUsage: node tools/staging-election.js [--project ID] [--api-key KEY] [--election ID] [--steps 00,…,06] [--publish false] [--set 92|94] [--service-account EMAIL] [--keep-admin] [--allow-production] [--emulator]`);
+  console.error(`${msg}\nUsage: node tools/staging-election.js [--project ID] [--api-key KEY] [--election ID] [--steps 00,…,06] [--publish false] [--set 92|94] [--keep-admin] [--allow-production] [--emulator]`);
   process.exit(2);
 }
 if (args.length) usage(`Unknown arguments: ${args.join(' ')}`);
@@ -74,7 +82,7 @@ if (emulator) {
 const nm = (m) => require(path.join(ROOT, 'functions', 'node_modules', m));
 const admin = nm('firebase-admin');
 const { initializeApp, deleteApp } = nm('firebase/app');
-const { getAuth, connectAuthEmulator, signInWithCustomToken } = nm('firebase/auth');
+const { getAuth, connectAuthEmulator, signInWithEmailAndPassword } = nm('firebase/auth');
 const { getFunctions, connectFunctionsEmulator, httpsCallable } = nm('firebase/functions');
 
 /** The sample file for a step, and its upload kind (as emulator-drafts.js, plus 00 = Zero). */
@@ -85,21 +93,22 @@ function sample(prefix) {
   return { name, csv: fs.readFileSync(path.join(SAMPLES, name), 'utf8'), kind: n === 0 ? 'zero' : n <= 2 ? 'early' : 'ed' };
 }
 
+/** Makes (or resets) the bot's Auth user with a fresh random password and its admins doc; returns the sign-in. */
 async function ensureBot(db) {
   const email = `${BOT_UID}@${project}.invalid`;
+  const password = crypto.randomBytes(24).toString('base64url');
   try {
-    await admin.auth().getUser(BOT_UID);
+    await admin.auth().updateUser(BOT_UID, { email, password, disabled: false });
   } catch (e) {
     if (e.code !== 'auth/user-not-found') throw e;
-    await admin.auth().createUser({ uid: BOT_UID, email, displayName: 'Staging test-election bot' });
+    await admin.auth().createUser({ uid: BOT_UID, email, password, displayName: 'Staging test-election bot' });
   }
   await db.doc(`admins/${BOT_UID}`).set({ email, added: new Date().toISOString(), note: 'tools/staging-election.js' });
+  return { email, password };
 }
 
 async function main() {
-  // serviceAccountId: with ADC from Workload Identity Federation the SDK cannot discover which account
-  // signs custom tokens, so name it (IAM signBlob, roles/iam.serviceAccountTokenCreator).
-  admin.initializeApp(emulator ? { projectId: project } : { projectId: project, serviceAccountId: serviceAccount });
+  admin.initializeApp({ projectId: project });
   const db = admin.firestore();
   const app = initializeApp({ projectId: project, apiKey, authDomain: `${project}.firebaseapp.com` }, 'staging-bot');
   const auth = getAuth(app);
@@ -113,15 +122,16 @@ async function main() {
   let failed = false;
 
   try {
-    await ensureBot(db);
-    await signInWithCustomToken(auth, await admin.auth().createCustomToken(BOT_UID));
+    const bot = await ensureBot(db);
+    await signInWithEmailAndPassword(auth, bot.email, bot.password);
     await call('ping', {});
     console.log(`${project}: signed in as ${BOT_UID}; election ${electionId}; ${publish ? 'publishing' : 'drafts only'} ${steps.join(' ')} (${set})`);
 
-    // Never makeActive: a test election must not displace the real one auditLive watches.
+    // makeActive: only the active election may publish (current/ is one set per bucket). Staging has no
+    // real election to displace; production gets here only with --allow-production, for a rehearsal.
     await call('upsertElection', {
       id: electionId, name: '2026-11-03 General', date: '2026-11-03', county: 'Hamilton', precinctCap: Number(set),
-      enablePrecinctResults: true, makeActive: false,
+      enablePrecinctResults: true, makeActive: true,
     });
     // A run from 00 starts from an empty election, as on the night: a Zero file merged with a previous
     // run's selected ED file would be blocked (zero-file-has-votes). currentVersion is kept, so publishes
@@ -130,12 +140,6 @@ async function main() {
     if (steps[0] === '00' && (existing.selectedEarlyUploadId || existing.selectedEdUploadId)) {
       await db.doc(`elections/${electionId}`).update({ selectedEarlyUploadId: null, selectedEdUploadId: null });
       console.log(`Cleared ${electionId}'s selected uploads from a previous run.`);
-    }
-    const others = (await db.collection('elections').where('active', '==', true).get()).docs.filter((d) => d.id !== electionId);
-    for (const d of others) {
-      if (publish && d.data().currentVersion) {
-        console.log(`WARNING: ${d.id} is active and published (${d.data().currentVersion}); this run replaces the current/ files its pages read, and its auditLive will report a mismatch until it is published again.`);
-      }
     }
 
     for (const prefix of steps) {
@@ -165,7 +169,10 @@ async function main() {
     console.error(`FAIL: ${e.code ?? ''} ${e.message}${refusals ? ` (refusals: ${refusals})` : ''}`);
     failed = true;
   } finally {
-    if (!keepAdmin) await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
+    if (!keepAdmin) {
+      await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
+      await admin.auth().updateUser(BOT_UID, { disabled: true }).catch(() => { /* never created */ });
+    }
     await deleteApp(app);
     await admin.app().delete();
   }

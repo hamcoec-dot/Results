@@ -4,9 +4,8 @@ name: staging-election
 # callables, then smoke-tests the staging bucket (plan: Implementation phases 5, the dry run). Run it
 # after the first staging deploy so deploy.yml's smoke, load and ZAP steps have published data.
 # Staging only: tools/staging-election.js refuses production. It replaces the staging bucket's current/ files.
-# Needs the one-time setup in docs/DEPLOY.md › Staging test election:
-#   - roles/iam.serviceAccountTokenCreator for github-deploy@hcec-election-results-staging on itself;
-#   - repository variable FIREBASE_WEB_API_KEY_STAGING (the staging web app's API key; not a secret).
+# The same publish also runs inside deploy.yml when its test_election box is ticked.
+# Signs in a bot admin with a per-run random password; the web API key comes from firebase-config.js.
 on:
   workflow_dispatch:
     inputs:
@@ -33,8 +32,10 @@ jobs:
     timeout-minutes: 30
     environment: staging
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -43,15 +44,14 @@ jobs:
         working-directory: functions
         run: npm ci
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SA_STAGING }}
 
       - name: Publish the test election through the callables
-        run: node tools/staging-election.js --project hcec-election-results-staging --election "$ELECTION" --steps "$STEPS" --service-account "${{ vars.GCP_DEPLOY_SA_STAGING }}"
+        run: node tools/staging-election.js --project hcec-election-results-staging --election "$ELECTION" --steps "$STEPS"
         env:
-          FIREBASE_WEB_API_KEY: ${{ vars.FIREBASE_WEB_API_KEY_STAGING }}
           ELECTION: ${{ inputs.election }}
           STEPS: ${{ inputs.steps }}
 

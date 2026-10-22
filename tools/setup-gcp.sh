@@ -144,9 +144,6 @@ setup_project() {
     gcloud projects add-iam-policy-binding "$p" --member="serviceAccount:$sa" --role="$role" \
       --condition=None >/dev/null || fail "role $role for $sa"
   done
-  # tools/staging-election.js signs a custom token as this account to sign in its test admin.
-  gcloud iam service-accounts add-iam-policy-binding "$sa" --project="$p" --member="serviceAccount:$sa" \
-    --role=roles/iam.serviceAccountTokenCreator >/dev/null || fail "token signing for $sa"
   ok "deploy roles granted"
 
   # Only GitHub Actions runs from hamcoec-dot/Results may act as this account.

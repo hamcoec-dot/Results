@@ -3,15 +3,22 @@
 Hold this at least once before every election, in production, with a hidden test election (plan: Rehearsal and
 election-night assurance). It must pass before election night. Copy the record table at the bottom for each run.
 
+**Hold it before the public pages read the bucket** (`PUBLIC_BASE` set; docs/DEPLOY.md › Switch-over). The bucket's
+`current/` files are one set for every election, active or not, so once the pages read the bucket a rehearsal
+publish is what voters see. After the switch, rehearse on staging (`?staging`) instead.
+
 ## Before
 - [ ] Export from the tally system's test deck:
   - [ ] a Zero file;
   - [ ] an Early/ABS file;
   - [ ] at least three Election Day files (partial, more, all precincts).
-- [ ] Create the test election in admin.html: max precincts = the real count, and **not** the active election.
+- [ ] Create the test election in admin.html: max precincts = the real count, and make it the active election
+  (only the active election can publish, and auditLive watches it during the rehearsal).
 - [ ] Two people: an operator (runs the runbook) and a checker (compares numbers).
 - [ ] Printed tally reports for every file, for the checker.
-- [ ] `node tools/smoke-public.js hcec-election-results-results` passes before you start.
+- [ ] `node tools/smoke-public.js hcec-election-results-results` passes before you start. On the first rehearsal
+  nothing is published yet, so it fails on the missing `current/manifest.json`; that is expected.
+- [ ] The production deploy is current: run **deploy** and approve the production job.
 
 ## Run (time each step)
 1. **Zero:** upload → review (open all four draft pages) → acknowledge → type the count → publish.
@@ -38,7 +45,7 @@ election-night assurance). It must pass before election night. Copy the record t
    Record when the email and the SMS arrived.
 
 ## After
-- [ ] Discard or let expire any open drafts; clear the test election's active flag if it was set.
+- [ ] Discard or let expire any open drafts. Make the real election the active one before its Zero publish.
 - [ ] Export the audit log for the record.
 - [ ] Note anything slow or confusing, and fix it before election night.
 
