@@ -50,7 +50,7 @@ Generate a fixture by hand: `node tools/gen-fixture.js --seed 42 --kind ed --lay
 | 12 | Resilience / chaos | **live updates done**: manifest-only polls, invalid data kept off screen ("delayed — retrying"), pause toggle, draft never polls, lazy reporting.json; 500/503/404, truncated, empty and HTML-error bodies, a manifest whose dataVersion disagrees, a half-finished publish, a stalled request (20 s timeout) and a slow one, an aborted request, a skewed clock, a tab hidden for 2 h, a failed first load | `a11y/resilience.spec.js`, `a11y/live-updates.spec.js` (Storage emulator URLs answered from goldens, no emulator needed) |
 | 13 | Dependency & secret security | `npm audit` + gitleaks + osv-scanner in CI; ZAP baseline (passive) of the Pages site and staging bucket on each deploy | `.github/workflows/ci.yml`; `deploy-target.yml`, `.zap/rules.tsv` |
 | 14 | Load | 2,000 manifest fetches against staging on each deploy (Node, in place of k6): p95 < 300 ms, 0 errors | `tools/load-manifest.js` in `deploy-target.yml` |
-| 15 | Staging smoke | served bytes, Cache-Control, gzip, CORS, no listing, on each deploy | `tools/smoke-public.js` in `deploy-target.yml` |
+| 15 | Staging smoke | served bytes, Cache-Control, gzip, CORS, no listing, on each deploy | `tools/smoke-public.js` in `deploy-target.yml`; its published data from `tools/staging-election.js` (`staging-election.yml`, the 00→06 dry run) |
 
 ## Oracles
 

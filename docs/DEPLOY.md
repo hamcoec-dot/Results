@@ -34,8 +34,43 @@ The manual deploy in README › Deploy still works as before.
    - **Variables (repository):**
      - `GCP_WIF_PROVIDER` = `projects/<POOL_PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/providers/github`;
      - `GCP_DEPLOY_SA_STAGING` and `GCP_DEPLOY_SA_PROD` = each project's `github-deploy@…` address.
-4. **First run:** publish a test election on staging through admin.html first, so the smoke test has
-   something to check. Or run once with *smoke* unticked.
+4. **First run:** deploy once with *smoke* unticked, then run **staging-election** (below) so the smoke,
+   load and ZAP steps have something to check. Publishing a test election through admin.html works too.
+
+## Staging test election (`tools/staging-election.js`, `staging-election.yml`)
+Publishes the hidden election `test-staging-dryrun` to staging through the deployed callables, with the
+`Web Results Samples` 00→06 files (92 precincts). Each step is what an admin does:
+- create the draft (00 Zero, 01–02 Early/ABS, 03–06 Election Day);
+- check it is ready and acknowledge every warning;
+- publish with the precincts-reporting count;
+- print the live check.
+
+Then the workflow runs the smoke test. Start it from the Actions tab: **staging-election → Run workflow**.
+
+It signs in as the bot admin `staging-bot`. It creates the Auth user and `admins/staging-bot`, and deletes that
+doc at the end. The test election is never made active.
+
+**It replaces the bucket's `current/` files.** Those files are shared by every election in the project, active
+or not. The tool refuses `hcec-election-results` unless `--allow-production` is passed (rehearsal only).
+
+One-time setup, on top of the setup above:
+1. Let the deploy account sign custom tokens as itself (IAM `signBlob`):
+   ```bash
+   SA=github-deploy@hcec-election-results-staging.iam.gserviceaccount.com
+   gcloud iam service-accounts add-iam-policy-binding $SA --project=hcec-election-results-staging \
+     --member=serviceAccount:$SA --role=roles/iam.serviceAccountTokenCreator
+   ```
+2. Add the repository variable `FIREBASE_WEB_API_KEY_STAGING`: the staging web app's `apiKey` (Firebase console
+   → Project settings). It is not a secret. The tool signs in from Node, which sends no `Referer`, so the key
+   must not be restricted to HTTP referrers. If it is, add a separate key restricted to the Identity Toolkit API.
+
+By hand, with your own `gcloud auth application-default login`:
+`FIREBASE_WEB_API_KEY=… node tools/staging-election.js [--steps 00,01] [--publish false] [--set 94]`.
+Your account then needs the token-creator role on `github-deploy@…`. You can also pass
+`--service-account` with an account you can sign as.
+
+The same flow runs on the emulators, with no key or IAM:
+`node tools/staging-election.js --emulator`, then `node tools/smoke-public.js demo-hcec-results --emulator`.
 
 ## What a run does (each target)
 1. Applies `cors.json` and `lifecycle.json` to the public bucket.
