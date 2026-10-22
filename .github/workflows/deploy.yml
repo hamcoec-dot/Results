@@ -13,6 +13,10 @@ on:
         description: 'Smoke-test the public bucket after each deploy (needs something published there)'
         type: boolean
         default: true
+      test_election:
+        description: 'Staging only: publish the 00→06 sample test election before the smoke test (tools/staging-election.js)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -56,6 +60,7 @@ jobs:
       bucket: hcec-election-results-staging-results
       service_account_var: GCP_DEPLOY_SA_STAGING
       smoke: ${{ inputs.smoke }}
+      test_election: ${{ inputs.test_election }}
 
   production:
     permissions:

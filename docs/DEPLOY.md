@@ -34,8 +34,35 @@ The manual deploy in README › Deploy still works as before.
    - **Variables (repository):**
      - `GCP_WIF_PROVIDER` = `projects/<POOL_PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/providers/github`;
      - `GCP_DEPLOY_SA_STAGING` and `GCP_DEPLOY_SA_PROD` = each project's `github-deploy@…` address.
-4. **First run:** publish a test election on staging through admin.html first, so the smoke test has
-   something to check. Or run once with *smoke* unticked.
+4. **First run:** deploy once with *smoke* unticked, then run **staging-election** (below) so the smoke,
+   load and ZAP steps have something to check. Publishing a test election through admin.html works too.
+
+## Staging test election (`tools/staging-election.js`, `staging-election.yml`)
+Publishes the hidden election `test-staging-dryrun` to staging through the deployed callables, with the
+`Web Results Samples` 00→06 files (92 precincts). Each step is what an admin does:
+- create the draft (00 Zero, 01–02 Early/ABS, 03–06 Election Day);
+- check it is ready and acknowledge every warning;
+- publish with the precincts-reporting count;
+- print the live check.
+
+Then the workflow runs the smoke test. Start it from the Actions tab: **staging-election → Run workflow**, or
+tick **test_election** when you run **deploy** (staging only; it publishes right after the staging deploy).
+
+It signs in as the bot admin `staging-bot`. It creates the Auth user (a new random password each run) and
+`admins/staging-bot`, and deletes that doc at the end. The test election is made the active election (only the active election can publish).
+
+**It replaces the bucket's `current/` files.** Those files are shared by every election in the project, active
+or not. The tool refuses `hcec-election-results` unless `--allow-production` is passed (rehearsal only).
+
+No setup beyond the above. The web API key is the staging one in `firebase-config.js` (not a secret; pass
+`--api-key` or `FIREBASE_WEB_API_KEY` to use another). The tool signs in from Node, which sends no `Referer`,
+so that key must not be restricted to HTTP referrers.
+
+By hand, with your own `gcloud auth application-default login`:
+`node tools/staging-election.js [--steps 00,01] [--publish false] [--set 94]`.
+
+The same flow runs on the emulators, with no key or IAM:
+`node tools/staging-election.js --emulator`, then `node tools/smoke-public.js demo-hcec-results --emulator`.
 
 ## What a run does (each target)
 1. Applies `cors.json` and `lifecycle.json` to the public bucket.

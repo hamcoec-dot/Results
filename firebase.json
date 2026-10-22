@@ -1,7 +1,7 @@
 {
   "firestore": { "rules": "firestore.rules" },
   "storage": { "rules": "storage.rules" },
-  "functions": { "source": "functions", "runtime": "nodejs22", "ignore": ["test", "coverage", "reports", ".stryker-tmp", "stryker.config.json", ".c8rc.json"] },
+  "functions": { "source": "functions", "runtime": "nodejs22", "ignore": ["node_modules", ".git", "*.log", "test", "coverage", "reports", ".stryker-tmp", "stryker.config.json", ".c8rc.json"] },
   "emulators": {
     "auth": { "port": 9099 },
     "firestore": { "port": 8181 },

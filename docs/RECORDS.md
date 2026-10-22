@@ -10,8 +10,8 @@ node tools/export-election.js 2026-11-03-general --out 2026-11-03-general-record
 ```
 
 - `--project hcec-election-results` is the default.
-- `--private-bucket <name>` overrides the uploads bucket. The default is `<project>.appspot.com`; projects created
-  since late 2024 use `<project>.firebasestorage.app`.
+- `--private-bucket <name>` overrides the uploads bucket. The default is `<project>.firebasestorage.app`, the bucket
+  name of both real projects (with `--emulator`, `<project>.appspot.com`).
 - Rehearsal: `node tools/export-election.js 2026-11-03-general --emulator` against the local emulators.
 
 The tool exits 1 and prints a warning when a record names a file that storage no longer has. The archive is

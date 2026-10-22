@@ -3,7 +3,7 @@
 // it needs for gcloud.cmd on Windows. Running against GCP is a manual step (docs/MONITORING.md).
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseArgs, uptimePolicy, logPolicy, plan, shellArgs, LOG_METRICS } = require('../../tools/setup-monitoring');
+const { parseArgs, uptimePolicy, logPolicy, allPolicies, plan, shellArgs, LOG_METRICS } = require('../../tools/setup-monitoring');
 
 const OK = ['--project', 'hcec-election-results-staging', '--bucket', 'hcec-election-results-staging-results', '--email', 'elections@example.org'];
 
@@ -43,7 +43,7 @@ test('log metrics match what the functions log', () => {
   for (const [, , filter] of LOG_METRICS) assert.match(filter, /severity>=ERROR/);
 });
 
-test('policies: uptime alert needs 2+ failing regions; log alerts fire on any entry; all notify the channels', () => {
+test('policies: uptime alert needs 2+ failing regions; log alerts fire on any entry by default; all notify the channels', () => {
   const u = uptimePolicy('abc123', ['projects/p/notificationChannels/1']);
   const c = u.conditions[0].conditionThreshold;
   assert.match(c.filter, /check_id="abc123"/);
@@ -51,10 +51,25 @@ test('policies: uptime alert needs 2+ failing regions; log alerts fire on any en
   assert.equal(c.comparison, 'COMPARISON_GT');
   assert.equal(c.thresholdValue, 1);
   assert.deepEqual(u.notificationChannels, ['projects/p/notificationChannels/1']);
-  const l = logPolicy('audit_live_mismatch', 'T', 'D', ['ch']);
-  assert.match(l.conditions[0].conditionThreshold.filter, /logging\.googleapis\.com\/user\/audit_live_mismatch/);
+  const l = logPolicy('callable_failed', 'T', 'D', ['ch']);
+  assert.match(l.conditions[0].conditionThreshold.filter, /logging\.googleapis\.com\/user\/callable_failed/);
   assert.equal(l.conditions[0].conditionThreshold.thresholdValue, 0);
+  assert.equal(l.conditions[0].conditionThreshold.aggregations[0].alignmentPeriod, '60s');
   assert.deepEqual(l.notificationChannels, ['ch']);
+});
+
+test('mismatch alert needs 2 entries in a 2-minute window (2 auditLive runs in a row); the others fire on 1', () => {
+  const policies = allPolicies('abc123', ['ch']);
+  assert.equal(policies.length, 3);
+  const [, mismatch, failed] = policies.map((p) => p.conditions[0].conditionThreshold);
+  assert.match(mismatch.filter, /logging\.googleapis\.com\/user\/audit_live_mismatch/);
+  assert.deepEqual(mismatch.aggregations, [{ alignmentPeriod: '120s', perSeriesAligner: 'ALIGN_SUM' }]);
+  assert.equal(mismatch.comparison, 'COMPARISON_GT');
+  assert.equal(mismatch.thresholdValue, 1); // sum over the rolling window > 1, i.e. at least 2 entries
+  assert.equal(mismatch.duration, '0s');
+  assert.match(failed.filter, /user\/callable_failed/);
+  assert.equal(failed.thresholdValue, 0);
+  for (const p of policies) assert.deepEqual(p.notificationChannels, ['ch']);
 });
 
 test('shellArgs: quoted for cmd.exe on Windows, untouched elsewhere; a double quote is refused', () => {

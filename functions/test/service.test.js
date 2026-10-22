@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { REPO } = require('./helpers/fixtures');
 const { MemoryDb, MemoryBucket, clock } = require('./helpers/fakes');
-const { createService, ServiceError, validateSettings, paths } = require('../src/service');
+const { createService, ServiceError, validateSettings, paths, AUDIT_RECHECK_MS } = require('../src/service');
 const { sha256Hex, DRAFT_TTL_MS, LOCK_TTL_MS } = require('../src/publish');
 const { validateSet } = require('../src/validate');
 
@@ -27,8 +27,11 @@ function setup({ fetchLive } = {}) {
   const publicBucket = new MemoryBucket();
   const privateBucket = new MemoryBucket();
   const now = clock();
-  const svc = createService({ db, publicBucket, privateBucket, now, fetchLive: fetchLive ?? ((p) => publicBucket.read(p)) });
-  return { db, publicBucket, privateBucket, now, svc };
+  // auditLive's re-check pause: recorded, advances the clock, and runs env.onSleep (what happens meanwhile).
+  const env = { db, publicBucket, privateBucket, now, sleeps: [], onSleep: async () => {} };
+  const sleep = async (ms) => { env.sleeps.push(ms); now.advance(ms); await env.onSleep(); };
+  env.svc = createService({ db, publicBucket, privateBucket, now, sleep, fetchLive: fetchLive ?? ((p) => publicBucket.read(p)) });
+  return env;
 }
 
 async function draftOf(env, kind, name, extra = {}) {
@@ -298,6 +301,93 @@ test('auditLive: served bytes must equal the published version', async () => {
   const lastAudit = (await env.db.get(paths.election(EID))).lastAudit;
   assert.equal(lastAudit.ok, false);
   assert.deepEqual(lastAudit.problems, ['manifest.json could not be fetched or is not JSON']);
+  // A lasting mismatch is looked at twice, AUDIT_RECHECK_MS apart, before it is reported.
+  assert.deepEqual(env.sleeps, [AUDIT_RECHECK_MS, AUDIT_RECHECK_MS]);
+});
+
+const auditEntries = async (env) => (await env.db.list('audit')).map((a) => a.data).filter((a) => a.action === 'auditLive');
+
+test('auditLive mid-publish: skipped while the lease is held (no false alarm); an expired lease does not silence it', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  await publish(env, await draftOf(env, 'early', '01-After NH&ABS'));
+  assert.equal((await env.svc.auditLive(ADMIN, { electionId: EID })).ok, true);
+  const d = await draftOf(env, 'early', '02-After EV');
+  const results = [];
+  const copy = env.publicBucket.copy.bind(env.publicBucket);
+  env.publicBucket.copy = async (from, to, meta) => {
+    // The page files are already new; summary, manifest and currentVersion are still the old ones.
+    if (to === `current/summary.json`) {
+      results.push(await env.svc.auditLive(ADMIN, { electionId: EID }));
+      results.push((await env.db.get(paths.election(EID))).lastAudit);
+      env.now.advance(LOCK_TTL_MS); // a publish stuck past its lease: the audit must report it
+      results.push(await env.svc.auditLive(ADMIN, { electionId: EID }));
+    }
+    return copy(from, to, meta);
+  };
+  const before = (await env.db.get(paths.election(EID))).lastAudit;
+  await publish(env, d);
+  env.publicBucket.copy = copy;
+
+  assert.deepEqual(results[0], { ok: true, skipped: true, problems: [] });
+  assert.deepEqual(results[1], before); // a skipped audit leaves the admin banner field as it was
+  assert.equal(results[2].ok, false);
+  assert.ok(results[2].problems.some((p) => /differs from the published bytes/.test(p)));
+  assert.deepEqual(env.sleeps, [AUDIT_RECHECK_MS]); // only the expired-lease audit re-checked
+  const entries = await auditEntries(env);
+  assert.deepEqual(entries.map((a) => [a.ok, a.skipped ?? false]), [[true, false], [true, true], [false, false]]);
+  assert.equal(entries[1].detail, 'publish in progress, audit skipped');
+  // Once the publish commits, the audit passes again.
+  assert.deepEqual(await env.svc.auditLive(ADMIN, { electionId: EID }), { ok: true, problems: [] });
+});
+
+test('auditLive skips when a publish starts or finishes while it fetches, and leaves lastAudit alone', async () => {
+  for (const change of [
+    () => ({ publishLock: { holder: 'other', until: Date.UTC(2030, 0, 1) } }), // lease taken mid-look
+    (e) => ({ currentVersion: `${e.currentVersion}x` }), // a whole publish committed mid-look
+  ]) {
+    let env;
+    let changed = false;
+    env = setup({
+      fetchLive: async (p) => {
+        if (!changed) { changed = true; await env.db.update(paths.election(EID), change(await env.db.get(paths.election(EID)))); }
+        return env.publicBucket.read(p);
+      },
+    });
+    await env.svc.upsertElection(ADMIN, SETTINGS);
+    await publish(env, await draftOf(env, 'early', '02-After EV'));
+    changed = false;
+    await env.publicBucket.write('current/reporting.json', '{"half":"copied"}');
+    assert.deepEqual(await env.svc.auditLive(ADMIN, { electionId: EID }), { ok: true, skipped: true, problems: [] });
+    assert.equal((await env.db.get(paths.election(EID))).lastAudit, undefined);
+    assert.deepEqual(env.sleeps, []);
+    assert.deepEqual((await auditEntries(env)).map((a) => a.skipped), [true]);
+  }
+});
+
+test('auditLive re-checks a mismatch before reporting it: gone on the second look is ok; a publish meanwhile skips', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  await publish(env, await draftOf(env, 'early', '02-After EV'));
+  const good = await env.publicBucket.read('current/reporting.json');
+
+  // A transient mismatch (e.g. a publish whose lease the audit missed) that clears within the pause.
+  await env.publicBucket.write('current/reporting.json', '{"half":"copied"}');
+  env.onSleep = () => env.publicBucket.write('current/reporting.json', good);
+  assert.deepEqual(await env.svc.auditLive(ADMIN, { electionId: EID }), { ok: true, problems: [] });
+  assert.deepEqual(env.sleeps, [AUDIT_RECHECK_MS]);
+  let entries = await auditEntries(env);
+  assert.equal(entries.at(-1).ok, true);
+  assert.match(entries.at(-1).detail, /^ok on re-check \(first look: reporting\.json differs/);
+  assert.equal((await env.db.get(paths.election(EID))).lastAudit.ok, true);
+
+  // A publish takes the lease during the pause: the second look is skipped, nothing is reported.
+  await env.publicBucket.write('current/reporting.json', '{"half":"copied"}');
+  env.onSleep = () => env.db.update(paths.election(EID), { publishLock: { holder: 'other', until: env.now() + LOCK_TTL_MS } });
+  assert.deepEqual(await env.svc.auditLive(ADMIN, { electionId: EID }), { ok: true, skipped: true, problems: [] });
+  entries = await auditEntries(env);
+  assert.deepEqual([entries.at(-1).ok, entries.at(-1).skipped], [true, true]);
+  assert.equal((await env.db.get(paths.election(EID))).lastAudit.ok, true);
 });
 
 test('settings draft: the selected files rebuilt under new settings, reviewed and published as a new version', async () => {
