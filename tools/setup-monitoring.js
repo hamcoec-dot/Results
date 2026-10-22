@@ -7,7 +7,7 @@
  *      contain "dataVersion";
  *   3. alert: the uptime check fails in 2 or more regions;
  *   4. a log-based metric and alert for auditLive's AUDIT_LIVE_MISMATCH (the public files differ
- *      from the published version);
+ *      from the published version), on 2 entries within 2 minutes, i.e. 2 runs in a row;
  *   5. a log-based metric and alert for any callable that fails ("<method> failed").
  *
  * Usage (needs gcloud signed in with Monitoring Admin and Logs Configuration Writer):
@@ -60,19 +60,23 @@ function uptimePolicy(checkId, channels) {
   };
 }
 
-/** An alert on any entry of a log-based metric within a minute. */
-function logPolicy(metric, title, doc, channels) {
+/**
+ * An alert on a log-based metric: by default on any entry within a minute. With minCount n, it
+ * needs n entries within n minutes (a rolling window): for a once-a-minute job such as auditLive,
+ * that is n runs in a row, so one odd minute never pages anyone.
+ */
+function logPolicy(metric, title, doc, channels, { minCount = 1 } = {}) {
   return {
     displayName: title,
     documentation: { mimeType: 'text/markdown', content: doc },
     combiner: 'OR',
     conditions: [{
-      displayName: `${metric} > 0`,
+      displayName: `${metric} >= ${minCount} in ${minCount} min`,
       conditionThreshold: {
         filter: `metric.type="logging.googleapis.com/user/${metric}" AND resource.type="cloud_run_revision"`,
-        aggregations: [{ alignmentPeriod: '60s', perSeriesAligner: 'ALIGN_SUM' }],
+        aggregations: [{ alignmentPeriod: `${60 * minCount}s`, perSeriesAligner: 'ALIGN_SUM' }],
         comparison: 'COMPARISON_GT',
-        thresholdValue: 0,
+        thresholdValue: minCount - 1,
         duration: '0s',
         trigger: { count: 1 },
       },
@@ -120,6 +124,22 @@ function shellArgs(cmd, platform = process.platform) {
   });
 }
 
+/**
+ * The three alert policies. The mismatch alert needs 2 auditLive runs in a row: auditLive already
+ * skips audits during a publish and re-checks a mismatch, and this is the last guard against a
+ * false SMS on election night. A real mismatch still alerts, about a minute later.
+ */
+function allPolicies(checkId, channels) {
+  return [
+    uptimePolicy(checkId, channels),
+    logPolicy('audit_live_mismatch', 'Election results: public files differ from the published version',
+      'auditLive found a mismatch in 2 runs in a row. The admin page shows a red banner with the details. Roll back or republish; see README › Troubleshooting.', channels,
+      { minCount: 2 }),
+    logPolicy('callable_failed', 'Election results: an admin action failed',
+      'A callable failed with an unexpected error. Check the function logs for "<method> failed".', channels),
+  ];
+}
+
 function main() {
   const o = parseArgs(process.argv.slice(2));
   const p = plan(o);
@@ -140,13 +160,7 @@ function main() {
   const channels = p.channels.map(run);
   const checkId = run(p.uptime).split('/').pop(); // projects/<p>/uptimeCheckConfigs/<id>
   for (const [name, description, filter] of LOG_METRICS) run(p.metric(name, write(`metric-${name}.json`, { description, filter })));
-  const policies = [
-    uptimePolicy(checkId, channels),
-    logPolicy('audit_live_mismatch', 'Election results: public files differ from the published version',
-      'auditLive found a mismatch. The admin page shows a red banner with the details. Roll back or republish; see README › Troubleshooting.', channels),
-    logPolicy('callable_failed', 'Election results: an admin action failed',
-      'A callable failed with an unexpected error. Check the function logs for "<method> failed".', channels),
-  ];
+  const policies = allPolicies(checkId, channels);
   policies.forEach((policy, i) => run(p.policy(write(`policy-${i}.json`, policy))));
   console.log(`\nDone: ${channels.length} channel(s), uptime check ${checkId}, ${LOG_METRICS.length} log metrics, ${policies.length} alert policies.`);
   console.log('Confirm the email (and SMS) channel, then test the alerts: docs/MONITORING.md.');
@@ -156,4 +170,4 @@ if (require.main === module) {
   try { main(); } catch (e) { console.error(e.message); process.exit(1); }
 }
 
-module.exports = { parseArgs, uptimePolicy, logPolicy, plan, shellArgs, LOG_METRICS };
+module.exports = { parseArgs, uptimePolicy, logPolicy, allPolicies, plan, shellArgs, LOG_METRICS };
