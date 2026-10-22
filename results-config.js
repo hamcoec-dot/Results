@@ -72,13 +72,16 @@
     });
   }
 
-  if (!draft) return;
-  document.title = '[DRAFT] ' + document.title;
+  // Staging serves realistic test numbers from the official domain, so it is marked like a draft.
+  if (!draft && !staging) return;
+  var label = staging ? 'STAGING — TEST DATA, NOT REAL RESULTS' + (draft ? ' — DRAFT ' + draft.slice(0, 8) + '…' : '')
+    : 'DRAFT — NOT PUBLIC — ' + draft.slice(0, 8) + '…';
+  document.title = (staging ? '[TEST] ' : '[DRAFT] ') + document.title;
   var showBanner = function () {
     var b = document.createElement('div');
     b.className = 'draft-banner';
     b.setAttribute('role', 'note');
-    b.textContent = 'DRAFT — NOT PUBLIC — ' + draft.slice(0, 8) + '…';
+    b.textContent = label;
     document.body.insertBefore(b, document.body.firstChild);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showBanner);

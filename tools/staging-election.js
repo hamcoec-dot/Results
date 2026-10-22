@@ -16,7 +16,7 @@
  * --allow-production.
  *
  * Signs in as a bot admin (uid staging-bot): makes the Auth user and admins/{uid} with the Admin SDK,
- * gives the user a new random password for this run and signs in with email/password from the client
+ * gives the user a new random password for this run (and re-enables it; it is disabled again at the end) and signs in with email/password from the client
  * SDK, as a browser would (an Admin-SDK user can sign in with sign-up turned off). admins/{uid} is deleted
  * at the end unless --keep-admin. Credentials are Google application-default credentials (in Actions:
  * google-github-actions/auth as github-deploy@<project>); no token signing or extra IAM role is needed.
@@ -169,7 +169,10 @@ async function main() {
     console.error(`FAIL: ${e.code ?? ''} ${e.message}${refusals ? ` (refusals: ${refusals})` : ''}`);
     failed = true;
   } finally {
-    if (!keepAdmin) await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
+    if (!keepAdmin) {
+      await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
+      await admin.auth().updateUser(BOT_UID, { disabled: true }).catch(() => { /* never created */ });
+    }
     await deleteApp(app);
     await admin.app().delete();
   }
