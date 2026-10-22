@@ -1,55 +1,84 @@
 # Mock election rehearsal
 
-Hold this at least once before every election, in production, with a hidden test election (plan: Rehearsal and
-election-night assurance). It must pass before election night. Copy the record table at the bottom for each run.
+Hold this at least once before every election, in production, with a hidden test election. It must pass before
+election night. It is written for two people who are not developers: everything happens on the admin page
+(govotehamiltontn.gov/Results/admin.html) and the public pages. The technical checks are in the last section,
+for whoever maintains the system (Claude), and are done before and after the two of you start.
 
 **Hold it before the public pages read the bucket** (`PUBLIC_BASE` set; docs/DEPLOY.md › Switch-over). The bucket's
 `current/` files are one set for every election, active or not, so once the pages read the bucket a rehearsal
 publish is what voters see. After the switch, rehearse on staging (`?staging`) instead.
 
-## Before
-- [ ] Export from the tally system's test deck:
-  - [ ] a Zero file;
-  - [ ] an Early/ABS file;
-  - [ ] at least three Election Day files (partial, more, all precincts).
-- [ ] Create the test election in admin.html: max precincts = the real count, and make it the active election
-  (only the active election can publish, and auditLive watches it during the rehearsal).
-- [ ] Two people: an operator (runs the runbook) and a checker (compares numbers).
-- [ ] Printed tally reports for every file, for the checker.
-- [ ] `node tools/smoke-public.js hcec-election-results-results` passes before you start. On the first rehearsal
-  nothing is published yet, so it fails on the missing `current/manifest.json`; that is expected.
-- [ ] The production deploy is current: run **deploy** and approve the production job.
+## Who
+- **Operator:** signs in to the admin page and does every upload and publish.
+- **Checker:** has the printed tally reports and compares the numbers on the public pages with them. The checker
+  says "match" out loud before the operator moves on.
 
-## Run (time each step)
-1. **Zero:** upload → review (open all four draft pages) → acknowledge → type the count → publish.
-   - The public page shows 0 of N.
-   - The live check is green.
-2. **Early/ABS:** same flow. The checker compares every contest total on the public summary page with the printed report.
-3. **Each Election Day file, in order:**
-   - [ ] The review's precinct list matches the tally system's reported precincts exactly.
-   - [ ] Every reporting-mismatch warning is understood before it is acknowledged.
-   - [ ] The public pages update within 60 s of the publish.
-   - [ ] The checker compares every contest total and the R of T for each contest with the printed report.
-4. **Deliberate rollback:** roll back to the previous version through the rollback draft.
-   - The review shows the decreases.
-   - The public page reverts.
-   - Then publish the latest again.
-5. **Settings change:** toggle the Precinct Results page, then use "Create draft with these settings", review and
-   publish. Check the page hides or shows, then restore the setting the same way.
-6. **Failure drills:**
-   - [ ] Upload an ED file as Zero: it is a **block**.
-   - [ ] Upload a file with lower totals: a warning that must be acknowledged.
-   - [ ] Create draft A, publish draft B, then try to publish A: refused as stale.
-7. `node tools/smoke-public.js hcec-election-results-results` after the last publish.
-8. **Alerts (staging):** trigger the mismatch and uptime alerts as in docs/MONITORING.md › Test the alerts.
-   Record when the email and the SMS arrived.
+## Bring
+- [ ] Test files exported from the tally system's test deck: a Zero file, an Early/ABS file, and at least three
+  Election Day files (some precincts, more precincts, all precincts). The sample files in
+  `Test_Files\Web Results Samples` (00 to 06) work if no test deck is ready.
+- [ ] A printed tally report for every file, for the checker.
+- [ ] The admin sign-in (email and password).
+- [ ] A clock or phone to write down how long each step takes.
+
+## Set up (operator, about 5 minutes)
+1. Sign in to the admin page.
+2. Under **Election settings**, choose a new election. Give it a name with "TEST" in it, set **Max precincts** to
+   the real number of precincts, tick **This is the active election**, and click **Save settings**. Only the
+   active election can publish.
+3. Check the election shows a ★ and "— active" in the **Election** list.
+
+## Run (write down the time of each step)
+For every file the flow is the same:
+**Upload results** → pick the file and what it is (**What is this file?**) → **Upload & create draft** →
+**Review** (under **Open drafts**) → open all four page previews → tick every warning once you understand it →
+type the precincts-reporting number shown in the sentence → **Confirm**.
+
+1. **Zero file** (choose "Zero report").
+   - [ ] The public results page shows 0 precincts reporting.
+   - [ ] Under **Published versions**, the new row's **Live check** is green.
+2. **Early/ABS file** (choose "Early voting / Absentee").
+   - [ ] Checker: every contest total on the public results page matches the printed report.
+3. **Each Election Day file, in order** (choose "Election Day").
+   - [ ] On the review page, the precincts reporting match the tally system's report exactly.
+   - [ ] Every warning is understood (say out loud why it is OK) before it is ticked.
+   - [ ] The public pages show the new numbers within 60 seconds of publishing.
+   - [ ] Checker: every contest total, and "X of Y precincts reporting" for each contest, match the printed report.
+4. **Practice a rollback.** Under **Published versions**, click **Roll back to this** on the version before the
+   latest, then **Create rollback draft**.
+   - [ ] The review shows the numbers going down.
+   - [ ] After publishing it, the public page shows the older numbers.
+   - [ ] Then upload and publish the latest Election Day file again.
+5. **Practice a settings change.** In **Election settings**, untick **Show the Precinct Results page** and click
+   **Create draft with these settings**. Review and publish it.
+   - [ ] The Precinct Results page disappears from the public site.
+   - [ ] Turn it back on the same way, and check it comes back.
+6. **Practice mistakes on purpose:**
+   - [ ] Upload an Election Day file but choose "Zero report". The draft is **BLOCKED** and cannot be published.
+   - [ ] Upload an earlier file after a later one (lower totals). A warning appears and must be ticked before publishing.
+   - [ ] Upload two files to make two drafts (A, then B). Publish B, then open A. It is refused as **Stale**.
+7. Under **Open drafts**, click **Discard** on anything left over.
 
 ## After
-- [ ] Discard or let expire any open drafts. Make the real election the active one before its Zero publish.
-- [ ] Export the audit log for the record.
-- [ ] Note anything slow or confusing, and fix it before election night.
+- [ ] Untick **This is the active election** on the test election. Make the real election the active one before its Zero publish.
+- [ ] Fill in the record below. Write down anything slow or confusing, so it can be fixed before election night.
 
 ## Record
 | Date | Operator | Checker | Files | Step timings (upload → public) | Rollback OK | Numbers match | Alerts arrived | Issues | Sign-off |
 |---|---|---|---|---|---|---|---|---|---|
 | | | | | | | | | | |
+
+## Technical checks (maintainer, not the two rehearsal people)
+Before:
+- The production deploy is current: run **deploy** and have it approved for production.
+- `node tools/smoke-public.js hcec-election-results-results` passes. On the first rehearsal nothing is published
+  yet, so it fails on the missing `current/manifest.json`; that is expected.
+
+During and after:
+- `node tools/smoke-public.js hcec-election-results-results` after the last publish.
+- Alerts: trigger the mismatch and uptime alerts on staging as in docs/MONITORING.md › Test the alerts, and record
+  when each email arrived.
+- After the rehearsal's Zero publish, set up production monitoring (docs/MONITORING.md).
+- The election-night load test with 10 publishes runs on staging (docs/LOAD-TEST.md).
+- Export the audit log for the record.
