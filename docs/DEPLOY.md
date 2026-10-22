@@ -29,7 +29,9 @@ The manual deploy in README › Deploy still works as before.
    ```
    For **production**, bind the job's GitHub environment instead, so only an approved production job can act as
    the account (Google then enforces the approval too; `tools/setup-gcp.sh` does this):
-   `--member="principal://iam.googleapis.com/projects/<POOL_PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/subject/repo:hamcoec-dot/Results:environment:production"`
+   `--member="principal://iam.googleapis.com/projects/<POOL_PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/subject/repo:hamcoec-dot@287081868/Results@1427757406:environment:production"`
+   This repository's tokens name it by immutable IDs (`<owner>@<owner id>/<repo>@<repo id>`); the plain
+   `repo:hamcoec-dot/Results:…` subject never matches.
 3. **GitHub → Settings:**
    - **Environments:**
      - `staging`, no rules;
