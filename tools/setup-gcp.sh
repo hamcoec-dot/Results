@@ -96,7 +96,7 @@ setup_project() {
     eventarc.googleapis.com pubsub.googleapis.com cloudscheduler.googleapis.com firestore.googleapis.com \
     firebaserules.googleapis.com firebasestorage.googleapis.com storage.googleapis.com iam.googleapis.com \
     iamcredentials.googleapis.com sts.googleapis.com monitoring.googleapis.com logging.googleapis.com \
-    cloudresourcemanager.googleapis.com serviceusage.googleapis.com \
+    cloudresourcemanager.googleapis.com serviceusage.googleapis.com firebaseextensions.googleapis.com \
     || fail "could not turn on the services for $p. Is the project on the Blaze plan?"
   ok "services on"
 
