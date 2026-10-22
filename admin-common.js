@@ -138,7 +138,11 @@ window.AdminCommon = (function () {
       });
     });
     Array.prototype.forEach.call(document.querySelectorAll('.sign-out'), function (b) {
-      b.addEventListener('click', function () { auth.signOut(); });
+      b.addEventListener('click', function () {
+        // A review's ticks belong to whoever made them: the next admin in this tab starts fresh.
+        try { sessionStorage.clear(); } catch (e) { /* private mode: nothing stored */ }
+        auth.signOut();
+      });
     });
     auth.onAuthStateChanged(function (user) {
       if (!user) { show(signin); return; }

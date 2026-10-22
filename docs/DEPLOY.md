@@ -91,6 +91,8 @@ node tools/smoke-public.js hcec-election-results-results        # what the publi
 node tools/load-manifest.js https://storage.googleapis.com/hcec-election-results-results/current/manifest.json \
   --requests 1000 --concurrency 100                              # election-night load sanity: p95 < 300 ms, no errors
 ```
+Before the rehearsal: the election-night load test, 2,000 simulated pages while 10 publishes are made (docs/LOAD-TEST.md).
+
 Both tools also run against the emulators:
 - `node tools/smoke-public.js demo-hcec-results --emulator` checks content only;
 - the load tool takes the emulator's manifest URL.

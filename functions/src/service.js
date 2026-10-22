@@ -288,10 +288,15 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
       throw new ServiceError(refusals[0].code === 'not-found' ? 'not-found' : 'failed-precondition', refusals.map((r) => r.detail).join(' '), { refusals });
     }
 
-    // Serialise publishes: the lease and the base-version check in one transaction.
-    const holder = draftId;
+    // Serialise publishes: the lease and the base-version check in one transaction. Each call holds
+    // its own lease, so a second click on the same draft waits as "busy" instead of sharing it.
+    const holder = `${draftId}:${P.newDraftId()}`;
     await db.transaction(async (tx) => {
       const e = await tx.get(paths.election(eid));
+      // current/ is shared by every election: only the active one may write it.
+      if (!e.active) {
+        throw new ServiceError('failed-precondition', 'Only the active election can be published. Make this election active in its settings first.', { refusals: [{ code: 'not-active' }] });
+      }
       if ((e.currentVersion ?? null) !== (draft.baseVersion ?? null)) {
         throw new ServiceError('failed-precondition', 'Someone published after this draft was made. Create a new draft.', { refusals: [{ code: 'stale' }] });
       }

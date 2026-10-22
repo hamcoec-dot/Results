@@ -14,16 +14,20 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   deploy:
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -32,12 +36,11 @@ jobs:
         working-directory: functions
         run: npm ci --omit=dev
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars[inputs.service_account_var] }}
-      - uses: google-github-actions/setup-gcloud@v2
-
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
       - name: Public bucket settings (CORS, drafts lifecycle)
         run: |
           gcloud storage buckets update "gs://${{ inputs.bucket }}" --cors-file=cors.json --project="${{ inputs.project }}"
@@ -75,11 +78,23 @@ jobs:
         if: ${{ inputs.smoke && inputs.environment == 'staging' }}
         run: node tools/load-manifest.js "https://storage.googleapis.com/${{ inputs.bucket }}/current/manifest.json" --requests 2000 --concurrency 200 --max-p95 300
 
+  zap:
+    # Third-party scanner in its own job: no id-token, no GCP credentials file in the workspace.
+    needs: deploy
+    if: ${{ inputs.environment == 'staging' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       # Passive scans only (spider + passive rules, no attacks). Warnings are reported, not failed: GitHub
       # Pages' headers can't be changed. Rules marked FAIL in .zap/rules.tsv fail the run.
       - name: ZAP baseline of the public pages
         if: ${{ inputs.environment == 'staging' }}
-        uses: zaproxy/action-baseline@v0.15.0
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: https://govotehamiltontn.gov/Results/
           rules_file_name: .zap/rules.tsv
@@ -89,7 +104,7 @@ jobs:
           artifact_name: zap-pages
       - name: ZAP baseline of the staging bucket
         if: ${{ inputs.smoke && inputs.environment == 'staging' }}
-        uses: zaproxy/action-baseline@v0.15.0
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: https://storage.googleapis.com/${{ inputs.bucket }}/current/manifest.json
           rules_file_name: .zap/rules.tsv
