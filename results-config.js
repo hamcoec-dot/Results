@@ -1,23 +1,25 @@
 /**
  * Where the public pages read their data (plan: Front-end changes › results-config.js).
  *
- *   default      PUBLIC_BASE when set (the public bucket's current/), otherwise ./ (the files
- *                next to the pages, as the legacy monitor writes them). PUBLIC_BASE stays null until
- *                Phase 5 creates the bucket, so merging this before then changes nothing live.
- *   ?local       ./ always (the offline fallback with Run_Monitor.bat)
+ *   default      PUBLIC_BASE: the production public bucket's current/, polled through its
+ *                manifest.json. Strict: data that fails validate.js is never shown.
+ *   ?local       ./ always (the offline fallback with Run_Monitor.bat: the files next to the pages,
+ *                as the legacy monitor writes them). Lenient, no manifest. A page opened from disk
+ *                (file://) is always local too: there is no origin the bucket's CORS would allow.
  *   ?emulator    the Storage emulator's results bucket (localhost only)
  *   ?staging     the staging project's public bucket (current/ or a draft), for rehearsals
  *   ?draft=<id>  a draft's files, for the review screen: red DRAFT banner, no auto-refresh,
  *                [DRAFT] title prefix, DRAFT_ export file names. Only a 32-hex id is accepted.
- *                Drafts are always read from the bucket (they never exist next to the pages),
- *                so the review previews work before PUBLIC_BASE is set.
+ *                Drafts are always read from the bucket (they never exist next to the pages).
+ *
+ * Rollback: PUBLIC_BASE = null makes the default read ./ again (as before the Phase 5 switch-over).
  */
 (function () {
   'use strict';
 
-  // PHASE 5: 'https://storage.googleapis.com/hcec-election-results-results/'
-  var PUBLIC_BASE = null;
   var PROD_BUCKET_BASE = 'https://storage.googleapis.com/hcec-election-results-results/';
+  // The default data source (null: ./, the pre-switch-over behaviour).
+  var PUBLIC_BASE = PROD_BUCKET_BASE;
   var STAGING_BUCKET_BASE = 'https://storage.googleapis.com/hcec-election-results-staging-results/';
   var EMULATOR_BUCKET = 'demo-hcec-results';
 
@@ -26,7 +28,8 @@
   var emulator = localHost && params.has('emulator');
   var draft = /^[0-9a-f]{32}$/.test(params.get('draft') || '') ? params.get('draft') : null;
   var staging = !emulator && params.has('staging');
-  var local = !staging && (params.has('local') || (!emulator && !PUBLIC_BASE));
+  var fromDisk = location.protocol === 'file:';
+  var local = !staging && (params.has('local') || fromDisk || (!emulator && !PUBLIC_BASE));
 
   /** Object path (in the bucket) for a data file. */
   function objectPath(file) { return (draft ? 'drafts/' + draft + '/' : 'current/') + file; }

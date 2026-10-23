@@ -4,7 +4,7 @@
 // Needs the emulators running and seeded, so it is skipped unless EMULATORS=1:
 //   npm run a11y:admin   (starts the emulators, seeds them, runs this file)
 // Signed-out states are covered here too, and need no emulator.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const { AxeBuilder } = require('@axe-core/playwright');
 const path = require('node:path');
 

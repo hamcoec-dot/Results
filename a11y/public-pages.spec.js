@@ -1,7 +1,7 @@
 // Accessibility checks for the public pages (plan: Mobile & accessibility requirements).
-// Each page is loaded in its default mode (./ data), checked with axe for WCAG 2.1 A + AA,
+// Each page is loaded in its default mode (the production bucket's current/, served by ./fixtures), checked with axe for WCAG 2.1 A + AA,
 // and checked for horizontal page scroll (1.4.10) and for text clipped under text-spacing overrides (1.4.12).
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const { AxeBuilder } = require('@axe-core/playwright');
 const fs = require('node:fs');
 const path = require('node:path');

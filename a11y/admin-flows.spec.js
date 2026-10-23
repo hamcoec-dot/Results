@@ -1,7 +1,7 @@
 // End-to-end admin flows on the emulators (plan: Verification checklist): publish two versions through
 // the UI, roll back to the first through a rollback draft and see the public page revert, and discard a
 // draft so its files are gone. Runs with npm run a11y:admin (emulators:exec sets FIREBASE_EMULATOR_HUB).
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const { AxeBuilder } = require('@axe-core/playwright');
 const path = require('node:path');
 

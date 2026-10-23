@@ -101,5 +101,6 @@ accessibility is checked by `npm run a11y:admin`.
   - **Result (2026-10-21): worst 32 ms** (filters 0–32 ms, keystrokes 0–24 ms, ticks 16 ms). After `content-visibility` was
     removed from the review cards (it moved the Publish button as cards scrolled into view): **worst 48 ms**. Event Timing reports
     only interactions over 16 ms, so 0 means under 16 ms.
-- `<link rel="preconnect">` to `storage.googleapis.com`: add in Phase 5 together with `PUBLIC_BASE`.
+- `<link rel="preconnect">` to `storage.googleapis.com`: added to the four public pages in the switch-over, together
+  with `PUBLIC_BASE` (docs/DEPLOY.md › Switch-over). Re-run Lighthouse against the live site after it is merged.
 - Lighthouse is not in CI yet (it needs Chrome and is noisy on shared runners); run it before a release.
