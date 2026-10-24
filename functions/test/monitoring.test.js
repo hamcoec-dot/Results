@@ -45,8 +45,13 @@ test('plan: uptime check on current/manifest.json every minute from 3 regions; e
 
 test('log metrics match what the functions log', () => {
   const [audit, failed] = LOG_METRICS;
-  assert.match(audit[2], /jsonPayload\.message="AUDIT_LIVE_MISMATCH"/); // index.js: logger.error('AUDIT_LIVE_MISMATCH', …)
-  assert.match(failed[2], /jsonPayload\.message=~" failed\$"/); // index.js: logger.error(`${method} failed`, …)
+  // logger.error writes a stack trace as the message ("Error: <message>\n    at …"), as seen in
+  // staging logs. Run each Logging regex (RE2, unanchored end) against both forms.
+  const re = (f) => new RegExp(f.match(/jsonPayload\.message=~"([^"]+)"/)[1]);
+  for (const m of ['AUDIT_LIVE_MISMATCH', 'Error: AUDIT_LIVE_MISMATCH\n    at entryFromArgs (x.js:1:1)']) assert.match(m, re(audit[2]));
+  for (const m of ['createDraft failed', 'Error: publishDraft failed\n    at entryFromArgs (x.js:1:1)']) assert.match(m, re(failed[2]));
+  assert.doesNotMatch('publish in progress, audit skipped', re(audit[2]));
+  assert.doesNotMatch('Error: something else\n    at createDraft failed', re(failed[2]));
   for (const [, , filter] of LOG_METRICS) assert.match(filter, /severity>=ERROR/);
 });
 

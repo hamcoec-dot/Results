@@ -89,12 +89,14 @@ function logPolicy(metric, title, doc, channels, { minCount = 1 } = {}) {
   };
 }
 
-// Firebase's logger writes jsonPayload.message; Functions v2 run on Cloud Run.
+// Firebase's logger writes jsonPayload.message; Functions v2 run on Cloud Run. logger.error turns the
+// message into a stack trace ("Error: AUDIT_LIVE_MISMATCH\n    at ..."), so an exact match or a
+// " failed$" ending never matches. The filters match the start of the message instead.
 const LOG_METRICS = [
   ['audit_live_mismatch', 'auditLive found the public files differ from the published version',
-    'resource.type="cloud_run_revision" AND severity>=ERROR AND jsonPayload.message="AUDIT_LIVE_MISMATCH"'],
+    'resource.type="cloud_run_revision" AND severity>=ERROR AND jsonPayload.message=~"^(Error: )?AUDIT_LIVE_MISMATCH"'],
   ['callable_failed', 'An admin action (createDraft, publishDraft, ...) failed with an unexpected error',
-    'resource.type="cloud_run_revision" AND severity>=ERROR AND jsonPayload.message=~" failed$"'],
+    'resource.type="cloud_run_revision" AND severity>=ERROR AND jsonPayload.message=~"^(Error: )?[A-Za-z]+ failed"'],
 ];
 
 /** The gcloud commands. Filters and descriptions go in files: they hold quotes and >=. */
