@@ -296,6 +296,10 @@ async function main() {
   let failed = false;
   const checker = checkPages ? await require('./check-live-pages').createChecker({ bucket: `${project}-results`, emulator }) : null;
 
+  // makeActive (below) deactivates whichever election is active now; it is made active again at the end,
+  // so a rehearsal in production leaves a real election that was set up beforehand as it was.
+  const previous = (await db.collection('elections').where('active', '==', true).get()).docs.map((d) => d.id).find((id) => id !== electionId);
+  if (previous) console.log(`${previous} is the active election now; it is made active again at the end.`);
   try {
     const bot = await ensureBot(db);
     await signInWithEmailAndPassword(auth, bot.email, bot.password);
@@ -332,6 +336,11 @@ async function main() {
     console.error(`FAIL: ${e.code ?? ''} ${e.message}${refusals ? ` (refusals: ${refusals})` : ''}`);
     failed = true;
   } finally {
+    if (previous) {
+      await db.doc(`elections/${electionId}`).update({ active: false });
+      await db.doc(`elections/${previous}`).update({ active: true });
+      console.log(`${previous} is the active election again.`);
+    }
     if (!keepAdmin) {
       await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
       await admin.auth().updateUser(BOT_UID, { disabled: true }).catch(() => { /* never created */ });
