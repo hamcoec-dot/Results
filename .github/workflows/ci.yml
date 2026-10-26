@@ -76,6 +76,12 @@ jobs:
       - name: Admin flows in Firefox (on fresh emulators)
         working-directory: .
         run: npm run a11y:admin:firefox
+      - name: Automated rehearsal on the emulators, every page checked against the CSVs, then cleared
+        working-directory: .
+        run: >-
+          npx --yes firebase-tools@13.35.1 emulators:exec --project demo-hcec --only auth,firestore,storage,functions
+          "node tools/staging-election.js --emulator --election test-rehearsal --rehearsal --check-pages
+          && node tools/clear-test-election.js test-rehearsal --emulator --remove-bot --yes"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:

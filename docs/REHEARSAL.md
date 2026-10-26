@@ -69,6 +69,24 @@ type the precincts-reporting number shown in the sentence → **Confirm**.
 |---|---|---|---|---|---|---|---|---|---|
 | | | | | | | | | | |
 
+## Automated rehearsal (maintainer)
+The **rehearsal** workflow (GitHub › Actions › rehearsal › Run workflow) does every step of **Run** above
+through the deployed system, as a bot admin, with no one at the admin page: the 00→06 sample files, the
+rollback, the latest file again, the Precinct Results page off and on, and the three deliberate mistakes.
+It also does the checker's job for every number: before each publish it opens the four draft previews,
+and after it the four public pages (summary, reporting, precincts, lobby screen), and compares every
+contest, candidate, vote count, percentage, precincts-reporting figure and precinct row with the CSV
+files, as read by the old Python converter (`tools/check-live-pages.js`). It fails on any difference.
+
+- **staging**: any time, for example after a code change. The staging data is kept.
+- **production**: only before the switch-over (PUBLIC_BASE unset). It waits for the production approval in
+  GitHub, and at the end it clears the test election out completely (`tools/clear-test-election.js`: the
+  public `current/` files, the archive, drafts, raw uploads, Firestore records and the bot admin), then
+  checks the public manifest is gone again. The log and a records ZIP are kept as the run's artifacts.
+
+It does not replace the people's rehearsal: that one checks the printed tally reports, the admin page as
+the operator sees it, and how long each step takes for a person.
+
 ## Technical checks (maintainer, not the two rehearsal people)
 Before:
 - The production deploy is current: run **deploy** and have it approved for production.
