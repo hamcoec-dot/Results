@@ -69,6 +69,19 @@ By hand, with your own `gcloud auth application-default login`:
 The same flow runs on the emulators, with no key or IAM:
 `node tools/staging-election.js --emulator`, then `node tools/smoke-public.js demo-hcec-results --emulator`.
 
+The full rehearsal (rollback, settings, the deliberate mistakes, and every page checked against the CSVs) is
+the **rehearsal** workflow: docs/REHEARSAL.md › Automated rehearsal. `tools/clear-test-election.js` removes a
+test election and everything it published.
+
+## Election night: one warm instance (around Nov 1, back to 0 after)
+`createDraft`, `createSettingsDraft`, `publishDraft`, `extendDraft` and `ping` keep
+`ELECTION_NIGHT_MIN_INSTANCES` instances running, so the first upload of the night doesn't wait for a cold
+start (several seconds). It is 0 the rest of the year. To turn it on for production:
+1. Add the line `ELECTION_NIGHT_MIN_INSTANCES=1` to `functions/.env.hcec-election-results` (a one-line PR to main).
+2. Run **deploy** from main and approve the production step. Staging stays at 0.
+3. Check in the Cloud console (Cloud Run › the function › Revisions) that minimum instances is 1.
+Cost: roughly one to three dollars a day for the five warm functions. After the canvass, remove the line and deploy again.
+
 ## What a run does (each target)
 1. Applies `cors.json` and `lifecycle.json` to the public bucket.
 2. `firebase deploy --only functions,firestore:rules,storage`.

@@ -43,6 +43,10 @@ Two people: the **operator** publishes on the staging admin page, the **runner**
 
 For a heavier run, start the same command on two or three computers at once: each adds 2,000 pages.
 
+Without an operator: start the tool with `--duration 1800`, then run the **rehearsal** workflow on staging
+(docs/REHEARSAL.md › Automated rehearsal). It publishes 13 times, 70 s apart or more, so every page sees
+each one.
+
 ## Reading the numbers
 - **Manifest polls per second** ≈ pages ÷ 60. 2,000 pages is about 33 requests a second, steady.
 - **Data-file fetches** come in a burst after each publish, as every page sees the new version within one
