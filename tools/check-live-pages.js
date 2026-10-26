@@ -14,8 +14,8 @@
  *   summary     title, date, status, voters, ballots, turnout, precincts reporting, early badge; every
  *               contest: title, vote-for, total votes, "R of T Election Day Precincts Reporting",
  *               every candidate's name, votes and percentage, in the page's order
- *   reporting   one row per contest: title, R of T, total votes; the Reported/Pending lists of every
- *               contest's dialog
+ *   reporting   one row per contest: title, R of T, total votes; every contest's dialog: exactly which
+ *               precincts are listed as Reported and as Pending
  *   precincts   by contest: every precinct's status and votes for every contest; by precinct: three
  *               precincts' cards. With the page turned off: hidden, and no nav link on the others
  *   scrolling   the summary slide's precincts line, a slide for every contest, one contest slide's votes
@@ -75,6 +75,9 @@ function expected(early, ed) {
     c.precinctsReporting = e.csvPrecinctsReporting;
     c.precinctsTotal = e.csvPrecinctsTotal;
     c.precinctsStatus = c.precinctsStatus.map((p) => ({ name: p.name, reported: reported(p.name) }));
+    // The file's own count and the precincts with new ED votes must agree (merge.js flags it otherwise).
+    const n = c.precinctsStatus.filter((p) => p.reported).length;
+    if (!all && n !== e.csvPrecinctsReporting) c.reportedMismatch = `${c.title}: the CSV says ${e.csvPrecinctsReporting} reporting, but ${n} precincts have new Election Day votes`;
   }
   want.overallPrecinctsReporting = Math.max(0, ...want.contests.map((c) => c.precinctsReporting));
   want.overallPrecinctsTotal = Math.max(...want.contests.map((c) => c.precinctsTotal));
@@ -169,6 +172,7 @@ async function createChecker({ bucket, emulator = false }) {
     const capped = (n) => Math.min(n || 0, cap);
     const manifest = draft ? { dataVersion: version } : await (await fetch(objectUrl('current/manifest.json'), { headers: { 'cache-control': 'no-cache' } })).json();
     const contests = want.contests;
+    for (const c of contests) if (c.reportedMismatch) problems.push(`CSV: ${c.reportedMismatch}`);
     const edStats = precinctStats(ed);
     const wantStats = Object.keys(edStats).length ? edStats : precinctStats(early);
 
@@ -331,7 +335,9 @@ async function createChecker({ bucket, emulator = false }) {
     if (errors.length) problems.push(`script errors: ${[...new Set(errors)].join('; ')}`);
     await page.close();
     const files = [early && `early ${path.basename(early)}`, ed && `ED ${path.basename(ed)}`].filter(Boolean).join(' + ');
-    console.log(`  ${draft ? 'draft previews' : 'public pages'} ${label}${label ? ' ' : ''}(${files}; ${manifest.dataVersion}): ${problems.length ? `${problems.length} PROBLEM(S)\n    ${problems.slice(0, 40).join('\n    ')}` : `all 4 pages match the CSV (${contests.length} contests, ${contests.reduce((n, c) => n + c.candidates.length, 0)} candidates, ${want.masterPrecincts.length} precincts)`}`);
+    const flags = contests.reduce((n, c) => n + c.precinctsStatus.filter((p) => p.reported).length, 0);
+    const counts = [...new Set(contests.map((c) => capped(c.precinctsReporting)))].sort((a, b) => a - b).join('/');
+    console.log(`  ${draft ? 'draft previews' : 'public pages'} ${label}${label ? ' ' : ''}(${files}; ${manifest.dataVersion}): ${problems.length ? `${problems.length} PROBLEM(S)\n    ${problems.slice(0, 40).join('\n    ')}` : `all 4 pages match the CSV (${contests.length} contests, ${contests.reduce((n, c) => n + c.candidates.length, 0)} candidates, ${want.masterPrecincts.length} precincts; ${capped(want.overallPrecinctsReporting)} of ${Math.min(want.overallPrecinctsTotal || cap, cap)} reporting, per contest ${counts}; ${flags} reported precinct-contest pairs, each listed as reported)`}`);
     return problems;
   }
 
