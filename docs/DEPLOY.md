@@ -80,7 +80,7 @@ start (several seconds). It is 0 the rest of the year. To turn it on for product
 1. Add the line `ELECTION_NIGHT_MIN_INSTANCES=1` to `functions/.env.hcec-election-results` (a one-line PR to main).
 2. Run **deploy** from main and approve the production step. Staging stays at 0.
 3. Check in the Cloud console (Cloud Run › the function › Revisions) that minimum instances is 1.
-Cost: about a dollar a day for the five warm functions. After the canvass, remove the line and deploy again.
+Cost: roughly one to three dollars a day for the five warm functions. After the canvass, remove the line and deploy again.
 
 ## What a run does (each target)
 1. Applies `cors.json` and `lifecycle.json` to the public bucket.
