@@ -14,8 +14,8 @@
  *   summary     title, date, status, voters, ballots, turnout, precincts reporting, early badge; every
  *               contest: title, vote-for, total votes, "R of T Election Day Precincts Reporting",
  *               every candidate's name, votes and percentage, in the page's order
- *   reporting   one row per contest: title, R of T, total votes; the Reported/Pending lists of three
- *               contests' dialogs
+ *   reporting   one row per contest: title, R of T, total votes; the Reported/Pending lists of every
+ *               contest's dialog
  *   precincts   by contest: every precinct's status and votes for every contest; by precinct: three
  *               precincts' cards. With the page turned off: hidden, and no nav link on the others
  *   scrolling   the summary slide's precincts line, a slide for every contest, one contest slide's votes
@@ -243,8 +243,7 @@ async function createChecker({ bucket, emulator = false }) {
       if (!r[2].includes(`${capped(c.precinctsReporting)} of ${capped(c.precinctsTotal)}`)) problems.push(`reporting ${c.title}: "${r[2]}", expected ${capped(c.precinctsReporting)} of ${capped(c.precinctsTotal)}`);
       eq(`reporting ${c.title} total votes`, r[4], fmt(c.totalVotes));
     }
-    for (const i of [0, Math.floor(contests.length / 2), contests.length - 1]) {
-      const c = contests[i];
+    for (const c of contests) {
       const at = shown.findIndex((x) => x[0] === norm(c.title));
       if (at < 0) continue;
       await rows.nth(at).locator('.reporting-btn').click();
