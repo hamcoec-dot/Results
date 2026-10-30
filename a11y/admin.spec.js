@@ -64,7 +64,9 @@ test.describe('signed in (emulators)', () => {
       await audit(page);
       await noHorizontalScroll(page);
     }
-    // Errors are announced next to the fields (3.3.1): submit with nothing chosen.
+    // Errors are announced next to the fields (3.3.1): submit with nothing chosen. The earlier specs
+    // leave an Election Day file live, which preselects Election Day, so clear it as a new election has it.
+    await page.evaluate(() => document.querySelectorAll('input[name=kind]').forEach((r) => { r.checked = false; }));
     await page.click('#upload-form button[type="submit"]');
     await expect(page.locator('#kind-error')).not.toBeEmpty();
     await audit(page);

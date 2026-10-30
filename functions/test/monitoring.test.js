@@ -8,10 +8,14 @@ const { parseArgs, uptimePolicy, logPolicy, allPolicies, plan, shellArgs, LOG_ME
 const OK = ['--project', 'hcec-election-results-staging', '--bucket', 'hcec-election-results-staging-results', '--email', 'elections@example.org'];
 
 test('parseArgs: required values, and anything odd refused', () => {
-  assert.deepEqual(parseArgs(OK), { dryRun: false, project: 'hcec-election-results-staging', bucket: 'hcec-election-results-staging-results', email: 'elections@example.org' });
+  assert.deepEqual(parseArgs(OK), { dryRun: false, project: 'hcec-election-results-staging', bucket: 'hcec-election-results-staging-results', emails: ['elections@example.org'] });
+  assert.deepEqual(parseArgs([...OK, '--email', 'oncall@example.org']).emails, ['elections@example.org', 'oncall@example.org']);
   assert.equal(parseArgs([...OK, '--dry-run', '--sms', '+14235551234']).sms, '+14235551234');
   for (const [args, msg] of [
     [OK.slice(2), /--project is required/],
+    [OK.slice(0, 4), /--email is required/],
+    [[...OK, '--email'], /not an email address/],
+    [[...OK, '--email', 'elections@example.org'], /given twice/],
     [['--project', 'Bad_Project', ...OK.slice(2)], /not a project id/],
     [[...OK.slice(0, 2), '--bucket', 'a"b', ...OK.slice(4)], /not a bucket name/],
     [[...OK.slice(0, 4), '--email', 'x" & del'], /not an email address/],
@@ -34,12 +38,20 @@ test('plan: uptime check on current/manifest.json every minute from 3 regions; e
     assert.equal(cmd.at(-1), '--project=hcec-election-results-staging');
   }
   assert.equal(plan(parseArgs(OK)).channels.length, 1);
+  const two = plan(parseArgs([...OK, '--email', 'oncall@example.org'])).channels;
+  assert.equal(two.length, 2);
+  assert.ok(two[1].includes('--channel-labels=email_address=oncall@example.org'));
 });
 
 test('log metrics match what the functions log', () => {
   const [audit, failed] = LOG_METRICS;
-  assert.match(audit[2], /jsonPayload\.message="AUDIT_LIVE_MISMATCH"/); // index.js: logger.error('AUDIT_LIVE_MISMATCH', …)
-  assert.match(failed[2], /jsonPayload\.message=~" failed\$"/); // index.js: logger.error(`${method} failed`, …)
+  // logger.error writes a stack trace as the message ("Error: <message>\n    at …"), as seen in
+  // staging logs. Run each Logging regex (RE2, unanchored end) against both forms.
+  const re = (f) => new RegExp(f.match(/jsonPayload\.message=~"([^"]+)"/)[1]);
+  for (const m of ['AUDIT_LIVE_MISMATCH', 'Error: AUDIT_LIVE_MISMATCH\n    at entryFromArgs (x.js:1:1)']) assert.match(m, re(audit[2]));
+  for (const m of ['createDraft failed', 'Error: publishDraft failed\n    at entryFromArgs (x.js:1:1)']) assert.match(m, re(failed[2]));
+  assert.doesNotMatch('publish in progress, audit skipped', re(audit[2]));
+  assert.doesNotMatch('Error: something else\n    at createDraft failed', re(failed[2]));
   for (const [, , filter] of LOG_METRICS) assert.match(filter, /severity>=ERROR/);
 });
 

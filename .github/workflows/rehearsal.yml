@@ -1,0 +1,112 @@
+name: rehearsal
+
+# The mock-election rehearsal (docs/REHEARSAL.md), run by a bot admin through the deployed callables:
+# Web Results Samples 00→06, a rollback, the latest file again, the Precinct Results page off and on,
+# the three deliberate mistakes, and a precinct marked as reported then unmarked (tools/staging-election.js --rehearsal). Before every publish it
+# checks the four draft previews, and after it the four public pages, against the CSV files
+# (tools/check-live-pages.js). Then a smoke test, the records ZIP and the log as artifacts.
+#
+# staging     election test-staging-dryrun; its published data is kept (the staging pages and monitoring
+#             read it).
+# production  election test-rehearsal; waits for the production environment's required reviewer.
+#             Only while the public pages do NOT read the production bucket (PUBLIC_BASE unset, before
+#             the switch-over in docs/DEPLOY.md): current/ is one set for the bucket. Afterwards the test
+#             election is cleared out completely (tools/clear-test-election.js), so the real Zero
+#             publish starts from a clean project.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Where to rehearse'
+        type: choice
+        options: [staging, production]
+        default: staging
+      pause:
+        description: 'Seconds to wait after each publish (70 lets 60 s page polls and a load test see each one)'
+        type: string
+        default: '70'
+      clear:
+        description: 'Production only: clear the test election out afterwards (leave ticked)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation
+
+concurrency:
+  group: rehearsal-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  rehearse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    environment: ${{ inputs.target }}
+    env:
+      PROJECT: ${{ inputs.target == 'production' && 'hcec-election-results' || 'hcec-election-results-staging' }}
+      BUCKET: ${{ inputs.target == 'production' && 'hcec-election-results-results' || 'hcec-election-results-staging-results' }}
+      ELECTION: ${{ inputs.target == 'production' && 'test-rehearsal' || 'test-staging-dryrun' }}
+      PAUSE: ${{ inputs.pause }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Function dependencies, dev included (the firebase client SDK)
+        working-directory: functions
+        run: npm ci
+      - name: Page check dependencies (Playwright and Chromium)
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ inputs.target == 'production' && vars.GCP_DEPLOY_SA_PROD || vars.GCP_DEPLOY_SA_STAGING }}
+
+      - name: Before
+        run: |
+          echo "Public manifest before: $(curl -s -o /dev/null -w '%{http_code}' "https://storage.googleapis.com/$BUCKET/current/manifest.json?t=$(date +%s)")"
+          node tools/clear-test-election.js "$ELECTION" --project "$PROJECT"
+
+      - name: Rehearse (every step of docs/REHEARSAL.md › Run, every page checked)
+        run: |
+          set -o pipefail
+          extra=""
+          if [ "$PROJECT" = hcec-election-results ]; then extra="--allow-production"; fi
+          node tools/staging-election.js --project "$PROJECT" --election "$ELECTION" --rehearsal --check-pages --pause "$PAUSE" $extra | tee rehearsal-log.txt
+
+      - name: Smoke test of what the public is served
+        run: |
+          set -o pipefail
+          node tools/smoke-public.js "$BUCKET" --origin https://govotehamiltontn.gov | tee -a rehearsal-log.txt
+
+      - name: Records export (audit log, versions, drafts, uploads)
+        if: always()
+        run: node tools/export-election.js "$ELECTION" --project "$PROJECT" --out "rehearsal-records-$ELECTION.zip"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: rehearsal-${{ inputs.target }}
+          path: |
+            rehearsal-log.txt
+            rehearsal-records-*.zip
+
+      - name: Clear the test election out of production
+        if: ${{ always() && inputs.target == 'production' && inputs.clear }}
+        run: |
+          node tools/clear-test-election.js "$ELECTION" --project "$PROJECT" --remove-bot --yes
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://storage.googleapis.com/$BUCKET/current/manifest.json?t=$(date +%s)")
+          echo "Public manifest after: $code"
+          [ "$code" = 404 ]

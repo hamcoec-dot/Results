@@ -25,7 +25,16 @@
  * Usage:
  *   FIREBASE_WEB_API_KEY=… node tools/staging-election.js [--project hcec-election-results-staging]
  *       [--api-key KEY] [--election test-staging-dryrun] [--steps 00,01,02,03,04,05,06] [--publish false]
- *       [--set 92|94] [--keep-admin] [--allow-production]
+ *       [--set 92|94] [--pause S] [--rehearsal] [--check-pages] [--keep-admin] [--allow-production]
+ * --pause waits S seconds after each publish, so pages polling every 60 s (and a load test) see each one.
+ * --check-pages checks all four pages, as draft previews before every publish and live after it, against
+ *   the CSV files behind them (tools/check-live-pages.js: every number, from the legacy Python converter).
+ *   Needs `npm ci` at the root, Chromium and python3.
+ * --rehearsal then does the rest of docs/REHEARSAL.md › Run, as the operator would: a rollback to the
+ *   version before the latest, the latest file again, the Precinct Results page off and on with settings
+ *   drafts, and the three deliberate mistakes (an ED file chosen as Zero is BLOCKED; an older file warns
+ *   and cannot be published unticked; the older of two drafts is refused as stale once the newer one is
+ *   published), then a Pending precinct marked as reported and unmarked (settings drafts). After each publish it checks the public manifest, and it ends on the latest file.
  * The election id must start with "test-". A run that starts at 00 clears the test election's selected
  * uploads first, so it can be repeated.
  *   node tools/staging-election.js --emulator   the running emulators (project demo-hcec, no key or IAM needed)
@@ -52,6 +61,9 @@ const electionId = opt('--election', 'test-staging-dryrun');
 const steps = opt('--steps', '00,01,02,03,04,05,06').split(',').map((s) => s.trim()).filter(Boolean);
 const publish = !/^(false|no|0)$/i.test(opt('--publish', 'true'));
 const set = opt('--set', '92');
+const pause = Number(opt('--pause', '0'));
+const rehearsal = flag('--rehearsal');
+const checkPages = flag('--check-pages');
 opt('--service-account'); // accepted and ignored: older docs passed the custom-token signer
 
 /** The web apiKey firebase-config.js uses for a project (the admin pages' own config), or ''. */
@@ -74,6 +86,8 @@ if (!apiKey) usage('No Firebase web API key: pass --api-key or set FIREBASE_WEB_
 if (!/^test-[a-z0-9-]{1,57}$/.test(electionId)) usage(`The election id must start with "test-" (got ${electionId}).`);
 if (!['92', '94'].includes(set)) usage('--set is 92 or 94 (the sample file suffix, and the max precincts).');
 if (!steps.every((s) => /^\d\d$/.test(s))) usage('--steps are two-digit sample prefixes, e.g. 00,01,02.');
+if (!(pause >= 0 && pause <= 600)) usage('--pause is 0 to 600 seconds.');
+if (rehearsal && (!publish || steps.join(',') !== '00,01,02,03,04,05,06')) usage('--rehearsal needs the full 00→06 run, published.');
 
 if (emulator) {
   process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8181';
@@ -90,7 +104,190 @@ function sample(prefix) {
   const name = fs.readdirSync(SAMPLES).find((f) => f.startsWith(`${prefix}-`) && f.endsWith(`(${set}).csv`));
   if (!name) throw new Error(`No sample "${prefix}-… (${set}).csv" in ${SAMPLES}`);
   const n = Number(prefix);
-  return { name, csv: fs.readFileSync(path.join(SAMPLES, name), 'utf8'), kind: n === 0 ? 'zero' : n <= 2 ? 'early' : 'ed' };
+  const file = path.join(SAMPLES, name);
+  return { name, file, csv: fs.readFileSync(file, 'utf8'), kind: n === 0 ? 'zero' : n <= 2 ? 'early' : 'ed' };
+}
+
+/** What the public bucket serves now (cache-busted), parsed, or null. */
+async function served(file) {
+  const res = await fetch(`https://storage.googleapis.com/${project}-results/current/${file}?t=${Date.now()}`, { headers: { 'cache-control': 'no-cache' } });
+  return res.ok ? res.json() : null;
+}
+
+/**
+ * The operator's actions, shared by the 00→06 run and the rehearsal. Remembers which files each
+ * published version was built from (a Zero or Early file fills the early slot, an ED file the other;
+ * a rollback or settings draft keeps the version's files), so the page check knows its CSVs.
+ */
+function makeContext({ call, db, checker }) {
+  const versions = []; // every published dataVersion, in order
+  const filesOf = new Map(); // dataVersion -> { early, ed } sample paths
+  let slots = { early: null, ed: null }; // what the election has selected now
+  let precinctPage = true;
+  let marked = []; // precincts the admin marked as reported (the election setting)
+  const ctx = { call, db, versions, pageProblems: 0 };
+  ctx.fail = (msg) => { throw new Error(msg); };
+  ctx.draftDoc = async (id) => (await db.doc(`elections/${electionId}/drafts/${id}`).get()).data();
+  ctx.describe = (label, d, doc) => {
+    const warns = doc.checks.filter((c) => c.severity === 'warn').map((c) => c.key);
+    return `${label}: draft ${d.draftId.slice(0, 8)} ${d.status}, ${warns.length} warn${warns.length ? ` [${[...new Set(warns)].join(', ')}]` : ''}, ${doc.confirmCount} reporting`;
+  };
+  /** Uploads a sample as `kind` (default: what the file is); the draft, not published. */
+  ctx.upload = async (prefix, kind) => {
+    const s = sample(prefix);
+    const k = kind ?? s.kind;
+    const d = await call('createDraft', { electionId, kind: k, filename: s.name, csv: s.csv });
+    const doc = await ctx.draftDoc(d.draftId);
+    const files = k === 'ed' ? { early: slots.early, ed: s.file } : { early: s.file, ed: slots.ed };
+    return { d, doc, files, head: ctx.describe(`${prefix} ${k.padEnd(5)} ${s.name}`, d, doc) };
+  };
+  ctx.draft = async (d, label, files) => {
+    const doc = await ctx.draftDoc(d.draftId);
+    return { d, doc, files, head: ctx.describe(label, d, doc) };
+  };
+  ctx.requireReady = ({ d, doc, head }) => {
+    if (d.status === 'ready') return;
+    const blocks = doc.checks.filter((c) => c.severity === 'block').map((c) => `${c.key}: ${c.detail}`);
+    console.log(`${head}\n  FAIL: not ready\n  ${blocks.join('\n  ')}`);
+    ctx.fail(`draft ${d.draftId} is ${d.status}`);
+  };
+  ctx.setPrecinctPage = (on) => { precinctPage = on; };
+  ctx.setMarked = (list) => { marked = list; };
+  ctx.filesOf = (version) => filesOf.get(version);
+  ctx.slots = () => slots;
+  /** Publishes a ready draft as the operator does (tick every warning, type the count), then checks the pages. */
+  ctx.publishIt = async ({ d, doc, files }, head, t0) => {
+    // The operator opens the four previews before publishing; check them against the CSVs too.
+    if (checker) ctx.pageProblems += (await checker.check({ ...files, cap: Number(set), precinctPage, marked, draft: d.draftId, version: doc.dataVersion })).length;
+    const warns = doc.checks.filter((c) => c.severity === 'warn').map((c) => c.key);
+    // publishDraft checks baseVersion from the draft doc; sent too, as the plan's contract names it.
+    const r = await call('publishDraft', {
+      electionId, draftId: d.draftId, acknowledged: warns, confirmCount: doc.confirmCount, baseVersion: doc.baseVersion,
+    });
+    console.log(`${head} -> ${r.dataVersion}, live check ${r.liveCheck.ok ? 'ok' : 'FAILED'} (${((Date.now() - t0) / 1000).toFixed(1)} s, ${new Date().toISOString()})`);
+    if (!r.liveCheck.ok || r.dataVersion !== doc.dataVersion) ctx.fail('the publish did not go live as reviewed');
+    versions.push(r.dataVersion);
+    filesOf.set(r.dataVersion, files);
+    slots = files;
+    if (!emulator) {
+      const m = await served('manifest.json');
+      if (m?.dataVersion !== r.dataVersion) ctx.fail(`the public manifest says ${m?.dataVersion}, expected ${r.dataVersion}`);
+    }
+    if (checker) ctx.pageProblems += (await checker.check({ ...files, cap: Number(set), precinctPage, marked })).length;
+    if (pause) await new Promise((res) => setTimeout(res, pause * 1000));
+    return r.dataVersion;
+  };
+  return ctx;
+}
+
+/** A refused publish: the refusal codes, or a failure if it went through. */
+async function refused(call, data) {
+  try {
+    await call('publishDraft', data);
+  } catch (e) {
+    return e.details?.refusals?.map((x) => x.code) ?? [e.code];
+  }
+  throw new Error(`publishDraft ${data.draftId} should have been refused but was published`);
+}
+
+/** docs/REHEARSAL.md › Run, steps 4 to 7, after 00→06 are published. */
+/** Step 6d's precinct: still Pending in 05 (15 reporting). */
+const MARK = 'AIRPORT A';
+
+async function rehearse(ctx) {
+  const { call, db, versions, fail } = ctx;
+  const settings = (enablePrecinctResults) => call('upsertElection', {
+    id: electionId, name: '2026-11-03 General', date: '2026-11-03', county: 'Hamilton', precinctCap: Number(set),
+    enablePrecinctResults, makeActive: true,
+  });
+  const discard = (d) => call('discardDraft', { electionId, draftId: d.draftId });
+  const ackAll = (doc) => doc.checks.filter((c) => c.severity === 'warn').map((c) => c.key);
+
+  // 4. Roll back to the version before the latest; the numbers go down. Then the latest file again.
+  let t0 = Date.now();
+  const back = versions.at(-2);
+  const latestCount = (await ctx.draftDoc((await db.doc(`elections/${electionId}/versions/${versions.at(-1)}`).get()).data().draftId)).confirmCount;
+  const rb = await ctx.draft(await call('createRollbackDraft', { electionId, version: back }), `4 rollback to ${back}`, ctx.filesOf(back));
+  ctx.requireReady(rb);
+  if (!rb.doc.checks.some((c) => c.id === 'rollback')) fail('4: the rollback draft has no "This is a rollback" warning');
+  if (!(rb.doc.confirmCount <= latestCount)) fail(`4: the rollback shows ${rb.doc.confirmCount} reporting, up from ${latestCount}`);
+  await ctx.publishIt(rb, rb.head, t0);
+  t0 = Date.now();
+  let u = await ctx.upload('06');
+  ctx.requireReady(u);
+  await ctx.publishIt(u, `4 again: ${u.head}`, t0);
+
+  // 5. Settings change: the Precinct Results page off, then on again.
+  for (const on of [false, true]) {
+    t0 = Date.now();
+    await settings(on);
+    ctx.setPrecinctPage(on);
+    const sd = await ctx.draft(await call('createSettingsDraft', { electionId }), `5 precinct page ${on ? 'on' : 'off'}`, ctx.slots());
+    ctx.requireReady(sd);
+    await ctx.publishIt(sd, sd.head, t0);
+    if (!emulator) {
+      const shown = (await served('summary.json'))?.config?.enablePrecinctResults;
+      if (shown !== on) fail(`5: the public summary says enablePrecinctResults ${shown}, expected ${on}`);
+    }
+  }
+
+  // 6a. An Election Day file chosen as "Zero report" is BLOCKED and cannot be published.
+  u = await ctx.upload('05', 'zero');
+  if (u.d.status !== 'blocked') fail(`6a ${u.head}: expected BLOCKED`);
+  let codes = await refused(call, { electionId, draftId: u.d.draftId, acknowledged: [], confirmCount: u.doc.confirmCount });
+  console.log(`6a ${u.head}; publish refused (${codes.join(', ')})`);
+  await discard(u.d);
+
+  // 6b. An older file after a later one warns, and cannot be published with its warnings unticked.
+  u = await ctx.upload('04');
+  ctx.requireReady(u);
+  if (!ackAll(u.doc).length) fail(`6b ${u.head}: expected a warning for the lower totals`);
+  codes = await refused(call, { electionId, draftId: u.d.draftId, acknowledged: [], confirmCount: u.doc.confirmCount });
+  if (!codes.includes('unacknowledged')) fail(`6b: refused for ${codes.join(', ')}, expected unacknowledged`);
+  console.log(`6b ${u.head}; publish with warnings unticked refused (${codes.join(', ')})`);
+  await discard(u.d);
+
+  // 6c. Two drafts, A then B: publish B, and A is refused as stale.
+  const a = await ctx.upload('04');
+  const b = await ctx.upload('05');
+  ctx.requireReady(a);
+  ctx.requireReady(b);
+  t0 = Date.now();
+  await ctx.publishIt(b, `6c B: ${b.head}`, t0);
+  codes = await refused(call, { electionId, draftId: a.d.draftId, acknowledged: ackAll(a.doc), confirmCount: a.doc.confirmCount });
+  if (!codes.includes('stale')) fail(`6c: draft A refused for ${codes.join(', ')}, expected stale`);
+  if ((await ctx.draftDoc(a.d.draftId)).status !== 'stale') fail('6c: draft A is not marked stale');
+  console.log(`6c A: ${a.head}; publish refused (${codes.join(', ')})`);
+  await discard(a.d);
+
+  // 6d. Precincts reporting (docs/REHEARSAL.md step 6): mark a precinct that is still Pending as
+  // reported, publish the settings draft, and the pages list it as Reported while the count stays the
+  // file's. Then untick it and publish again.
+  for (const list of [[MARK], []]) {
+    t0 = Date.now();
+    await call('setMarkedReported', { electionId, precincts: list });
+    ctx.setMarked(list);
+    const sd = await ctx.draft(await call('createSettingsDraft', { electionId }), `6d marked as reported: ${list.join(', ') || 'none'}`, ctx.slots());
+    ctx.requireReady(sd);
+    const info = sd.doc.checks.some((c) => c.id === 'marked-reported');
+    if (info !== list.length > 0) fail(`6d: the draft ${info ? 'has' : 'has no'} "Precincts marked as reported" note`);
+    if (list.length && !sd.doc.checks.some((c) => c.severity === 'warn' && c.detail?.includes(`marked by an admin: ${MARK}`))) {
+      fail('6d: no reporting-mismatch warning names the marked precinct');
+    }
+    if (sd.doc.confirmCount !== b.doc.confirmCount) fail(`6d: ${sd.doc.confirmCount} reporting, expected the file's ${b.doc.confirmCount}`);
+    await ctx.publishIt(sd, sd.head, t0);
+  }
+
+  // End on the latest file, as after the night's last upload.
+  t0 = Date.now();
+  u = await ctx.upload('06');
+  ctx.requireReady(u);
+  await ctx.publishIt(u, `end: ${u.head}`, t0);
+
+  // 7. Discard anything left open.
+  const open = (await db.collection(`elections/${electionId}/drafts`).where('status', 'in', ['ready', 'blocked', 'stale']).get()).docs;
+  for (const x of open) await call('discardDraft', { electionId, draftId: x.id });
+  console.log(`Rehearsal steps 4-7 passed: ${versions.length} publishes in all; ${open.length} leftover draft(s) discarded.`);
 }
 
 /** Makes (or resets) the bot's Auth user with a fresh random password and its admins doc; returns the sign-in. */
@@ -120,7 +317,12 @@ async function main() {
   }
   const call = (name, data) => httpsCallable(fns, name, { timeout: 180000 })(data).then((r) => r.data);
   let failed = false;
+  const checker = checkPages ? await require('./check-live-pages').createChecker({ bucket: `${project}-results`, emulator }) : null;
 
+  // makeActive (below) deactivates whichever election is active now; it is made active again at the end,
+  // so a rehearsal in production leaves a real election that was set up beforehand as it was.
+  const previous = (await db.collection('elections').where('active', '==', true).get()).docs.map((d) => d.id).find((id) => id !== electionId);
+  if (previous) console.log(`${previous} is the active election now; it is made active again at the end.`);
   try {
     const bot = await ensureBot(db);
     await signInWithEmailAndPassword(auth, bot.email, bot.password);
@@ -141,38 +343,37 @@ async function main() {
       await db.doc(`elections/${electionId}`).update({ selectedEarlyUploadId: null, selectedEdUploadId: null });
       console.log(`Cleared ${electionId}'s selected uploads from a previous run.`);
     }
-
-    for (const prefix of steps) {
-      const s = sample(prefix);
-      const t0 = Date.now();
-      const d = await call('createDraft', { electionId, kind: s.kind, filename: s.name, csv: s.csv });
-      const doc = (await db.doc(`elections/${electionId}/drafts/${d.draftId}`).get()).data();
-      const warns = doc.checks.filter((c) => c.severity === 'warn').map((c) => c.key);
-      const head = `${prefix} ${s.kind.padEnd(5)} ${s.name}: draft ${d.draftId.slice(0, 8)} ${d.status}, ${warns.length} warn${warns.length ? ` [${[...new Set(warns)].join(', ')}]` : ''}, ${doc.confirmCount} reporting`;
-      if (d.status !== 'ready') {
-        const blocks = doc.checks.filter((c) => c.severity === 'block').map((c) => `${c.key}: ${c.detail}`);
-        console.log(`${head}\n  FAIL: not ready\n  ${blocks.join('\n  ')}`);
-        failed = true;
-        break;
-      }
-      if (!publish) { console.log(head); continue; }
-      // publishDraft checks baseVersion from the draft doc; sent too, as the plan's contract names it.
-      const r = await call('publishDraft', {
-        electionId, draftId: d.draftId, acknowledged: warns, confirmCount: doc.confirmCount, baseVersion: doc.baseVersion,
-      });
-      const ok = r.liveCheck.ok && r.dataVersion === doc.dataVersion;
-      console.log(`${head} -> ${r.dataVersion}, live check ${r.liveCheck.ok ? 'ok' : 'FAILED'} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
-      if (!ok) { failed = true; break; }
+    // A run that stopped in step 6d could leave a precinct marked as reported.
+    if (steps[0] === '00' && existing.markedReported?.length) {
+      await call('setMarkedReported', { electionId, precincts: [] });
+      console.log(`Cleared ${electionId}'s precincts marked as reported from a previous run.`);
     }
+
+    const ctx = makeContext({ call, db, checker });
+    for (const prefix of steps) {
+      const t0 = Date.now();
+      const u = await ctx.upload(prefix);
+      ctx.requireReady(u);
+      if (!publish) { console.log(u.head); continue; }
+      await ctx.publishIt(u, u.head, t0);
+    }
+    if (rehearsal) await rehearse(ctx);
+    if (ctx.pageProblems) throw new Error(`${ctx.pageProblems} difference(s) between the public pages and the CSV files`);
   } catch (e) {
     const refusals = e.details?.refusals?.map((x) => x.code).join(', ');
     console.error(`FAIL: ${e.code ?? ''} ${e.message}${refusals ? ` (refusals: ${refusals})` : ''}`);
     failed = true;
   } finally {
+    if (previous) {
+      await db.doc(`elections/${electionId}`).update({ active: false });
+      await db.doc(`elections/${previous}`).update({ active: true });
+      console.log(`${previous} is the active election again.`);
+    }
     if (!keepAdmin) {
       await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
       await admin.auth().updateUser(BOT_UID, { disabled: true }).catch(() => { /* never created */ });
     }
+    if (checker) await checker.close();
     await deleteApp(app);
     await admin.app().delete();
   }

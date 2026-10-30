@@ -17,6 +17,10 @@ STAGING=${2:-hcec-election-results-staging}
 REPO=hamcoec-dot/Results
 POOL_PROJECT=$PROD
 SA_NAME=github-deploy
+# The OIDC subject of an approved production job. This repository's tokens use GitHub's immutable-ID
+# form, repo:<owner>@<owner id>/<repo>@<repo id>:environment:<name>; the plain repo:<owner>/<repo>
+# form never matches (the first production deploy was refused with it).
+PROD_SUBJECT=${PROD_SUBJECT:-repo:hamcoec-dot@287081868/Results@1427757406:environment:production}
 
 ok()   { echo "  ok: $*"; }
 step() { echo; echo "== $*"; }
@@ -146,11 +150,25 @@ setup_project() {
   done
   ok "deploy roles granted"
 
-  # Only GitHub Actions runs from hamcoec-dot/Results may act as this account.
-  gcloud iam service-accounts add-iam-policy-binding "$sa" --project="$p" --role=roles/iam.workloadIdentityUser \
-    --member="principalSet://iam.googleapis.com/projects/$POOL_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/$REPO" \
-    >/dev/null || fail "GitHub sign-in for $sa"
-  ok "GitHub (only $REPO) can sign in as it"
+  local pool="projects/$POOL_NUMBER/locations/global/workloadIdentityPools/github"
+  local any_run="principalSet://iam.googleapis.com/$pool/attribute.repository/$REPO"
+  if [ "$p" = "$PROD" ]; then
+    # Production: only a job running in the approved GitHub "production" environment may act as it,
+    # so Google enforces the approval too (a workflow on another branch can't skip it).
+    gcloud iam service-accounts add-iam-policy-binding "$sa" --project="$p" --role=roles/iam.workloadIdentityUser \
+      --member="principal://iam.googleapis.com/$pool/subject/$PROD_SUBJECT" \
+      >/dev/null || fail "GitHub sign-in for $sa"
+    gcloud iam service-accounts remove-iam-policy-binding "$sa" --project="$p" --role=roles/iam.workloadIdentityUser \
+      --member="$any_run" >/dev/null 2>&1 || true # an older run of this script granted any run in the repo
+    gcloud iam service-accounts remove-iam-policy-binding "$sa" --project="$p" --role=roles/iam.workloadIdentityUser \
+      --member="principal://iam.googleapis.com/$pool/subject/repo:$REPO:environment:production" >/dev/null 2>&1 || true # the plain form, which never matches
+    ok "GitHub (only $REPO's approved production jobs) can sign in as it"
+  else
+    # Staging: any GitHub Actions run from hamcoec-dot/Results may act as this account.
+    gcloud iam service-accounts add-iam-policy-binding "$sa" --project="$p" --role=roles/iam.workloadIdentityUser \
+      --member="$any_run" >/dev/null || fail "GitHub sign-in for $sa"
+    ok "GitHub (only $REPO) can sign in as it"
+  fi
 }
 
 step "GitHub sign-in (Workload Identity Federation) in $POOL_PROJECT"
@@ -178,13 +196,13 @@ setup_project "$PROD"
 
 echo
 echo "================================================================"
-echo "DONE. Add these three in GitHub: Settings > Secrets and variables > Actions > Variables tab > New repository variable"
+echo "DONE. First time only, add these three in GitHub: Settings > Secrets and variables > Actions > Variables tab > New repository variable"
 echo
 echo "  GCP_WIF_PROVIDER       projects/$POOL_NUMBER/locations/global/workloadIdentityPools/github/providers/github"
 echo "  GCP_DEPLOY_SA_STAGING  $SA_NAME@$STAGING.iam.gserviceaccount.com"
 echo "  GCP_DEPLOY_SA_PROD     $SA_NAME@$PROD.iam.gserviceaccount.com"
 echo "================================================================"
 echo
-echo "Still to do by hand at console.firebase.google.com, in both projects (see the setup guide):"
+echo "First time only, by hand at console.firebase.google.com in both projects (see the setup guide):"
 echo "  Storage > Get started (production mode, us-east1); Authentication > Email/Password on, sign-up off;"
 echo "  add yourself as a user and as a document in the admins collection."

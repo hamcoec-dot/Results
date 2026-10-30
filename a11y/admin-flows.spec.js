@@ -88,9 +88,14 @@ test.describe('admin flows (emulators)', () => {
     const viewer = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
     let opened = false;
     let before = null; // the reference for what is live before this step
+    let edLive = false;
     for (const [kind, sample, id] of night) {
       await signIn(page);
+      // No default kind until an Election Day file is live; from then on Election Day is preselected.
+      await expect(page.locator('#k-ed')).toBeChecked({ checked: edLive });
+      if (!edLive) await expect(page.locator('input[name=kind]:checked')).toHaveCount(0);
       await upload(page, kind, sample);
+      edLive = edLive || kind === 'ed';
       const want = golden(id);
       // The review's diff: every candidate's published → draft votes are the previous step's and
       // this step's reference numbers (plan: "compare the review's contest diff with the CSVs").
@@ -107,6 +112,9 @@ test.describe('admin flows (emulators)', () => {
           return [was ? x.name : `${x.name} (added)`, was ? fmt(was.votes) : '—', fmt(x.votes)];
         }));
       }
+      // Opening the draft pages is required until an Election Day file is live (03 is the first).
+      const pagesOptional = night.findIndex((n) => n[1] === sample) > 3;
+      await expect(page.locator('#publish-needs'), sample).toContainText(pagesOptional ? /✓ Pages opened: 0 of \d \(optional now, recommended\)/ : '✗ Pages opened: 0 of');
       await publishFromReview(page);
       before = want;
       if (!opened) {
@@ -226,6 +234,36 @@ test.describe('admin flows (emulators)', () => {
     }
     await viewer.context().close();
   });
+
+  // A precinct ES&S counts but that shows no new Election Day votes is listed as Pending; the admin can
+  // mark it as reported. The mark goes through a reviewed draft, and the admin page shows who reported.
+  test('mark a precinct as reported: review lists it, the public data follows, unmarking undoes it', async ({ page }) => {
+    await signIn(page);
+    await upload(page, 'ed', '03-After 5 Reporting');
+    await publishFromReview(page);
+    const precinctRow = (name) => page.locator('#reported tbody tr', { has: page.locator('th', { hasText: new RegExp(`^${name}$`) }) });
+    for (const mark of [true, false]) {
+      await signIn(page);
+      const row = precinctRow('AIRPORT A');
+      await expect(row).toContainText(mark ? 'Pending' : 'marked by admin', { timeout: 15000 });
+      await expect(precinctRow('TYNER')).toContainText('Reported');
+      await row.locator('input[type="checkbox"]').setChecked(mark);
+      await page.click('#reported-save');
+      await page.waitForURL(/review\.html\?/, { timeout: 120000 });
+      await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+      if (mark) {
+        await expect(page.locator('#precincts')).toContainText('AIRPORT A (marked by admin)');
+        await expect(page.locator('#checks')).toContainText('Reported precincts do not match the count');
+      } else {
+        await expect(page.locator('#precincts')).toContainText('No longer reporting (1)▼ AIRPORT A');
+      }
+      await publishFromReview(page);
+    }
+    await signIn(page);
+    await expect(precinctRow('AIRPORT A')).toContainText('Pending', { timeout: 15000 });
+    const { violations } = await new AxeBuilder({ page }).include('#reported').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(violations.map((v) => v.id)).toEqual([]);
+  });
 });
 
 test.describe('publish guard rails (emulators)', () => {
@@ -267,16 +305,22 @@ test.describe('publish guard rails (emulators)', () => {
     await page.click('#publish-confirm');
   }
 
-  test('Publish needs every warning ticked and every draft page opened; a wrong typed count is refused', async ({ page }) => {
+  test('Publish needs every warning ticked (pages optional once ED is live); a wrong typed count is refused', async ({ page }) => {
     await signIn(page);
     await upload(page, 'ed', SAMPLE('05-End of Election Day'));
     const btn = page.locator('#publish-btn');
     await expect(btn).toBeDisabled();
+    await expect(page.locator('#preview-rule')).toContainText('optional');
     await tickAll(page);
-    await expect(btn).toBeDisabled(); // pages not opened yet
-    await expect(page.locator('#publish-needs')).toContainText('✗ Pages opened: 0 of');
-    await openAll(page);
+    // An Election Day file is live from the night above: the pages are recommended, not required.
+    await expect(page.locator('#publish-needs')).toContainText(/✓ Pages opened: 0 of \d \(optional now, recommended\)/);
     await expect(btn).toBeEnabled();
+    // A middle click (open in new tab) counts as opening the page.
+    await page.locator('#previews a').first().click({ button: 'middle' });
+    await expect(page.locator('#previews li').first()).toContainText('✓ Opened');
+    await expect(page.locator('#publish-needs')).toContainText('Pages opened: 1 of');
+    for (const tab of page.context().pages()) if (tab !== page) await tab.close();
+    await page.bringToFront();
     await btn.click();
     await page.fill('#confirm-count', '999');
     await page.click('#publish-confirm');

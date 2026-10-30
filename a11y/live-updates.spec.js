@@ -351,7 +351,7 @@ test('prefers-reduced-motion: no transitions or smooth scrolling', async ({ page
 
 test('a site copy without validate.js still shows results, and says so in the console', async ({ page }) => {
   await fakeBucket(page, { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' });
-  await page.route('**/functions/src/validate.js', (route) => route.fulfill({ status: 404, body: '' }));
+  await page.route('**/functions/src/validate.js?v=*', (route) => route.fulfill({ status: 404, body: '' }));
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('index.html?emulator');
@@ -388,7 +388,7 @@ test('an older page that preloads data.js (no results-config.js) still renders a
   await page.route('**/legacy-index.html', async (route) => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
       .replace(/<script src="\.\/results-config\.js"[^>]*><\/script>/, '')
-      .replace('<script src="./functions/src/validate.js" defer></script>', '<script src="./data.js" defer></script>');
+      .replace(/<script src="\.\/functions\/src\/validate\.js[^"]*" defer><\/script>/, '<script src="./data.js" defer></script>');
     await route.fulfill({ status: 200, contentType: 'text/html', body: html });
   });
   const urls = [];

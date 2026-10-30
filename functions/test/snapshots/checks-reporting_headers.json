@@ -285,7 +285,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Governor: the file says 7 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "Governor: the file says 7 reporting, but 5 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under \"Precincts reporting\" on the admin page.",
    "refs": [
     {
      "contest": "Governor"
@@ -359,7 +359,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Governor: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "Governor: the file says 6 reporting, but 5 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under \"Precincts reporting\" on the admin page.",
    "refs": [
     {
      "contest": "Governor"
@@ -371,7 +371,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Constitutional Amendment #1: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "Constitutional Amendment #1: the file says 6 reporting, but 5 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under \"Precincts reporting\" on the admin page.",
    "refs": [
     {
      "contest": "Constitutional Amendment #1"
@@ -383,7 +383,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Constitutional Amendment #2: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "Constitutional Amendment #2: the file says 6 reporting, but 5 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under \"Precincts reporting\" on the admin page.",
    "refs": [
     {
      "contest": "Constitutional Amendment #2"
@@ -395,7 +395,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Constitutional Amendment #3: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "Constitutional Amendment #3: the file says 6 reporting, but 5 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under \"Precincts reporting\" on the admin page.",
    "refs": [
     {
      "contest": "Constitutional Amendment #3"
@@ -407,7 +407,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "United States Senate: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "United States Senate: the file says 6 reporting, but 5 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under \"Precincts reporting\" on the admin page.",
    "refs": [
     {
      "contest": "United States Senate"
@@ -419,7 +419,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "United States House of Representatives, District 3: the file says 6 reporting, but 5 precinct(s) show new votes: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "United States House of Representatives, District 3: the file says 6 reporting, but 5 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under \"Precincts reporting\" on the admin page.",
    "refs": [
     {
      "contest": "United States House of Representatives, District 3"

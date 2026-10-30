@@ -20,11 +20,12 @@ const { verify } = require('./verify');
  * @param {object} [opts.config]             page config block (precinctCap is added to it)
  * @param {string} [opts.lastUpdated]        defaults to now, America/New_York
  * @param {object} [opts.fixes]
+ * @param {string[]} [opts.markedReported]  precincts the admin marked as reported (merge.js)
  * @returns {null | {parsed: {early, ed}, merged: object, diagnostics: object, outputs: object, verify: object[]}}
  *   null when neither slot holds a usable file
  */
 function buildResults({ early = null, ed = null }, opts = {}) {
-  const { precinctCap = 92, fixes = FIXES } = opts;
+  const { precinctCap = 92, fixes = FIXES, markedReported = [] } = opts;
   const config = opts.config ?? { enablePrecinctResults: true, precinctCap };
   const lastUpdated = opts.lastUpdated ?? formatLastUpdated(new Date());
 
@@ -34,7 +35,7 @@ function buildResults({ early = null, ed = null }, opts = {}) {
     early: earlyRows && parseRows(earlyRows, { isEd: false, fixes }),
     ed: edRows && parseRows(edRows, { isEd: true, fixes }),
   };
-  const result = mergeParsedData(parsed.early, parsed.ed, { precinctCap, fixes });
+  const result = mergeParsedData(parsed.early, parsed.ed, { precinctCap, fixes, markedReported });
   if (!result) return null;
   if (fixes.d4) result.data.dataVersion = versionOf(result.data.contests, config);
 

@@ -18,13 +18,13 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=b1fd4f8560">
 
   <!-- The results bucket: connect while the page loads (the data requests start just below) -->
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
 
   <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
-  <script src="./results-config.js" data-files="summary.json"></script>
+  <script src="./results-config.js?v=60273065ff" data-files="summary.json"></script>
 </head>
 <body>
 
@@ -207,7 +207,7 @@
         <span>&#x2139;&#xFE0F;</span>
         <span><strong>Reporting Notice:</strong> Reaching 100% Election Day precincts reporting generally takes about 3 hours after polls close.</span>
       </div>
-      <div class="disclaimer-banner notice-large">
+      <div class="disclaimer-banner notice-large precinct-delay-notice">
         <span>&#x2139;&#xFE0F;</span>
         <span><strong>Results Notice:</strong> Precinct-level results are made available within 1 to 2 business days after Election Day.</span>
       </div>
@@ -222,7 +222,7 @@
   </footer>
 
   <!-- Election Data & Application Controller Scripts -->
-  <script src="./functions/src/validate.js" defer></script>
-  <script src="./app.js" defer></script>
+  <script src="./functions/src/validate.js?v=60bc787319" defer></script>
+  <script src="./app.js?v=70ebaa03c9" defer></script>
 </body>
 </html>
