@@ -136,7 +136,7 @@ test('reporting-mismatch is a warning that must be acknowledged', () => {
   assert.equal(REPORTING_MISMATCH_SEVERITY, 'warn');
   const six = text(ED3).replace(',5 of 92 Precincts Reporting,', ',6 of 92 Precincts Reporting,');
   const [c] = fires(check('ed', six), 'reporting-mismatch', REPORTING_MISMATCH_SEVERITY);
-  assert.match(c.detail, /^Governor: the file says 6 reporting, but 5 precinct\(s\) show new votes: SIGNAL MOUNTAIN A, /);
+  assert.match(c.detail, /^Governor: the file says 6 reporting, but 5 precinct\(s\) are listed as reported: SIGNAL MOUNTAIN A, /);
   assert.deepEqual(c.refs, [{ contest: 'Governor' }]);
 });
 
@@ -273,7 +273,7 @@ test('settings rebuild: an info check lists exactly what changed; upload-history
   const [c] = fires(run({ before: { enablePrecinctResults: true, precinctCap: 92 }, after: { enablePrecinctResults: false, precinctCap: 94 } }), 'settings-changed', 'info');
   assert.equal(c.detail, 'Max precincts: 92 → 94. Precinct Results page: shown → hidden.');
   assert.equal(describeSettingsChange({ before: { enablePrecinctResults: true, precinctCap: 92 }, after: { enablePrecinctResults: true, precinctCap: 92 } }),
-    'No settings differ from what is published; only the build time changes.');
+    'No page settings (max precincts, Precinct Results page) differ from what is published.');
   assert.equal(describeSettingsChange({ before: null, after: { enablePrecinctResults: true, precinctCap: 92 } }),
     'No settings were published before. Publishing: Max precincts 92, Precinct Results page shown.');
   // A config published before precinctCap was added to it reads as the defaults.

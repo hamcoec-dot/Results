@@ -226,6 +226,36 @@ test.describe('admin flows (emulators)', () => {
     }
     await viewer.context().close();
   });
+
+  // A precinct ES&S counts but that shows no new Election Day votes is listed as Pending; the admin can
+  // mark it as reported. The mark goes through a reviewed draft, and the admin page shows who reported.
+  test('mark a precinct as reported: review lists it, the public data follows, unmarking undoes it', async ({ page }) => {
+    await signIn(page);
+    await upload(page, 'ed', '03-After 5 Reporting');
+    await publishFromReview(page);
+    const precinctRow = (name) => page.locator('#reported tbody tr', { has: page.locator('th', { hasText: new RegExp(`^${name}$`) }) });
+    for (const mark of [true, false]) {
+      await signIn(page);
+      const row = precinctRow('AIRPORT A');
+      await expect(row).toContainText(mark ? 'Pending' : 'marked by admin', { timeout: 15000 });
+      await expect(precinctRow('TYNER')).toContainText('Reported');
+      await row.locator('input[type="checkbox"]').setChecked(mark);
+      await page.click('#reported-save');
+      await page.waitForURL(/review\.html\?/, { timeout: 120000 });
+      await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+      if (mark) {
+        await expect(page.locator('#precincts')).toContainText('AIRPORT A (marked by admin)');
+        await expect(page.locator('#checks')).toContainText('Reported precincts do not match the count');
+      } else {
+        await expect(page.locator('#precincts')).not.toContainText('AIRPORT A');
+      }
+      await publishFromReview(page);
+    }
+    await signIn(page);
+    await expect(precinctRow('AIRPORT A')).toContainText('Pending', { timeout: 15000 });
+    const { violations } = await new AxeBuilder({ page }).include('#reported').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(violations.map((v) => v.id)).toEqual([]);
+  });
 });
 
 test.describe('publish guard rails (emulators)', () => {

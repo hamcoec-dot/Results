@@ -79,7 +79,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Governor: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "detail": "Governor: the file says 5 reporting, but 12 precinct(s) are listed as reported: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Governor"
@@ -91,7 +91,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Constitutional Amendment #1: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "detail": "Constitutional Amendment #1: the file says 5 reporting, but 12 precinct(s) are listed as reported: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Constitutional Amendment #1"
@@ -103,7 +103,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Constitutional Amendment #2: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "detail": "Constitutional Amendment #2: the file says 5 reporting, but 12 precinct(s) are listed as reported: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Constitutional Amendment #2"
@@ -115,7 +115,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Constitutional Amendment #3: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "detail": "Constitutional Amendment #3: the file says 5 reporting, but 12 precinct(s) are listed as reported: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Constitutional Amendment #3"
@@ -127,7 +127,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "United States Senate: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "detail": "United States Senate: the file says 5 reporting, but 12 precinct(s) are listed as reported: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "United States Senate"
@@ -139,7 +139,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "United States House of Representatives, District 3: the file says 5 reporting, but 12 precinct(s) show new votes: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN.",
+   "detail": "United States House of Representatives, District 3: the file says 5 reporting, but 12 precinct(s) are listed as reported: COLLEGEDALE B, EAST CHATTANOOGA, EAST RIDGE A, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "United States House of Representatives, District 3"
@@ -151,7 +151,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Tennessee Senate, District 11: the file says 3 reporting, but 8 precinct(s) show new votes: EAST CHATTANOOGA, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, WALDEN.",
+   "detail": "Tennessee Senate, District 11: the file says 3 reporting, but 8 precinct(s) are listed as reported: EAST CHATTANOOGA, LAKESITE, RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Tennessee Senate, District 11"
@@ -163,7 +163,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Tennessee House of Representatives, District 26: the file says 2 reporting, but 3 precinct(s) show new votes: LAKESITE, SODDY DAISY A, SODDY DAISY B.",
+   "detail": "Tennessee House of Representatives, District 26: the file says 2 reporting, but 3 precinct(s) are listed as reported: LAKESITE, SODDY DAISY A, SODDY DAISY B. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Tennessee House of Representatives, District 26"
@@ -175,7 +175,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Tennessee House of Representatives, District 27: the file says 4 reporting, but 7 precinct(s) show new votes: RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, WALDEN.",
+   "detail": "Tennessee House of Representatives, District 27: the file says 4 reporting, but 7 precinct(s) are listed as reported: RED BANK B, SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B, SODDY DAISY A, SODDY DAISY B, ST ELMO, WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Tennessee House of Representatives, District 27"
@@ -187,7 +187,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Tennessee House of Representatives, District 28: the file says 1 reporting, but 2 precinct(s) show new votes: EAST CHATTANOOGA, ST ELMO.",
+   "detail": "Tennessee House of Representatives, District 28: the file says 1 reporting, but 2 precinct(s) are listed as reported: EAST CHATTANOOGA, ST ELMO. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Tennessee House of Representatives, District 28"
@@ -199,7 +199,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Tennessee House of Representatives, District 29: the file says 1 reporting, but 2 precinct(s) show new votes: COLLEGEDALE B, TYNER.",
+   "detail": "Tennessee House of Representatives, District 29: the file says 1 reporting, but 2 precinct(s) are listed as reported: COLLEGEDALE B, TYNER. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Tennessee House of Representatives, District 29"
@@ -211,7 +211,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Tennessee House of Representatives, District 30: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "detail": "Tennessee House of Representatives, District 30: the file says 0 reporting, but 1 precinct(s) are listed as reported: EAST RIDGE A. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Tennessee House of Representatives, District 30"
@@ -223,7 +223,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Collegedale Commissioner: the file says 0 reporting, but 1 precinct(s) show new votes: COLLEGEDALE B.",
+   "detail": "Collegedale Commissioner: the file says 0 reporting, but 1 precinct(s) are listed as reported: COLLEGEDALE B. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Collegedale Commissioner"
@@ -235,7 +235,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "East Ridge Mayor East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "detail": "East Ridge Mayor East Ridge: the file says 0 reporting, but 1 precinct(s) are listed as reported: EAST RIDGE A. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "East Ridge Mayor East Ridge"
@@ -247,7 +247,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "East Ridge City Council East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "detail": "East Ridge City Council East Ridge: the file says 0 reporting, but 1 precinct(s) are listed as reported: EAST RIDGE A. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "East Ridge City Council East Ridge"
@@ -259,7 +259,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "East Ridge City Court Clerk East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "detail": "East Ridge City Court Clerk East Ridge: the file says 0 reporting, but 1 precinct(s) are listed as reported: EAST RIDGE A. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "East Ridge City Court Clerk East Ridge"
@@ -271,7 +271,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "East Ridge Charter Amendment 1 East Ridge: the file says 0 reporting, but 1 precinct(s) show new votes: EAST RIDGE A.",
+   "detail": "East Ridge Charter Amendment 1 East Ridge: the file says 0 reporting, but 1 precinct(s) are listed as reported: EAST RIDGE A. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "East Ridge Charter Amendment 1 East Ridge"
@@ -283,7 +283,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Lakesite Commission: the file says 0 reporting, but 1 precinct(s) show new votes: LAKESITE.",
+   "detail": "Lakesite Commission: the file says 0 reporting, but 1 precinct(s) are listed as reported: LAKESITE. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Lakesite Commission"
@@ -295,7 +295,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Red Bank Commission Red Bank: the file says 0 reporting, but 1 precinct(s) show new votes: RED BANK B.",
+   "detail": "Red Bank Commission Red Bank: the file says 0 reporting, but 1 precinct(s) are listed as reported: RED BANK B. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Red Bank Commission Red Bank"
@@ -307,7 +307,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Red Bank Charter Referendum Red Bank: the file says 0 reporting, but 1 precinct(s) show new votes: RED BANK B.",
+   "detail": "Red Bank Charter Referendum Red Bank: the file says 0 reporting, but 1 precinct(s) are listed as reported: RED BANK B. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Red Bank Charter Referendum Red Bank"
@@ -319,7 +319,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Ridgeside Commission: the file says 0 reporting, but 1 precinct(s) show new votes: RIDGESIDE.",
+   "detail": "Ridgeside Commission: the file says 0 reporting, but 1 precinct(s) are listed as reported: RIDGESIDE. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Ridgeside Commission"
@@ -331,7 +331,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Signal Mountain Town Council: the file says 1 reporting, but 2 precinct(s) show new votes: SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B.",
+   "detail": "Signal Mountain Town Council: the file says 1 reporting, but 2 precinct(s) are listed as reported: SIGNAL MOUNTAIN A, SIGNAL MOUNTAIN B. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Signal Mountain Town Council"
@@ -343,7 +343,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Walden Alderman: the file says 0 reporting, but 1 precinct(s) show new votes: WALDEN.",
+   "detail": "Walden Alderman: the file says 0 reporting, but 1 precinct(s) are listed as reported: WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Walden Alderman"
@@ -355,7 +355,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Walden Referendum: the file says 0 reporting, but 1 precinct(s) show new votes: WALDEN.",
+   "detail": "Walden Referendum: the file says 0 reporting, but 1 precinct(s) are listed as reported: WALDEN. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Walden Referendum"

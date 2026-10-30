@@ -431,7 +431,7 @@ test('settings draft: the selected files rebuilt under new settings, reviewed an
   const sameDoc = await env.db.get(paths.draft(EID, same.draftId));
   assert.equal(sameDoc.dataVersion, doc.dataVersion);
   assert.ok(sameDoc.checks.some((c) => c.id === 'no-change'));
-  assert.match(sameDoc.checks.find((c) => c.id === 'settings-changed').detail, /No settings differ/);
+  assert.match(sameDoc.checks.find((c) => c.id === 'settings-changed').detail, /No page settings .* differ/);
 });
 
 test('settings draft: a missing stored upload is refused with the fix', async () => {
@@ -489,4 +489,62 @@ test('an Election Day file with no Early file selected: mismatches warn, nothing
   assert.equal(d.status, 'ready', JSON.stringify(d.doc.checks.filter((c) => c.severity === 'block').map((c) => c.id)));
   assert.ok(d.doc.checks.some((c) => c.id === 'reporting-mismatch' && c.severity === 'warn'));
   assert.equal((await publish(env, d)).liveCheck.ok, true);
+});
+
+test('marked as reported: an admin mark lists a precinct as reported in every contest it is in, the count stays the file\'s', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  await publish(env, await draftOf(env, 'early', '02-After EV'));
+  // 03 with Tyner's Election Day votes put back to its early votes: ES&S still counts 5, only 4 show new votes.
+  const early = SAMPLE('02-After EV').split('\n');
+  const ed = SAMPLE('03-After 5 Reporting').split('\n').map((line, i) => (/^,?TYNER,/.test(line) ? early[i] : line)).join('\n');
+  const before = await draftOf(env, 'ed', ed);
+  const mismatch = before.doc.checks.filter((c) => c.id === 'reporting-mismatch');
+  assert.ok(mismatch.length > 0, 'the review warns that the names do not match the count');
+  assert.match(mismatch[0].detail, /mark it as reported under "Precincts reporting"/);
+  await publish(env, before);
+  const live = JSON.parse(await env.publicBucket.read('current/reporting.json'));
+  const tyner = live.masterPrecincts.indexOf('TYNER');
+  const gov = live.latest.contests.find((c) => c.title === 'Governor');
+  assert.deepEqual(gov.precinctsStatusIndexed.find((x) => x[0] === tyner), [tyner, 0]);
+
+  const r = await env.svc.setMarkedReported(ADMIN, { electionId: EID, precincts: [' TYNER ', 'TYNER'] });
+  assert.deepEqual(r.precincts, ['TYNER']);
+  assert.deepEqual((await env.db.get(paths.election(EID))).markedReported, ['TYNER']);
+  assert.ok((await env.db.list('audit')).some((a) => a.data.action === 'markReported' && /added TYNER/.test(a.data.detail)));
+
+  const s = await env.svc.createSettingsDraft(ADMIN, { electionId: EID });
+  const doc = await env.db.get(paths.draft(EID, s.draftId));
+  assert.ok(!doc.checks.some((c) => c.id === 'reporting-mismatch'), 'the mark settles the mismatch');
+  assert.match(doc.checks.find((c) => c.id === 'marked-reported').detail, /^TYNER\. Each is listed as reported/);
+  assert.equal(doc.confirmCount, 5);
+  const review = JSON.parse(await env.publicBucket.read(`drafts/${s.draftId}/review.json`));
+  assert.ok(review.precincts.reported.includes('TYNER'));
+  assert.deepEqual(review.precincts.marked, ['TYNER']);
+  assert.deepEqual(review.precincts.newlyReported, ['TYNER']);
+  await publish(env, { draftId: s.draftId, doc });
+  const after = JSON.parse(await env.publicBucket.read('current/reporting.json'));
+  const g2 = after.latest.contests.find((c) => c.title === 'Governor');
+  assert.deepEqual(g2.precinctsStatusIndexed.find((x) => x[0] === tyner), [tyner, 1]);
+  assert.equal(g2.precinctsReporting, 5);
+
+  // A wrong mark (a precinct ES&S does not count) is flagged, not hidden.
+  await env.svc.setMarkedReported(ADMIN, { electionId: EID, precincts: ['TYNER', 'AIRPORT A'] });
+  const wrong = await env.db.get(paths.draft(EID, (await env.svc.createSettingsDraft(ADMIN, { electionId: EID })).draftId));
+  const m = wrong.checks.find((c) => c.id === 'reporting-mismatch');
+  assert.match(m.detail, /marked by an admin: AIRPORT A, TYNER\)\. Check the precincts marked/);
+
+  await assert.rejects(env.svc.setMarkedReported(ADMIN, { electionId: EID, precincts: 'TYNER' }), (e) => e.code === 'invalid-argument');
+  await assert.rejects(env.svc.setMarkedReported(ADMIN, { electionId: EID, precincts: [''] }), (e) => e.code === 'invalid-argument');
+});
+
+test('marked as reported: before any Election Day file a mark changes nothing published', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  const d = await draftOf(env, 'early', '02-After EV');
+  await publish(env, d);
+  await env.svc.setMarkedReported(ADMIN, { electionId: EID, precincts: ['TYNER'] });
+  const doc = await env.db.get(paths.draft(EID, (await env.svc.createSettingsDraft(ADMIN, { electionId: EID })).draftId));
+  assert.equal(doc.dataVersion, d.doc.dataVersion);
+  assert.match(doc.checks.find((c) => c.id === 'marked-reported').detail, /apply once an Election Day file is in use/);
 });
