@@ -88,9 +88,14 @@ test.describe('admin flows (emulators)', () => {
     const viewer = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
     let opened = false;
     let before = null; // the reference for what is live before this step
+    let edLive = false;
     for (const [kind, sample, id] of night) {
       await signIn(page);
+      // No default kind until an Election Day file is live; from then on Election Day is preselected.
+      await expect(page.locator('#k-ed')).toBeChecked({ checked: edLive });
+      if (!edLive) await expect(page.locator('input[name=kind]:checked')).toHaveCount(0);
       await upload(page, kind, sample);
+      edLive = edLive || kind === 'ed';
       const want = golden(id);
       // The review's diff: every candidate's published → draft votes are the previous step's and
       // this step's reference numbers (plan: "compare the review's contest diff with the CSVs").
