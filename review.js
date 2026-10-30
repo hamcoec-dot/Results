@@ -192,12 +192,15 @@
     pages().forEach(function (p) {
       var mark = h('span', { class: 'viewed' }, S.viewed.has(p[0]) ? '✓ Opened' : '');
       var a = h('a', { class: 'btn', href: draftUrl(p[0]), target: '_blank', rel: 'noopener' }, 'Open ' + p[1] + ' (draft, opens in new tab)');
-      a.addEventListener('click', function () {
+      var opened = function () {
         S.viewed.add(p[0]);
         store.set('viewed', Array.from(S.viewed));
         mark.textContent = '✓ Opened';
         updatePublish();
-      });
+      };
+      a.addEventListener('click', opened);
+      // A middle click opens the page in a new tab but fires auxclick, not click.
+      a.addEventListener('auxclick', function (ev) { if (ev.button === 1) opened(); });
       ul.appendChild(h('li', null, a, mark));
     });
     var compare = C.clear(document.getElementById('compare'));

@@ -310,6 +310,12 @@ test.describe('publish guard rails (emulators)', () => {
     // An Election Day file is live from the night above: the pages are recommended, not required.
     await expect(page.locator('#publish-needs')).toContainText(/✓ Pages opened: 0 of \d \(optional now, recommended\)/);
     await expect(btn).toBeEnabled();
+    // A middle click (open in new tab) counts as opening the page.
+    await page.locator('#previews a').first().click({ button: 'middle' });
+    await expect(page.locator('#previews li').first()).toContainText('✓ Opened');
+    await expect(page.locator('#publish-needs')).toContainText('Pages opened: 1 of');
+    for (const tab of page.context().pages()) if (tab !== page) await tab.close();
+    await page.bringToFront();
     await btn.click();
     await page.fill('#confirm-count', '999');
     await page.click('#publish-confirm');
