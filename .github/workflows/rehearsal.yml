@@ -2,7 +2,7 @@ name: rehearsal
 
 # The mock-election rehearsal (docs/REHEARSAL.md), run by a bot admin through the deployed callables:
 # Web Results Samples 00→06, a rollback, the latest file again, the Precinct Results page off and on,
-# and the three deliberate mistakes (tools/staging-election.js --rehearsal). Before every publish it
+# the three deliberate mistakes, and a precinct marked as reported then unmarked (tools/staging-election.js --rehearsal). Before every publish it
 # checks the four draft previews, and after it the four public pages, against the CSV files
 # (tools/check-live-pages.js). Then a smoke test, the records ZIP and the log as artifacts.
 #
