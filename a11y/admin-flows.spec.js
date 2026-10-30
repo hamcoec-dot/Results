@@ -113,8 +113,8 @@ test.describe('admin flows (emulators)', () => {
         }));
       }
       // Opening the draft pages is required until an Election Day file is live (03 is the first).
-      const edLive = night.findIndex((n) => n[1] === sample) > 3;
-      await expect(page.locator('#publish-needs'), sample).toContainText(edLive ? /✓ Pages opened: 0 of \d \(optional now, recommended\)/ : '✗ Pages opened: 0 of');
+      const pagesOptional = night.findIndex((n) => n[1] === sample) > 3;
+      await expect(page.locator('#publish-needs'), sample).toContainText(pagesOptional ? /✓ Pages opened: 0 of \d \(optional now, recommended\)/ : '✗ Pages opened: 0 of');
       await publishFromReview(page);
       before = want;
       if (!opened) {
