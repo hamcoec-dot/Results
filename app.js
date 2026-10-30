@@ -90,6 +90,8 @@ window.ElectionApp = (function() {
       // The hidden attribute, not style.display: .nav-btn sets display with !important.
       nav.hidden = !enablePrecinct;
     });
+    // "Precinct results come in 1 to 2 business days" is only true while the page is off.
+    document.querySelectorAll('.precinct-delay-notice').forEach(el => { el.hidden = enablePrecinct; });
 
     // Access control guard if user directly visits precincts.html while disabled
     const path = (window.location.pathname || '').toLowerCase();
@@ -120,7 +122,7 @@ window.ElectionApp = (function() {
             Precinct-level results are disabled during active Election Night reporting.<br>
             Official precinct breakdowns are published within 1 to 2 business days following Election Day.
           </p>
-          <a href="index.html" class="nav-btn active" style="display:inline-block; padding:10px 24px; font-size:14px; text-decoration:none;">Return to Summary Results</a>
+          <a href="index.html" class="export-btn" style="display:inline-block; padding:10px 24px; font-size:14px; text-decoration:none;">Return to Summary Results</a>
         </div>
       `;
     }
@@ -611,6 +613,11 @@ window.ElectionApp = (function() {
     return electionData.latest || electionData;
   }
 
+  /** REP / DEM / GEN ballot counts exist only in a primary; a general election would show three zeros. */
+  function hidePrimaryPillsInGeneral(primaryBallots) {
+    document.querySelectorAll('.ballot-breakdown-pills').forEach(el => { el.hidden = !(primaryBallots > 0); });
+  }
+
   function renderDashboard() {
     const data = getCurrentDataset();
     if (!data) return;
@@ -644,6 +651,7 @@ window.ElectionApp = (function() {
     if (statBallotsRep) statBallotsRep.textContent = fmtNum(data.ballotsRep || 0);
     if (statBallotsDem) statBallotsDem.textContent = fmtNum(data.ballotsDem || 0);
     if (statBallotsGen) statBallotsGen.textContent = fmtNum(data.ballotsGen || 0);
+    hidePrimaryPillsInGeneral((data.ballotsRep || 0) + (data.ballotsDem || 0));
     if (statTurnout) statTurnout.textContent = `${data.turnoutPercent.toFixed(2)}%`;
     if (statReporting) statReporting.textContent = `${overallRepCapped} of ${overallTotCapped} Precincts`;
 
@@ -917,24 +925,24 @@ window.ElectionApp = (function() {
     const earlyTot = Number(data.earlyVotingTotal) || 1;
     const earlyStatusBadge = earlyRep > 0 ? 
       '<span style="color:var(--status-reported); font-weight:700;">&#x2705; COMPLETE</span>' : 
-      '<span style="color:var(--primary); font-weight:700;">&#x23F3; IN PROGRESS (0.0%)</span>';
+      '<span style="color:var(--neutral-muted); font-weight:700;">&#x23F3; PENDING</span>';
 
     const earlyVotesCount = (data.earlyBallotsCast !== undefined) ? data.earlyBallotsCast : (earlyRep > 0 ? (data.totalBallots || 0) : 0);
 
     if (earlyTableBody) {
       earlyTableBody.innerHTML = `
-        <tr style="font-weight: 600;">
-          <td style="font-weight:700; color:var(--primary);">
+        <tr role="row" style="font-weight: 600;">
+          <td role="cell" data-label="Category" style="font-weight:700; color:var(--primary);">
             &#x1F4EC; Early Voting/NH, Absentee &amp; UOCAVA
           </td>
-          <td>Early Voting, Nursing Home, Absentee &amp; Military Ballots</td>
-          <td>
+          <td role="cell" data-label="Covers">Early Voting, Nursing Home, Absentee &amp; Military Ballots</td>
+          <td role="cell" data-label="Progress">
             <span style="display:inline-flex; align-items:center; gap:6px; font-weight:700; padding:4px 10px; background:var(--surface); border:1px solid var(--border); border-radius:12px; font-size:13px;">
               &#x1F4EC; ${earlyRep} of ${earlyTot}
             </span>
           </td>
-          <td>${earlyStatusBadge}</td>
-          <td style="font-weight:700;">${fmtNum(earlyVotesCount)}</td>
+          <td role="cell" data-label="Status">${earlyStatusBadge}</td>
+          <td role="cell" data-label="Early ballots" style="font-weight:700;">${fmtNum(earlyVotesCount)}</td>
         </tr>
       `;
     }
@@ -945,21 +953,24 @@ window.ElectionApp = (function() {
       const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
       const pct = cTotCapped > 0 ? (cRepCapped / cTotCapped * 100).toFixed(1) : '0.0';
 
-      const statusBadge = cRepCapped === cTotCapped && cTotCapped > 0 ? 
-        '<span style="color:var(--status-reported); font-weight:700;">&#x2705; COMPLETE</span>' : 
-        `<span style="color:var(--primary); font-weight:700;">&#x23F3; IN PROGRESS (${pct}%)</span>`;
+      // Nothing reported yet reads "NOT YET REPORTING", not "IN PROGRESS (0.0%)" (before polls close).
+      const statusBadge = cRepCapped === cTotCapped && cTotCapped > 0 ?
+        '<span style="color:var(--status-reported); font-weight:700;">&#x2705; COMPLETE</span>' :
+        cRepCapped === 0 ?
+        '<span style="color:var(--neutral-muted); font-weight:700;">&#x23F3; NOT YET REPORTING</span>' :
+        `<span style="color:var(--primary); font-weight:700;">&#x1F504; IN PROGRESS (${pct}%)</span>`;
 
       const html = `
-        <tr>
-          <th scope="row" style="font-weight:700;">${escapeHtml(contest.title)}</th>
-          <td>${escapeHtml(contest.voteFor)}</td>
-          <td>
+        <tr role="row">
+          <th scope="row" role="rowheader" style="font-weight:700;">${escapeHtml(contest.title)}</th>
+          <td role="cell" data-label="Vote for">${escapeHtml(contest.voteFor)}</td>
+          <td role="cell" data-label="Precincts">
             <button type="button" class="reporting-btn" data-contest="${escapeHtml(contest.title)}" data-focus-key="row:${slugify(contest.title)}" aria-haspopup="dialog">
               <span aria-hidden="true">&#x1F5F3;&#xFE0F;</span> ${cRepCapped} of ${cTotCapped}<span class="sr-only"> precincts reporting in ${escapeHtml(contest.title)}</span> <span aria-hidden="true">&#x25BE;</span>
             </button>
           </td>
-          <td>${statusBadge}</td>
-          <td style="font-weight:700;">${fmtNum(contest.totalVotes)}</td>
+          <td role="cell" data-label="Status">${statusBadge}</td>
+          <td role="cell" data-label="Total votes" style="font-weight:700;">${fmtNum(contest.totalVotes)}</td>
         </tr>
       `;
         return { key: slugify(contest.title), html: html.trim() };
@@ -1385,6 +1396,88 @@ window.ElectionApp = (function() {
     menu.innerHTML = html;
   }
 
+  /**
+   * The summary slide's ballot breakdown. A primary shows Republican / Democrat / General-only
+   * ballots (the CSV's STATISTICS columns); a general election has none of those, so it shows
+   * Early & Absentee against Election Day (the ED file's totals include the early ballots).
+   * Without an early file there is no split to show, and the card is left out.
+   */
+  function ballotBreakdownCard(data) {
+    const total = data.totalBallots || 0;
+    const pctOf = n => (total ? n / total * 100 : 0);
+    let title;
+    let rows;
+    if ((data.ballotsRep || 0) + (data.ballotsDem || 0) > 0) {
+      title = 'Ballots Cast by Primary';
+      rows = [
+        { cls: 'rep', label: 'Republican Primary', n: data.ballotsRep || 0, color: '#dc2626' },
+        { cls: 'dem', label: 'Democratic Primary', n: data.ballotsDem || 0, color: '#2563eb' },
+        { cls: 'gen', label: 'General Election Only', n: data.ballotsGen || 0, color: '#6b7280' },
+      ];
+    } else if (data.hasEarlyUpload) {
+      const early = Math.min(data.earlyBallotsCast || 0, total);
+      title = 'Ballots Cast by Voting Method';
+      rows = [
+        { cls: 'early', label: 'Early Voting &amp; Absentee', n: early, color: '#2563eb' },
+        { cls: 'ed', label: 'Election Day &amp; Provisional', n: total - early, color: '#16a34a' },
+      ];
+    } else {
+      return '';
+    }
+    const segments = rows.map(r => `<div class="visual-stacked-segment" style="width: ${pctOf(r.n)}%; background:${r.color};"></div>`).join('');
+    const list = rows.map(r => `
+                  <div class="ballot-row ballot-row-${r.cls}">
+                    <span>${r.label}</span>
+                    <span class="ballot-row-value">${fmtNum(r.n)} (${pctOf(r.n).toFixed(1)}%)</span>
+                  </div>`).join('');
+    return `
+              <div class="visual-stat-card">
+                <div class="visual-stat-title">&#x1F4CA; ${title}</div>
+                <div class="visual-stacked-bar" aria-hidden="true">${segments}</div>
+                <div class="ballot-rows">${list}
+                </div>
+              </div>`;
+  }
+
+  /**
+   * The contest slide's margin card: the lead in a vote-for-1 race, or in a multi-seat race the
+   * margin between the last candidate in a winning spot and the first one out. A tie says "Tied";
+   * an uncontested race (no more candidates than seats) or one with no votes gets no card.
+   */
+  function marginCard(contest) {
+    const seats = getVoteForNum(contest.voteFor);
+    const sorted = [...(contest.candidates || [])].sort((a, b) => b.votes - a.votes);
+    if (sorted.length <= seats || sorted[0].votes <= 0) return '';
+    const lastIn = sorted[seats - 1];
+    const firstOut = sorted[seats];
+    const votes = lastIn.votes - firstOut.votes;
+    const pts = lastIn.percentage - firstOut.percentage;
+    const title = seats === 1 ? 'Lead Margin' : `Closest Seat (${seats} to elect)`;
+    let value;
+    let detail;
+    if (votes === 0) {
+      const tied = sorted.filter(c => c.votes === lastIn.votes);
+      value = 'Tied';
+      detail = seats === 1
+        ? `${tied.length === 2 ? `${escapeHtml(tied[0].name)} and ${escapeHtml(tied[1].name)} are` : `${tied.length} candidates are`} tied at ${fmtNum(lastIn.votes)} votes`
+        : `${tied.length} candidates are tied for the last seat at ${fmtNum(lastIn.votes)} votes`;
+    } else {
+      value = `+ ${fmtNum(votes)} votes`;
+      detail = seats === 1
+        ? `${escapeHtml(lastIn.name)} leads ${escapeHtml(firstOut.name)} by ${pts.toFixed(1)} points`
+        : `${escapeHtml(lastIn.name)} holds seat ${seats} over ${escapeHtml(firstOut.name)} by ${pts.toFixed(1)} points`;
+    }
+    return `
+        <div class="visual-stat-card">
+          <div class="visual-stat-title">&#x1F3C6; ${title}</div>
+          <div class="visual-stat-value" style="color:var(--status-reported);">${value}</div>
+          <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px);">
+            ${detail}
+          </div>
+        </div>
+      `;
+  }
+
   function renderCurrentSlide() {
     const viewport = document.getElementById('slide-viewport');
     if (!viewport) return;
@@ -1410,9 +1503,21 @@ window.ElectionApp = (function() {
       const earlyRep = earlyVotingReported(data);
       const earlyTot = Number(data.earlyVotingTotal) || 1;
 
-      const repPct = data.totalBallots ? ((data.ballotsRep || 0) / data.totalBallots * 100) : 0;
-      const demPct = data.totalBallots ? ((data.ballotsDem || 0) / data.totalBallots * 100) : 0;
-      const genPct = data.totalBallots ? ((data.ballotsGen || 0) / data.totalBallots * 100) : 0;
+      const reportingCard = `
+              <div class="visual-stat-card">
+                <div class="visual-stat-title">&#x1F4EC; Reporting Completion</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                  <span style="font-weight:700;">Election Day Precincts:</span>
+                  <span style="font-weight:800; color:var(--status-reported);">${overallRepCapped} of ${overallTotCapped} (${((overallRepCapped / (overallTotCapped || 1)) * 100).toFixed(1)}%)</span>
+                </div>
+                <div class="proj-track">
+                  <div class="proj-fill" style="width: ${(overallRepCapped / (overallTotCapped || 1)) * 100}%; background:#16a34a;"></div>
+                </div>
+                <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px); margin-top:8px;">
+                  ${earlyRep > 0 ? '&#x2705; Early Voting &amp; Absentee: Complete' : '&#x23F3; Early Voting &amp; Absentee: Pending'}
+                </div>
+              </div>`;
+      const ballotsCard = ballotBreakdownCard(data);
 
       viewport.innerHTML = `
         <article class="slide-card">
@@ -1437,47 +1542,12 @@ window.ElectionApp = (function() {
                   <div class="proj-fill" style="width: ${Math.min(data.turnoutPercent, 100)}%; background: linear-gradient(90deg, #1e3a8a, #2563eb);"></div>
                 </div>
               </div>
-
-              <div class="visual-stat-card">
-                <div class="visual-stat-title">&#x1F4EC; Reporting Completion</div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                  <span style="font-weight:700;">Election Day Precincts:</span>
-                  <span style="font-weight:800; color:var(--status-reported);">${overallRepCapped} of ${overallTotCapped} (${((overallRepCapped / (overallTotCapped || 1)) * 100).toFixed(1)}%)</span>
-                </div>
-                <div class="proj-track">
-                  <div class="proj-fill" style="width: ${(overallRepCapped / (overallTotCapped || 1)) * 100}%; background:#16a34a;"></div>
-                </div>
-                <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px); margin-top:8px;">
-                  ${earlyRep > 0 ? '&#x2705; Early Voting &amp; Absentee: Complete' : '&#x23F3; Early Voting &amp; Absentee: Pending'}
-                </div>
-              </div>
+${ballotsCard ? reportingCard : ''}
             </div>
 
-            <!-- Right Column: Party Ballot Distribution Visual Stack & Cards -->
+            <!-- Right Column: how the ballots were cast (or, without that split, the reporting card) -->
             <div>
-              <div class="visual-stat-card">
-                <div class="visual-stat-title">&#x1F4CA; Ballots Cast Distribution</div>
-                <div class="visual-stacked-bar">
-                  <div class="visual-stacked-segment" style="width: ${repPct}%; background:#dc2626;" title="Republican: ${repPct.toFixed(1)}%"></div>
-                  <div class="visual-stacked-segment" style="width: ${demPct}%; background:#2563eb;" title="Democrat: ${demPct.toFixed(1)}%"></div>
-                  <div class="visual-stacked-segment" style="width: ${genPct}%; background:#6b7280;" title="General Only: ${genPct.toFixed(1)}%"></div>
-                </div>
-
-                <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
-                    <span style="font-weight:700; color:#991b1b;">Republican Primary</span>
-                    <span style="font-weight:800; color:#991b1b;">${fmtNum(data.ballotsRep || 0)} (${repPct.toFixed(1)}%)</span>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;">
-                    <span style="font-weight:700; color:#1e40af;">Democrat Primary</span>
-                    <span style="font-weight:800; color:#1e40af;">${fmtNum(data.ballotsDem || 0)} (${demPct.toFixed(1)}%)</span>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px;">
-                    <span style="font-weight:700; color:#374151;">General Election Only</span>
-                    <span style="font-weight:800; color:#374151;">${fmtNum(data.ballotsGen || 0)} (${genPct.toFixed(1)}%)</span>
-                  </div>
-                </div>
-              </div>
+${ballotsCard || reportingCard}
             </div>
           </div>
 
@@ -1487,10 +1557,10 @@ window.ElectionApp = (function() {
               <span>&#x2139;&#xFE0F;</span>
               <span><strong>Reporting Notice:</strong> Reaching 100% Election Day precincts reporting generally takes about 3 hours after polls close.</span>
             </div>
-            <div class="disclaimer-banner">
+            ${isPrecinctPageEnabled() ? '' : `<div class="disclaimer-banner precinct-delay-notice">
               <span>&#x2139;&#xFE0F;</span>
               <span><strong>Results Notice:</strong> Precinct-level results are made available within 1 to 2 business days after Election Day.</span>
-            </div>
+            </div>`}
           </footer>
         </article>
       `;
@@ -1508,7 +1578,6 @@ window.ElectionApp = (function() {
     const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
 
     let chartBarsHtml = '';
-    const sortedCands = [...(contest.candidates || [])].sort((a, b) => b.votes - a.votes);
 
     candidates.forEach(cand => {
       const cParty = getCandidateParty(cand, contest);
@@ -1533,23 +1602,7 @@ window.ElectionApp = (function() {
     });
 
     // Build Right-Side Visual Analytics Card
-    let rightPanelAnalyticsHtml = '';
-    if (sortedCands.length >= 2 && sortedCands[0].votes > 0) {
-      const leadCand = sortedCands[0];
-      const runnerUp = sortedCands[1];
-      const leadMarginVotes = leadCand.votes - runnerUp.votes;
-      const leadMarginPct = leadCand.percentage - runnerUp.percentage;
-
-      rightPanelAnalyticsHtml += `
-        <div class="visual-stat-card">
-          <div class="visual-stat-title">&#x1F3C6; Lead Margin</div>
-          <div class="visual-stat-value" style="color:var(--status-reported);">+ ${fmtNum(leadMarginVotes)} votes</div>
-          <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px);">
-            ${escapeHtml(leadCand.name)} leads by +${leadMarginPct.toFixed(1)}%
-          </div>
-        </div>
-      `;
-    }
+    let rightPanelAnalyticsHtml = marginCard(contest);
 
     // Contest Precinct Reporting Visual Card
     const precPct = cTotCapped > 0 ? (cRepCapped / cTotCapped * 100) : 0;
@@ -1859,6 +1912,15 @@ window.ElectionApp = (function() {
     if (cWrapper) {
       cWrapper.style.display = (mode === 'BY_CONTEST') ? 'block' : 'none';
     }
+    // By Contest lists precincts: the party tabs don't apply there, and the search box finds precincts.
+    const partyTabs = document.querySelector('[data-precinct-party]');
+    if (partyTabs && partyTabs.parentElement) partyTabs.parentElement.hidden = mode === 'BY_CONTEST';
+    const search = document.getElementById('precinct-search');
+    if (search) {
+      const label = mode === 'BY_CONTEST' ? 'Search precinct name' : 'Search contest or candidate';
+      search.placeholder = `\u{1F50D} ${label}...`;
+      search.setAttribute('aria-label', label);
+    }
     savePrecinctStateToURL();
     renderPrecinctPage();
   }
@@ -1908,8 +1970,8 @@ window.ElectionApp = (function() {
     const ind = document.getElementById('precinct-status-indicator');
     if (ind) {
       ind.innerHTML = isReported 
-        ? '<span style="color:var(--success);">&#x2705; REPORTED</span>' 
-        : '<span style="color:var(--warning);">&#x23F3; PENDING / NOT REPORTED</span>';
+        ? '<span style="color:var(--status-reported);">&#x2705; REPORTED</span>' 
+        : '<span style="color:var(--accent);">&#x23F3; PENDING / NOT REPORTED</span>';
     }
 
     const voters = pStats.voters || 0;
@@ -1930,12 +1992,28 @@ window.ElectionApp = (function() {
 
     const genElem = document.getElementById('precinct-stat-ballots-gen');
     if (genElem) genElem.textContent = fmtNum(pStats.gen || 0);
+    hidePrimaryPillsInGeneral(Object.values(electionData.latest.precinctStats || {}).reduce((n, st) => n + (st.rep || 0) + (st.dem || 0), 0));
 
     const tElem = document.getElementById('precinct-stat-turnout');
     if (tElem) tElem.textContent = `${turnout}%`;
 
     const tFill = document.getElementById('precinct-turnout-fill');
     if (tFill) tFill.style.width = `${Math.min(100, parseFloat(turnout))}%`;
+  }
+
+  /**
+   * The party tabs' rule, as on the summary page: Republican / Democratic match a primary contest
+   * (REP / DEM in its title) or a contest with that party's candidate; Non-Partisan matches a
+   * contest with no party in its title and an independent or non-partisan candidate. (The precinct
+   * page used to match only titles starting with REP / DEM, so in a general election those tabs
+   * showed nothing.)
+   */
+  function contestMatchesParty(contest, party) {
+    const cands = contest.candidates || [];
+    if (party === 'REP') return /\bREP\b/i.test(contest.title) || cands.some(c => c.party === 'REP');
+    if (party === 'DEM') return /\bDEM\b/i.test(contest.title) || cands.some(c => c.party === 'DEM');
+    if (party === 'IND') return !/\b(DEM|REP)\b/i.test(contest.title) && cands.some(c => c.party === 'IND' || !c.party);
+    return true;
   }
 
   function renderByPrecinctView(container, latest) {
@@ -1947,10 +2025,7 @@ window.ElectionApp = (function() {
       if (!belongsToPrecinct) return false;
 
       // 2. Party filter
-      const pUpper = c.title.toUpperCase();
-      if (precinctPartyFilter === 'REP' && !pUpper.startsWith('REP')) return false;
-      if (precinctPartyFilter === 'DEM' && !pUpper.startsWith('DEM')) return false;
-      if (precinctPartyFilter === 'IND' && (pUpper.startsWith('REP') || pUpper.startsWith('DEM'))) return false;
+      if (!contestMatchesParty(c, precinctPartyFilter)) return false;
 
       // 3. Search query
       if (precinctSearchQuery) {
@@ -2161,10 +2236,7 @@ window.ElectionApp = (function() {
         const belongsToPrecinct = (c.precinctsStatus || []).some(p => p.name === selectedPrecinct);
         if (!belongsToPrecinct) return false;
 
-        const pUpper = c.title.toUpperCase();
-        if (precinctPartyFilter === 'REP' && !pUpper.startsWith('REP')) return false;
-        if (precinctPartyFilter === 'DEM' && !pUpper.startsWith('DEM')) return false;
-        if (precinctPartyFilter === 'IND' && (pUpper.startsWith('REP') || pUpper.startsWith('DEM'))) return false;
+        if (!contestMatchesParty(c, precinctPartyFilter)) return false;
 
         if (precinctSearchQuery) {
           const titleMatch = c.title.toLowerCase().includes(precinctSearchQuery);
