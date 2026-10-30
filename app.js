@@ -122,7 +122,7 @@ window.ElectionApp = (function() {
             Precinct-level results are disabled during active Election Night reporting.<br>
             Official precinct breakdowns are published within 1 to 2 business days following Election Day.
           </p>
-          <a href="index.html" class="nav-btn active" style="display:inline-block; padding:10px 24px; font-size:14px; text-decoration:none;">Return to Summary Results</a>
+          <a href="index.html" class="export-btn" style="display:inline-block; padding:10px 24px; font-size:14px; text-decoration:none;">Return to Summary Results</a>
         </div>
       `;
     }
@@ -613,6 +613,11 @@ window.ElectionApp = (function() {
     return electionData.latest || electionData;
   }
 
+  /** REP / DEM / GEN ballot counts exist only in a primary; a general election would show three zeros. */
+  function hidePrimaryPillsInGeneral(primaryBallots) {
+    document.querySelectorAll('.ballot-breakdown-pills').forEach(el => { el.hidden = !(primaryBallots > 0); });
+  }
+
   function renderDashboard() {
     const data = getCurrentDataset();
     if (!data) return;
@@ -646,6 +651,7 @@ window.ElectionApp = (function() {
     if (statBallotsRep) statBallotsRep.textContent = fmtNum(data.ballotsRep || 0);
     if (statBallotsDem) statBallotsDem.textContent = fmtNum(data.ballotsDem || 0);
     if (statBallotsGen) statBallotsGen.textContent = fmtNum(data.ballotsGen || 0);
+    hidePrimaryPillsInGeneral((data.ballotsRep || 0) + (data.ballotsDem || 0));
     if (statTurnout) statTurnout.textContent = `${data.turnoutPercent.toFixed(2)}%`;
     if (statReporting) statReporting.textContent = `${overallRepCapped} of ${overallTotCapped} Precincts`;
 
@@ -1906,6 +1912,15 @@ ${ballotsCard || reportingCard}
     if (cWrapper) {
       cWrapper.style.display = (mode === 'BY_CONTEST') ? 'block' : 'none';
     }
+    // By Contest lists precincts: the party tabs don't apply there, and the search box finds precincts.
+    const partyTabs = document.querySelector('[data-precinct-party]');
+    if (partyTabs && partyTabs.parentElement) partyTabs.parentElement.hidden = mode === 'BY_CONTEST';
+    const search = document.getElementById('precinct-search');
+    if (search) {
+      const label = mode === 'BY_CONTEST' ? 'Search precinct name' : 'Search contest or candidate';
+      search.placeholder = `\u{1F50D} ${label}...`;
+      search.setAttribute('aria-label', label);
+    }
     savePrecinctStateToURL();
     renderPrecinctPage();
   }
@@ -1955,8 +1970,8 @@ ${ballotsCard || reportingCard}
     const ind = document.getElementById('precinct-status-indicator');
     if (ind) {
       ind.innerHTML = isReported 
-        ? '<span style="color:var(--success);">&#x2705; REPORTED</span>' 
-        : '<span style="color:var(--warning);">&#x23F3; PENDING / NOT REPORTED</span>';
+        ? '<span style="color:var(--status-reported);">&#x2705; REPORTED</span>' 
+        : '<span style="color:var(--accent);">&#x23F3; PENDING / NOT REPORTED</span>';
     }
 
     const voters = pStats.voters || 0;
@@ -1977,12 +1992,28 @@ ${ballotsCard || reportingCard}
 
     const genElem = document.getElementById('precinct-stat-ballots-gen');
     if (genElem) genElem.textContent = fmtNum(pStats.gen || 0);
+    hidePrimaryPillsInGeneral(Object.values(electionData.latest.precinctStats || {}).reduce((n, st) => n + (st.rep || 0) + (st.dem || 0), 0));
 
     const tElem = document.getElementById('precinct-stat-turnout');
     if (tElem) tElem.textContent = `${turnout}%`;
 
     const tFill = document.getElementById('precinct-turnout-fill');
     if (tFill) tFill.style.width = `${Math.min(100, parseFloat(turnout))}%`;
+  }
+
+  /**
+   * The party tabs' rule, as on the summary page: Republican / Democratic match a primary contest
+   * (REP / DEM in its title) or a contest with that party's candidate; Non-Partisan matches a
+   * contest with no party in its title and an independent or non-partisan candidate. (The precinct
+   * page used to match only titles starting with REP / DEM, so in a general election those tabs
+   * showed nothing.)
+   */
+  function contestMatchesParty(contest, party) {
+    const cands = contest.candidates || [];
+    if (party === 'REP') return /\bREP\b/i.test(contest.title) || cands.some(c => c.party === 'REP');
+    if (party === 'DEM') return /\bDEM\b/i.test(contest.title) || cands.some(c => c.party === 'DEM');
+    if (party === 'IND') return !/\b(DEM|REP)\b/i.test(contest.title) && cands.some(c => c.party === 'IND' || !c.party);
+    return true;
   }
 
   function renderByPrecinctView(container, latest) {
@@ -1994,10 +2025,7 @@ ${ballotsCard || reportingCard}
       if (!belongsToPrecinct) return false;
 
       // 2. Party filter
-      const pUpper = c.title.toUpperCase();
-      if (precinctPartyFilter === 'REP' && !pUpper.startsWith('REP')) return false;
-      if (precinctPartyFilter === 'DEM' && !pUpper.startsWith('DEM')) return false;
-      if (precinctPartyFilter === 'IND' && (pUpper.startsWith('REP') || pUpper.startsWith('DEM'))) return false;
+      if (!contestMatchesParty(c, precinctPartyFilter)) return false;
 
       // 3. Search query
       if (precinctSearchQuery) {
@@ -2208,10 +2236,7 @@ ${ballotsCard || reportingCard}
         const belongsToPrecinct = (c.precinctsStatus || []).some(p => p.name === selectedPrecinct);
         if (!belongsToPrecinct) return false;
 
-        const pUpper = c.title.toUpperCase();
-        if (precinctPartyFilter === 'REP' && !pUpper.startsWith('REP')) return false;
-        if (precinctPartyFilter === 'DEM' && !pUpper.startsWith('DEM')) return false;
-        if (precinctPartyFilter === 'IND' && (pUpper.startsWith('REP') || pUpper.startsWith('DEM'))) return false;
+        if (!contestMatchesParty(c, precinctPartyFilter)) return false;
 
         if (precinctSearchQuery) {
           const titleMatch = c.title.toLowerCase().includes(precinctSearchQuery);

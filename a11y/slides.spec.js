@@ -99,3 +99,20 @@ for (const enabled of [true, false]) {
     await expect(page.locator('#slide-viewport .precinct-delay-notice')).toHaveCount(enabled ? 0 : 1);
   });
 }
+
+test('precinct page: the party tabs work in a general election, and By Contest hides them', async ({ page }) => {
+  const p = JSON.parse(fs.readFileSync(path.join(GOLDEN, 'samples-92-05-end-ed', 'precincts.json')));
+  const name = p.masterPrecincts[p.contests[0].precinctsStatusIndexed[0][0]];
+  await open(page, `precincts.html`, 'samples-92-05-end-ed');
+  await page.locator('#precinct-results-container article').first().waitFor();
+  await page.selectOption('#precinct-select', name);
+  const withRep = p.contests.filter((c) => c.precinctsStatusIndexed.some(([k]) => p.masterPrecincts[k] === name) && c.candidates.some((x) => x.party === 'REP'));
+  expect(withRep.length).toBeGreaterThan(0);
+  await page.click('.tab-btn[data-precinct-party="REP"]');
+  await expect(page.locator('#precinct-results-container article')).toHaveCount(withRep.length);
+  // A general election has no REP / DEM / GEN ballot counts: the three zero pills are hidden.
+  await expect(page.locator('.ballot-breakdown-pills')).toBeHidden();
+  await page.click('#view-mode-contest-btn');
+  await expect(page.locator('.tab-btn[data-precinct-party="REP"]')).toBeHidden();
+  await expect(page.locator('#precinct-search')).toHaveAttribute('aria-label', 'Search precinct name');
+});
