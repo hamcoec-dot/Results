@@ -2,7 +2,8 @@
  * review.html: everything a reviewer needs before publishing a draft, and the only Publish button.
  * Reads the draft's Firestore doc (status, checks, expiry) and its review.json / trace.json from the
  * public bucket. Publish is enabled only when: no blocking checks, every warning ticked, every
- * public page opened, the draft is ready and not expired. The typed count is checked again by the server.
+ * public page opened (until an Election Day file is live: then recommended, not required), the draft
+ * is ready and not expired. The typed count is checked again by the server.
  */
 (function () {
   'use strict';
@@ -85,7 +86,8 @@
       h('span', null, '· Based on ' + (d.baseVersion || 'nothing published')),
       h('span', null, '· ' + counts.block + ' blocking, ' + counts.warn + ' warnings, ' + counts.info + ' info'),
       h('span', null, '· Status: ' + d.status),
-      h('span', null, '· ', countdownText)));
+      h('span', null, '· ', countdownText),
+      h('span', null, '· ', h('a', { href: '#publish-h' }, 'Go to Publish'))));
   }
 
   function startCountdown() {
@@ -177,9 +179,15 @@
     var p = [['index.html', 'Summary results'], ['reporting.html', 'Reporting status'], ['precincts.html', 'Precinct results'], ['scrolling.html', 'Scrolling results']];
     return S.election.enablePrecinctResults === false ? p.filter(function (x) { return x[0] !== 'precincts.html'; }) : p;
   }
+  // Nate's decision (2026-10-30): Zero, Early/ABS and the first Election Day publish need every page
+  // opened. Once an Election Day file is live the pages have been seen working, so opening is optional.
+  function previewsOptional() { return !!S.election.selectedEdUploadId; }
   function draftUrl(page) { return page + '?' + C.cfg.carry + 'draft=' + draftId + '&e=' + encodeURIComponent(eid); }
 
   function renderPreviews() {
+    document.getElementById('preview-rule').textContent = previewsOptional()
+      ? 'An Election Day file is already live, so opening the pages is optional: recommended, but Publish does not wait for it. Each shows a red DRAFT banner.'
+      : 'Open each page. Publish stays off until every page has been opened. Each shows a red DRAFT banner.';
     var ul = C.clear(document.getElementById('previews'));
     pages().forEach(function (p) {
       var mark = h('span', { class: 'viewed' }, S.viewed.has(p[0]) ? '✓ Opened' : '');
@@ -355,7 +363,9 @@
       [d.status === 'ready', d.status === 'ready' ? 'Draft is ready' : 'Draft is ' + d.status],
       [!d.checks.some(function (c) { return c.severity === 'block'; }), 'No blocking checks'],
       [acked === warns.length, 'Warnings checked: ' + acked + ' of ' + warns.length],
-      [S.review && viewed === ps.length, 'Pages opened: ' + viewed + ' of ' + ps.length],
+      S.review && viewed < ps.length && previewsOptional()
+        ? [true, 'Pages opened: ' + viewed + ' of ' + ps.length + ' (optional now, recommended)']
+        : [S.review && viewed === ps.length, 'Pages opened: ' + viewed + ' of ' + ps.length],
       [d.expiresAt > Date.now(), d.expiresAt > Date.now() ? 'Draft has not expired' : 'Draft expired: extend it'],
     ];
   }

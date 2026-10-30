@@ -107,6 +107,9 @@ test.describe('admin flows (emulators)', () => {
           return [was ? x.name : `${x.name} (added)`, was ? fmt(was.votes) : '—', fmt(x.votes)];
         }));
       }
+      // Opening the draft pages is required until an Election Day file is live (03 is the first).
+      const edLive = night.findIndex((n) => n[1] === sample) > 3;
+      await expect(page.locator('#publish-needs'), sample).toContainText(edLive ? /✓ Pages opened: 0 of \d \(optional now, recommended\)/ : '✗ Pages opened: 0 of');
       await publishFromReview(page);
       before = want;
       if (!opened) {
@@ -297,15 +300,15 @@ test.describe('publish guard rails (emulators)', () => {
     await page.click('#publish-confirm');
   }
 
-  test('Publish needs every warning ticked and every draft page opened; a wrong typed count is refused', async ({ page }) => {
+  test('Publish needs every warning ticked (pages optional once ED is live); a wrong typed count is refused', async ({ page }) => {
     await signIn(page);
     await upload(page, 'ed', SAMPLE('05-End of Election Day'));
     const btn = page.locator('#publish-btn');
     await expect(btn).toBeDisabled();
+    await expect(page.locator('#preview-rule')).toContainText('optional');
     await tickAll(page);
-    await expect(btn).toBeDisabled(); // pages not opened yet
-    await expect(page.locator('#publish-needs')).toContainText('✗ Pages opened: 0 of');
-    await openAll(page);
+    // An Election Day file is live from the night above: the pages are recommended, not required.
+    await expect(page.locator('#publish-needs')).toContainText(/✓ Pages opened: 0 of \d \(optional now, recommended\)/);
     await expect(btn).toBeEnabled();
     await btn.click();
     await page.fill('#confirm-count', '999');
