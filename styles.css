@@ -1333,6 +1333,13 @@ body {
   }
 }
 
+/* With the precinct notice gone (Precinct Results page on), the remaining notice spans the row */
+.disclaimer-banner-group.horizontal-notices > .disclaimer-banner:only-child,
+.disclaimer-banner-group.horizontal-notices > .disclaimer-banner:not([hidden]):first-child:has(+ [hidden]),
+.scrolling-body .slide-footer-notices > .disclaimer-banner:only-child {
+  grid-column: 1 / -1 !important;
+}
+
 /* Summary slide ballot breakdown rows (themed, so dark and high contrast modes match) */
 .ballot-rows {
   display: flex !important;

@@ -79,3 +79,23 @@ test('reporting page on a phone: rows stack, nothing scrolls sideways', async ({
   });
   expect(region, 'the table fits without sideways scrolling').toBeLessThanOrEqual(1);
 });
+
+for (const enabled of [true, false]) {
+  test(`the "precinct results in 1 to 2 business days" notice shows only while the precinct page is off (${enabled ? 'on' : 'off'})`, async ({ page }) => {
+    const dir = path.join(GOLDEN, 'samples-92-05-end-ed');
+    await page.route('http://127.0.0.1:9199/**', (route) => {
+      const name = path.basename(decodeURIComponent(new URL(route.request().url()).pathname));
+      if (!fs.existsSync(path.join(dir, name))) return route.fulfill({ status: 404, body: '' });
+      const body = JSON.parse(fs.readFileSync(path.join(dir, name)));
+      if (body.config) body.config.enablePrecinctResults = enabled;
+      return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+    });
+    await page.goto(`index.html?emulator&draft=${DRAFT_ID}`);
+    await page.locator('#contests-container > article').first().waitFor();
+    await expect(page.locator('.precinct-delay-notice')).toBeVisible({ visible: !enabled });
+    await page.goto(`scrolling.html?emulator&draft=${DRAFT_ID}`);
+    await page.locator('#slide-viewport .slide-card').first().waitFor();
+    await expect(page.locator('#slide-viewport')).toContainText('Reporting Notice');
+    await expect(page.locator('#slide-viewport .precinct-delay-notice')).toHaveCount(enabled ? 0 : 1);
+  });
+}

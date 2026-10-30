@@ -90,6 +90,8 @@ window.ElectionApp = (function() {
       // The hidden attribute, not style.display: .nav-btn sets display with !important.
       nav.hidden = !enablePrecinct;
     });
+    // "Precinct results come in 1 to 2 business days" is only true while the page is off.
+    document.querySelectorAll('.precinct-delay-notice').forEach(el => { el.hidden = enablePrecinct; });
 
     // Access control guard if user directly visits precincts.html while disabled
     const path = (window.location.pathname || '').toLowerCase();
@@ -1549,10 +1551,10 @@ ${ballotsCard || reportingCard}
               <span>&#x2139;&#xFE0F;</span>
               <span><strong>Reporting Notice:</strong> Reaching 100% Election Day precincts reporting generally takes about 3 hours after polls close.</span>
             </div>
-            <div class="disclaimer-banner">
+            ${isPrecinctPageEnabled() ? '' : `<div class="disclaimer-banner precinct-delay-notice">
               <span>&#x2139;&#xFE0F;</span>
               <span><strong>Results Notice:</strong> Precinct-level results are made available within 1 to 2 business days after Election Day.</span>
-            </div>
+            </div>`}
           </footer>
         </article>
       `;
