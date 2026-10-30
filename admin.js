@@ -53,6 +53,14 @@
     f.makeActive.checked = Boolean(d.active);
     ['id', 'name', 'date', 'county', 'cap'].forEach(function (k) { setFieldError(k, ''); });
     document.getElementById('upload-form').hidden = !current;
+    // The Election and Election settings cards sit at the bottom (set once for the night), so the
+    // upload card names the election it uploads to.
+    var uploadFor = C.clear(document.getElementById('upload-for'));
+    if (current) {
+      uploadFor.appendChild(h('span', null, 'For ', h('strong', null, d.name + ' (' + d.date + ')'), d.active ? ', the active election.' : '. Not the active election: make it active in Election settings below before publishing.'));
+    } else {
+      uploadFor.appendChild(h('span', null, 'Create the election first, under Election and Election settings below.'));
+    }
     // Once an Election Day file is live, the rest of the night is Election Day files: preselect it.
     // Before that there is no default, so the first Zero / Early / ED choice is always made by hand.
     document.getElementById('k-ed').checked = Boolean(current && current.data.selectedEdUploadId);
