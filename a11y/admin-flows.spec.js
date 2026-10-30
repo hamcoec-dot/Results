@@ -247,7 +247,7 @@ test.describe('admin flows (emulators)', () => {
         await expect(page.locator('#precincts')).toContainText('AIRPORT A (marked by admin)');
         await expect(page.locator('#checks')).toContainText('Reported precincts do not match the count');
       } else {
-        await expect(page.locator('#precincts')).not.toContainText('AIRPORT A');
+        await expect(page.locator('#precincts')).toContainText('No longer reporting (1)▼ AIRPORT A');
       }
       await publishFromReview(page);
     }
