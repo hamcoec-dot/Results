@@ -3,7 +3,7 @@
 // Shift+Tab, Space, Enter, arrow keys and typing. Every control must be reachable in the tab order;
 // focus must go into each dialog and come back. The file itself is chosen with setInputFiles, since
 // the system file picker is outside the page. Runs in npm run a11y:admin (emulators).
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const path = require('node:path');
 
 const ADMIN = { email: 'admin@example.test', password: 'emulator-only-pw' };

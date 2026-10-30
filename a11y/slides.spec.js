@@ -1,7 +1,7 @@
 // The lobby slideshow and the reporting table say the right thing in the cases the review of
 // 2026-10-30 found wrong: ties, multi-seat races, a general election (no primary ballots), and
 // contests before any precinct reports. Opened as a draft on the emulator URLs (no polling).
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures');
 const fs = require('node:fs');
 const path = require('node:path');
 

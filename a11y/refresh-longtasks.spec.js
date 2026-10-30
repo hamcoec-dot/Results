@@ -2,7 +2,7 @@
 // Every one of the 63 contests changes (sample 02 → 05), CPU throttled 4×, at 412 px. Timing depends
 // on the machine, so this runs only with PERF=1 (`PERF=1 npm run a11y -- refresh-longtasks`) and reports;
 // add STRICT=1 to fail on a long task. Results are recorded in perf/BASELINE.md.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');

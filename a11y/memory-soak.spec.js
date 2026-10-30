@@ -3,7 +3,7 @@
 // every contest changes, so each one swaps every card. After a garbage collection, the DOM node
 // count must equal the first refresh's and the JS heap must not grow by more than a tenth.
 // Chromium only (CDP heap counters).
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');

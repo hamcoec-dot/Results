@@ -1,7 +1,7 @@
 // Layer 8 (plan: Test strategy): hostile names in the data render as plain text on every public
 // page, with no script run, no dialog, no injected element and no console error. The golden 03
 // files are served with one candidate and one contest renamed, in every file at once.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');

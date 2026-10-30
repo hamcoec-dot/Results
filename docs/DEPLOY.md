@@ -99,6 +99,40 @@ Cost: roughly one to three dollars a day for the five warm functions. After the 
      Warnings are reported in the `zap-pages` and `zap-bucket` artifacts but don't fail the run, because GitHub Pages' headers can't be changed.
      The rules marked FAIL in `.zap/rules.tsv` do fail it: a vulnerable JS library, PII disclosure, CORS misconfiguration and error disclosure.
 
+## Switch-over: the public pages read the production bucket
+One change in `results-config.js` (`PUBLIC_BASE` = `https://storage.googleapis.com/hcec-election-results-results/`)
+plus a `preconnect` on the four public pages. Merged to `main`, GitHub Pages serves it within minutes, and every
+visitor's next page load reads `current/` from the bucket, polled through `manifest.json`. Until then the live
+site reads the `./` files next to the pages.
+
+**Preconditions** (all of them, before merging):
+- Production is deployed: a green **deploy** run that reached the production job (CORS, lifecycle, functions,
+  rules, invoker grants).
+- Production `current/` holds a real publish or a Zero publish of the active election, made through admin.html,
+  and it passes `node tools/smoke-public.js hcec-election-results-results`. An empty `current/` would show
+  "Results could not be loaded" to every visitor.
+- CORS answers every origin the pages are served from. `cors.json` allows `https://govotehamiltontn.gov` and
+  `https://hamcoec-dot.github.io`. If the pages are also served from another host (a `www.` name that does not
+  redirect, the county IIS server), add it to `cors.json`, deploy, and run the smoke test with
+  `--origin https://<that host>`.
+- The rehearsal (docs/REHEARSAL.md) is done and signed off.
+
+**The merge:** merge the switch-over PR to `main` (CI green). Nothing else is deployed: the pages are static.
+
+**Verify on the live site** (a private window, so nothing is cached):
+- `https://govotehamiltontn.gov/Results/` shows the published results, and "Results updated …" is the publish time.
+- In the browser's network panel, the data requests go to
+  `storage.googleapis.com/hcec-election-results-results/current/` (the manifest, then the page's JSON) and
+  answer 200, with no CORS errors in the console. Check `reporting.html`, `precincts.html` and `scrolling.html` too.
+- On a phone (mobile data): the summary page loads and updates after the next publish, within 60 s.
+- `?local` still shows the `./` files.
+
+**Rollback:** revert the switch-over PR on `main` (or set `PUBLIC_BASE = null` in `results-config.js`). The
+pages then read `./` again, as before. Visitors pick it up on their next load once Pages serves the new file
+(up to about 10 minutes of browser caching). To point people at the `./` files at once, without a merge, link
+`…/Results/index.html?local` (and the other pages with `?local`). Either way the `./` files must be current:
+run the offline fallback (README › Offline fallback) if they are not.
+
 ## Monitoring and alerts
 Once per project, after the first deploy: `node tools/setup-monitoring.js` (uptime check, the auditLive
 mismatch alert, the failed-action alert, email and SMS). See docs/MONITORING.md, which also covers testing them.

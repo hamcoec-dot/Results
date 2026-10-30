@@ -20,8 +20,11 @@
   <!-- CSS Design System -->
   <link rel="stylesheet" href="styles.css?v=b1fd4f8560">
 
+  <!-- The results bucket: connect while the page loads (the data requests start just below) -->
+  <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
+
   <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
-  <script src="./results-config.js?v=60273065ff" data-files="summary.json"></script>
+  <script src="./results-config.js?v=471d3112b9" data-files="summary.json"></script>
 </head>
 <body class="scrolling-body">
 
