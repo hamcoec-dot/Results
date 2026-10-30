@@ -53,6 +53,10 @@
     f.makeActive.checked = Boolean(d.active);
     ['id', 'name', 'date', 'county', 'cap'].forEach(function (k) { setFieldError(k, ''); });
     document.getElementById('upload-form').hidden = !current;
+    // Once an Election Day file is live, the rest of the night is Election Day files: preselect it.
+    // Before that there is no default, so the first Zero / Early / ED choice is always made by hand.
+    document.getElementById('k-ed').checked = Boolean(current && current.data.selectedEdUploadId);
+    if (!document.getElementById('k-ed').checked) ['k-zero', 'k-early'].forEach(function (k) { document.getElementById(k).checked = false; });
     // A settings rebuild needs published files to rebuild.
     document.getElementById('settings-draft-btn').closest('.settings-draft').hidden = !(current && current.data.currentVersion);
     renderPublished();
