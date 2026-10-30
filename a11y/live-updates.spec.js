@@ -387,7 +387,7 @@ test('an older page that preloads data.js (no results-config.js) still renders a
   // Serve index.html as it was before Phase 4: data.js preloaded, no results-config.js or validator.
   await page.route('**/legacy-index.html', async (route) => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
-      .replace(/<script src="\.\/results-config\.js"[^>]*><\/script>/, '')
+      .replace(/<script src="\.\/results-config\.js[^"]*"[^>]*><\/script>/, '')
       .replace(/<script src="\.\/functions\/src\/validate\.js[^"]*" defer><\/script>/, '<script src="./data.js" defer></script>');
     await route.fulfill({ status: 200, contentType: 'text/html', body: html });
   });
