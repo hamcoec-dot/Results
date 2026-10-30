@@ -57,8 +57,8 @@
     document.getElementById('settings-draft-btn').closest('.settings-draft').hidden = !(current && current.data.currentVersion);
     renderPublished();
     renderAuditBanner();
-    if (current) { loadDrafts(); loadHistory(); loadUploads(); } else {
-      ['drafts', 'history', 'uploads'].forEach(function (s) { C.clear(document.getElementById(s)).appendChild(h('p', null, 'Save the new election first.')); });
+    if (current) { loadDrafts(); loadHistory(); loadUploads(); loadReported(); } else {
+      ['drafts', 'history', 'uploads', 'reported'].forEach(function (s) { C.clear(document.getElementById(s)).appendChild(h('p', null, 'Save the new election first.')); });
     }
   }
 
@@ -271,6 +271,81 @@
       C.busy(btn, 'Building rollback draft…', function () { return C.call('createRollbackDraft', { electionId: current.id, version: version }); })
         .then(function (r) { location.href = 'review.html?' + C.cfg.carry + 'e=' + encodeURIComponent(current.id) + '&draft=' + r.draftId; }, function () {});
     });
+  }
+
+  // ---------- precincts reporting ----------
+
+  /**
+   * Every precinct with what the live version shows (Reported in any of its contests, or Pending) and
+   * a "Marked as reported" box per precinct. Saving stores the marks (setMarkedReported) and, once
+   * something is published, rebuilds a draft with them for review.
+   */
+  function loadReported() {
+    var el = document.getElementById('reported');
+    var token = loading(el, 'precincts', loadReported);
+    var v = current.data.currentVersion;
+    var live = v
+      ? fetch(C.cfg.publicUrl('elections/' + current.id + '/v/' + v + '/reporting.json'), { cache: 'no-store' }).then(function (r) {
+        if (!r.ok) throw new Error('the published file could not be read (' + r.status + ')');
+        return r.json();
+      })
+      : Promise.resolve(null);
+    live.then(function (rep) {
+      if (el.loadToken !== token) return;
+      renderReported(el, rep);
+    }, function (e) { if (el.loadToken === token) C.clear(el).appendChild(h('p', null, 'Could not load precincts: ' + C.errorText(e))); });
+  }
+
+  function renderReported(el, rep) {
+    var marked = current.data.markedReported || [];
+    C.clear(el);
+    if (!rep) {
+      el.appendChild(h('p', null, 'Nothing published yet. Precincts appear here after the first publish.'));
+      return;
+    }
+    var names = rep.masterPrecincts || [];
+    var reported = {};
+    (rep.latest.contests || []).forEach(function (c) {
+      (c.precinctsStatusIndexed || []).forEach(function (x) { if (x[1]) reported[names[x[0]]] = true; });
+    });
+    var nRep = names.filter(function (n) { return reported[n]; }).length;
+    el.appendChild(h('p', null, h('strong', null, nRep + ' of ' + names.length + ' precincts'), ' are shown as Reported in at least one contest. The public count is ',
+      h('strong', null, rep.latest.overallPrecinctsReporting + ' of ' + rep.latest.overallPrecinctsTotal), ' (from the ES&S file).'));
+    if (marked.length) el.appendChild(h('p', null, 'Marked as reported by an admin: ' + marked.join(', ') + '.'));
+
+    var filter = h('select', { id: 'reported-filter' },
+      h('option', { value: 'all' }, 'All precincts'), h('option', { value: 'rep' }, 'Reported only'), h('option', { value: 'pend' }, 'Pending only'));
+    el.appendChild(h('div', { class: 'field' }, h('label', { for: 'reported-filter' }, 'Show'), filter));
+    var rows = names.map(function (n, i) {
+      var id = 'mark-' + i;
+      var box = h('input', { type: 'checkbox', id: id, value: n });
+      box.checked = marked.indexOf(n) >= 0;
+      var tr = h('tr', { dataset: { rep: reported[n] ? 'rep' : 'pend' } },
+        h('th', { scope: 'row' }, n),
+        h('td', null, reported[n] ? (marked.indexOf(n) >= 0 ? '✓ Reported (marked by admin)' : '✓ Reported') : '○ Pending'),
+        h('td', null, h('label', { class: 'choice', for: id }, box, 'Marked as reported')));
+      return tr;
+    });
+    filter.addEventListener('change', function () {
+      rows.forEach(function (tr) { tr.hidden = filter.value !== 'all' && tr.dataset.rep !== filter.value; });
+    });
+    el.appendChild(table('Precincts on the live public pages', ['Precinct', 'Public pages show', 'Admin mark'], rows));
+    var save = h('button', { class: 'btn btn-primary', type: 'button', id: 'reported-save' }, 'Save marks & create draft');
+    save.addEventListener('click', function () {
+      var list = rows.map(function (tr) { return tr.querySelector('input'); }).filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+      saveMarks(list, save);
+    });
+    el.appendChild(h('p', { class: 'row' }, save, h('span', { class: 'hint' }, 'Nothing is published here. The draft opens on the Review screen.')));
+  }
+
+  function saveMarks(list, btn) {
+    C.busy(btn, 'Saving marks and rebuilding…', function () {
+      return C.call('setMarkedReported', { electionId: current.id, precincts: list }).then(function () {
+        return C.call('createSettingsDraft', { electionId: current.id });
+      });
+    }).then(function (r) {
+      location.href = 'review.html?' + C.cfg.carry + 'e=' + encodeURIComponent(current.id) + '&draft=' + r.draftId;
+    }, function () {});
   }
 
   function loadUploads() {

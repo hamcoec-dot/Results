@@ -174,7 +174,11 @@ function runChecks({ kind, rows, result, current = null, election, upload, histo
   }
   for (const m of result.diagnostics.reportingMismatches) {
     add('reporting-mismatch', REPORTING_MISMATCH_SEVERITY, 'Reported precincts do not match the count',
-      `${m.contest}: the file says ${m.csvReporting} reporting, but ${m.inferred.length} precinct(s) show new votes${m.inferred.length ? `: ${m.inferred.join(', ')}` : ''}.`,
+      `${m.contest}: the file says ${m.csvReporting} reporting, but ${m.inferred.length} precinct(s) are listed as reported${m.inferred.length ? `: ${m.inferred.join(', ')}` : ''}`
+        + `${m.marked?.length ? ` (marked by an admin: ${m.marked.join(', ')})` : ''}. `
+        + (m.inferred.length < m.csvReporting
+          ? 'A precinct that reported with no new Election Day votes is listed as Pending; mark it as reported under "Precincts reporting" on the admin page.'
+          : m.marked?.length ? 'Check the precincts marked as reported on the admin page.' : 'More precincts have new votes than the file counts; check the export.'),
       [{ contest: m.contest }]);
   }
 
@@ -230,6 +234,11 @@ function runChecks({ kind, rows, result, current = null, election, upload, histo
       `This file was saved ${new Date(upload.lastModified).toISOString()}; the last published one ${new Date(history.lastPublishedFileTime).toISOString()}.`);
   }
 
+  const marked = election.markedReported ?? [];
+  if (marked.length) {
+    add('marked-reported', 'info', 'Precincts marked as reported by an admin',
+      `${marked.join(', ')}. ${result?.parsed.ed ? 'Each is listed as reported in every contest it is in.' : 'These apply once an Election Day file is in use.'}`);
+  }
   if (settingsChange) add('settings-changed', 'info', 'Settings change: the same files, rebuilt', describeSettingsChange(settingsChange));
   if (current) compareWithCurrent(merged, current, add);
   return order(out);
@@ -243,7 +252,7 @@ function describeSettingsChange({ before, after }) {
   const keys = Object.keys(SETTING_LABELS);
   if (!before) return `No settings were published before. Publishing: ${keys.map((k) => `${SETTING_LABELS[k]} ${settingText(k, after[k])}`).join(', ')}.`;
   const changed = keys.filter((k) => settingText(k, before[k] ?? (k === 'precinctCap' ? 92 : true)) !== settingText(k, after[k]));
-  if (!changed.length) return 'No settings differ from what is published; only the build time changes.';
+  if (!changed.length) return 'No page settings (max precincts, Precinct Results page) differ from what is published.';
   return changed.map((k) => `${SETTING_LABELS[k]}: ${settingText(k, before[k] ?? (k === 'precinctCap' ? 92 : true))} → ${settingText(k, after[k])}.`).join(' ');
 }
 

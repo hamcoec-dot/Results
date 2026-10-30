@@ -13,7 +13,8 @@
  * (early votes are already spread across precincts, so non-zero alone overcounts). This is
  * checked against R for every contest; any contest where the two disagree is listed in
  * `diagnostics.reportingMismatches` (a check in checks.js) and keeps R as its count. When R = T
- * every precinct is reported. Legacy behaviour (every listed precinct reported, plus the "largest
+ * every precinct is reported. An admin can mark a precinct as reported (opts.markedReported) for the
+ * rare precinct that reported with no Election Day votes in a contest. Legacy behaviour (every listed precinct reported, plus the "largest
  * contest complete => every contest complete" rule) is kept only for the parity tests.
  */
 const crypto = require('node:crypto');
@@ -52,11 +53,15 @@ function inferReported(edC, earlyC) {
 /**
  * @param {object|null} early  parseRows() result for the Early slot
  * @param {object|null} ed     parseRows() result for the ED slot
- * @param {{precinctCap?: number, fixes?: object}} [opts]
+ * @param {{precinctCap?: number, fixes?: object, markedReported?: string[]}} [opts]
+ *   markedReported  precincts the admin marked as reported (election setting): with an ED file, each
+ *                   is listed as reported in every contest it is in, whatever its votes. The count
+ *                   stays the file's R, so a wrong mark shows up as a reporting mismatch.
  * @returns {{data: object, diagnostics: {reportingMismatches: object[]}}|null}
  */
-function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES } = {}) {
+function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES, markedReported = [] } = {}) {
   if (!early && !ed) return null;
+  markedReported = new Set(markedReported);
   const head = ed ?? early;
   const totalVoters = Math.max(early ? early.totalVoters : 0, ed ? ed.totalVoters : 0);
   const totalBallots = head.totalBallots;
@@ -110,9 +115,12 @@ function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES } = {}) {
     if (edC && fixes.d1) {
       const complete = totalCnt > 0 && reportedCnt >= totalCnt;
       const reported = complete ? new Set(statusMap.keys()) : inferReported(edC, earlyC);
+      // Precincts the admin marked as reported count in every contest they are in (an ED file only).
+      const marked = complete ? [] : [...statusMap.keys()].filter((p) => markedReported.has(p) && !reported.has(p));
+      for (const p of marked) reported.add(p);
       statusMap = new Map([...statusMap.keys()].map((p) => [p, reported.has(p)]));
       if (!complete && reported.size !== reportedCnt) {
-        reportingMismatches.push({ contest: title, csvReporting: reportedCnt, inferred: [...reported] });
+        reportingMismatches.push({ contest: title, csvReporting: reportedCnt, inferred: [...reported], marked });
       }
     } else {
       const fromMap = [...statusMap.values()].filter(Boolean).length;

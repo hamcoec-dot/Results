@@ -318,6 +318,12 @@
   function renderPrecincts() {
     var p = S.review.precincts;
     var el = C.clear(document.getElementById('precincts'));
+    // Older drafts (before admin marks) have no full list.
+    if (p.reported) {
+      var marked = p.marked || [];
+      el.appendChild(h('h3', null, 'Reporting in this draft (' + p.reported.length + ')'));
+      el.appendChild(p.reported.length ? h('p', null, p.reported.map(function (n) { return marked.indexOf(n) >= 0 ? n + ' (marked by admin)' : n; }).join(', ')) : h('p', null, 'None.'));
+    }
     el.appendChild(h('h3', null, 'Newly reporting (' + p.newlyReported.length + ')'));
     el.appendChild(p.newlyReported.length ? h('p', null, p.newlyReported.join(', ')) : h('p', null, 'None.'));
     el.appendChild(h('h3', null, 'No longer reporting (' + p.stoppedReporting.length + ')'));
