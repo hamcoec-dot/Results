@@ -247,6 +247,8 @@ async function createChecker({ bucket, emulator = false }) {
       if (!r[2].includes(`${capped(c.precinctsReporting)} of ${capped(c.precinctsTotal)}`)) problems.push(`reporting ${c.title}: "${r[2]}", expected ${capped(c.precinctsReporting)} of ${capped(c.precinctsTotal)}`);
       eq(`reporting ${c.title} total votes`, r[4], fmt(c.totalVotes));
     }
+    // Every precinct a dialog lists as Reported, for the log (which precincts the public saw as in).
+    const shownReported = new Set();
     for (const c of contests) {
       const at = shown.findIndex((x) => x[0] === norm(c.title));
       if (at < 0) continue;
@@ -254,6 +256,7 @@ async function createChecker({ bucket, emulator = false }) {
       const chips = () => page.locator('#modal-precinct-grid .precinct-chip span:first-child').allTextContents();
       await page.locator('.modal-filter-btn[data-mfilter="REPORTED"]').click();
       const reported = (await chips()).map(norm).sort();
+      reported.forEach((n) => shownReported.add(n));
       await page.locator('.modal-filter-btn[data-mfilter="PENDING"]').click();
       const pending = (await chips()).map(norm).sort();
       await page.keyboard.press('Escape');
@@ -338,6 +341,10 @@ async function createChecker({ bucket, emulator = false }) {
     const flags = contests.reduce((n, c) => n + c.precinctsStatus.filter((p) => p.reported).length, 0);
     const counts = [...new Set(contests.map((c) => capped(c.precinctsReporting)))].sort((a, b) => a - b).join('/');
     console.log(`  ${draft ? 'draft previews' : 'public pages'} ${label}${label ? ' ' : ''}(${files}; ${manifest.dataVersion}): ${problems.length ? `${problems.length} PROBLEM(S)\n    ${problems.slice(0, 40).join('\n    ')}` : `all 4 pages match the CSV (${contests.length} contests, ${contests.reduce((n, c) => n + c.candidates.length, 0)} candidates, ${want.masterPrecincts.length} precincts; ${capped(want.overallPrecinctsReporting)} of ${Math.min(want.overallPrecinctsTotal || cap, cap)} reporting, per contest ${counts}; ${flags} reported precinct-contest pairs, each listed as reported)`}`);
+    if (ed) {
+      const names = [...shownReported].sort();
+      console.log(`    precincts shown as Reported (${names.length}): ${names.join(', ') || 'none'}`);
+    }
     return problems;
   }
 
