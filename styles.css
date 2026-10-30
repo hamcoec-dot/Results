@@ -1333,6 +1333,63 @@ body {
   }
 }
 
+/* Summary slide ballot breakdown rows (themed, so dark and high contrast modes match) */
+.ballot-rows {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+}
+
+.ballot-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: clamp(8px, 1vh, 14px) 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  border-left-width: 6px !important;
+  background: var(--surface) !important;
+  font-weight: 700 !important;
+  font-size: clamp(14px, 1.7vh, 26px) !important;
+  color: var(--neutral-dark) !important;
+}
+
+.ballot-row-value { font-weight: 800 !important; text-align: right !important; }
+.ballot-row-rep { border-left-color: #dc2626 !important; }
+.ballot-row-dem, .ballot-row-early { border-left-color: #2563eb !important; }
+.ballot-row-gen { border-left-color: #6b7280 !important; }
+.ballot-row-ed { border-left-color: #16a34a !important; }
+
+/* Large screens (TV / projector): candidate rows grow to use the slide's height */
+@media (min-height: 1000px), (min-width: 2560px) {
+  .scrolling-body .proj-cand-header {
+    font-size: clamp(22px, 2.7vh, 44px) !important;
+  }
+  .scrolling-body .proj-track {
+    height: clamp(26px, 3.1vh, 52px) !important;
+  }
+  .scrolling-body .proj-chart-list {
+    gap: clamp(10px, 1.6vh, 26px) !important;
+  }
+  .scrolling-body .visual-stat-value {
+    font-size: clamp(32px, 4.2vh, 64px) !important;
+  }
+}
+
+/* Long candidate names wrap beside the vote count instead of pushing it off the slide */
+.scrolling-body .proj-cand-header > span:first-child {
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+}
+@media (min-width: 600px) {
+  .scrolling-body .proj-cand-header > span:last-child {
+    white-space: nowrap !important;
+    padding-left: 12px !important;
+  }
+}
+
 /* High Contrast Mode Presentation Bar Overrides */
 body.high-contrast .slide-timer-container {
   height: 10px !important;
@@ -1723,6 +1780,65 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   text-transform: none !important;
   letter-spacing: normal !important;
   color: var(--neutral-dark) !important;
+}
+
+/* Reporting tables on phones: each row becomes a card (label left, value right) instead of a
+   five-column table that scrolls sideways. The explicit ARIA roles in the markup keep the table
+   semantics that display:block would otherwise drop. */
+@media (max-width: 640px) {
+  .stack-on-phone,
+  .stack-on-phone tbody,
+  .stack-on-phone tr {
+    display: block !important;
+    width: 100% !important;
+  }
+  .stack-on-phone thead tr {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+  }
+  .stack-on-phone tbody tr {
+    padding: 12px 14px !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  .table-responsive .stack-on-phone tbody th[scope="row"],
+  .table-responsive .stack-on-phone tbody td:first-child {
+    display: block !important;
+    text-align: left !important;
+    position: static !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 0 6px 0 !important;
+    border: 0 !important;
+    font-size: 16px !important;
+  }
+  .stack-on-phone tbody td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 4px 0 !important;
+    border: 0 !important;
+    text-align: right !important;
+  }
+  .stack-on-phone tbody td::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--neutral-muted);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .table-responsive .stack-on-phone tbody td:first-child::before {
+    content: none;
+  }
+  .table-responsive:has(.stack-on-phone) {
+    overflow-x: visible !important;
+  }
 }
 
 /* hidden always wins over the components' display rules (they use !important) */

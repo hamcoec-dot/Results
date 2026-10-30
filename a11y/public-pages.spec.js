@@ -120,8 +120,10 @@ for (const [file, ready] of Object.entries(PAGES)) {
       const clipped = await page.evaluate(() => Array.from(document.querySelectorAll('body *')).filter((el) => {
         const cs = getComputedStyle(el);
         if (cs.display === 'none' || cs.visibility === 'hidden' || !el.textContent.trim()) return false;
-        // Screen-reader-only text and decorative parts are clipped by design.
+        // Screen-reader-only text and decorative parts are clipped by design (on phones that
+        // includes the reporting tables' column headers: each cell shows its own label).
         if (el.closest('.sr-only, .skip-link, [aria-hidden="true"]')) return false;
+        if (innerWidth <= 640 && el.closest('.stack-on-phone thead')) return false;
         const hidX = cs.overflowX === 'hidden' || cs.overflowX === 'clip';
         const hidY = cs.overflowY === 'hidden' || cs.overflowY === 'clip';
         return (hidX && el.scrollWidth > el.clientWidth + 1) || (hidY && el.scrollHeight > el.clientHeight + 1);
