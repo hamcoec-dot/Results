@@ -1,7 +1,7 @@
 // Accessibility checks for the public pages (plan: Mobile & accessibility requirements).
-// Each page is loaded in its default mode (./ data), checked with axe for WCAG 2.1 A + AA,
+// Each page is loaded in its default mode (the production bucket's current/, served by ./fixtures), checked with axe for WCAG 2.1 A + AA,
 // and checked for horizontal page scroll (1.4.10) and for text clipped under text-spacing overrides (1.4.12).
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const { AxeBuilder } = require('@axe-core/playwright');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -120,8 +120,10 @@ for (const [file, ready] of Object.entries(PAGES)) {
       const clipped = await page.evaluate(() => Array.from(document.querySelectorAll('body *')).filter((el) => {
         const cs = getComputedStyle(el);
         if (cs.display === 'none' || cs.visibility === 'hidden' || !el.textContent.trim()) return false;
-        // Screen-reader-only text and decorative parts are clipped by design.
+        // Screen-reader-only text and decorative parts are clipped by design (on phones that
+        // includes the reporting tables' column headers: each cell shows its own label).
         if (el.closest('.sr-only, .skip-link, [aria-hidden="true"]')) return false;
+        if (innerWidth <= 640 && el.closest('.stack-on-phone thead')) return false;
         const hidX = cs.overflowX === 'hidden' || cs.overflowX === 'clip';
         const hidY = cs.overflowY === 'hidden' || cs.overflowY === 'clip';
         return (hidX && el.scrollWidth > el.clientWidth + 1) || (hidY && el.scrollHeight > el.clientHeight + 1);

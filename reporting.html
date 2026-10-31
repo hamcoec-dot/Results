@@ -18,10 +18,13 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=b1fd4f8560">
+
+  <!-- The results bucket: connect while the page loads (the data requests start just below) -->
+  <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
 
   <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
-  <script src="./results-config.js" data-files="summary.json reporting.json"></script>
+  <script src="./results-config.js?v=471d3112b9" data-files="summary.json reporting.json"></script>
 </head>
 <body>
 
@@ -97,18 +100,18 @@
     <section style="margin-bottom: 32px;" aria-label="Early and Absentee Reporting Status Section">
       <h2 id="early-heading" class="section-table-heading">Early &amp; Absentee Reporting Status</h2>
       <div class="table-responsive" role="region" aria-labelledby="early-heading" tabindex="0">
-        <table class="data-table">
+        <table class="data-table stack-on-phone" role="table">
           <caption class="sr-only">Early and absentee reporting status</caption>
-          <thead>
-            <tr>
-              <th scope="col">Reporting Category</th>
-              <th scope="col">Ballot Types Covered</th>
-              <th scope="col">Status Progress</th>
-              <th scope="col">Status</th>
-              <th scope="col">Total Early Ballots Cast</th>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Reporting Category</th>
+              <th scope="col" role="columnheader">Ballot Types Covered</th>
+              <th scope="col" role="columnheader">Status Progress</th>
+              <th scope="col" role="columnheader">Status</th>
+              <th scope="col" role="columnheader">Total Early Ballots Cast</th>
             </tr>
           </thead>
-          <tbody id="early-reporting-table-body">
+          <tbody id="early-reporting-table-body" role="rowgroup">
             <!-- Dynamically populated early voting row -->
           </tbody>
         </table>
@@ -119,18 +122,18 @@
     <section aria-label="Election Day Precinct Reporting Status Section">
       <h2 id="ed-heading" class="section-table-heading">Election Day Precinct Reporting Status</h2>
       <div class="table-responsive" role="region" aria-labelledby="ed-heading" tabindex="0">
-        <table class="data-table">
+        <table class="data-table stack-on-phone" role="table">
           <caption class="sr-only">Election Day precincts reporting, by contest</caption>
-          <thead>
-            <tr>
-              <th scope="col">Contest Name</th>
-              <th scope="col">Voting Constraint</th>
-              <th scope="col">Election Day Precincts Reporting</th>
-              <th scope="col">Status</th>
-              <th scope="col">Total Votes Cast</th>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Contest Name</th>
+              <th scope="col" role="columnheader">Voting Constraint</th>
+              <th scope="col" role="columnheader">Election Day Precincts Reporting</th>
+              <th scope="col" role="columnheader">Status</th>
+              <th scope="col" role="columnheader">Total Votes Cast</th>
             </tr>
           </thead>
-          <tbody id="reporting-table-body">
+          <tbody id="reporting-table-body" role="rowgroup">
             <!-- Dynamically populated rows -->
           </tbody>
         </table>
@@ -182,7 +185,7 @@
   </footer>
 
   <!-- Election Data & Application Controller Scripts -->
-  <script src="./functions/src/validate.js" defer></script>
-  <script src="./app.js" defer></script>
+  <script src="./functions/src/validate.js?v=60bc787319" defer></script>
+  <script src="./app.js?v=70ebaa03c9" defer></script>
 </body>
 </html>

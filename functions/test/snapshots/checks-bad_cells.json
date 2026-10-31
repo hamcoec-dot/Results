@@ -21,7 +21,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Governor: the file says 5 reporting, but 6 precinct(s) show new votes: COLLEGEDALE B, SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "Governor: the file says 5 reporting, but 6 precinct(s) are listed as reported: COLLEGEDALE B, SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Governor"
@@ -111,7 +111,7 @@
    "id": "reporting-mismatch",
    "severity": "warn",
    "title": "Reported precincts do not match the count",
-   "detail": "Governor: the file says 5 reporting, but 6 precinct(s) show new votes: COLLEGEDALE B, SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER.",
+   "detail": "Governor: the file says 5 reporting, but 6 precinct(s) are listed as reported: COLLEGEDALE B, SIGNAL MOUNTAIN A, SODDY DAISY A, SODDY DAISY B, ST ELMO, TYNER. More precincts have new votes than the file counts; check the export.",
    "refs": [
     {
      "contest": "Governor"

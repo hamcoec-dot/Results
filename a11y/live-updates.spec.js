@@ -2,7 +2,7 @@
 // ?emulator points the pages at the Storage emulator's URLs; page.route answers those from the
 // golden outputs, so no emulator needs to run. A poll is triggered with a visibilitychange event
 // (the page checks at once when it becomes visible) instead of waiting 60 s.
-const { test, expect } = require('@playwright/test');
+const { test, expect, routeProdBucket, fixtureData, PROD_BUCKET } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -171,22 +171,45 @@ test('a live update replaces only the contest cards that changed', async ({ page
   expect(marks[1]).toBeNull();
 });
 
-test('default mode (no ?local/?emulator/?draft, PUBLIC_BASE unset) reads ./ only, as the live site does today', async ({ page, baseURL }) => {
+test('default mode (no ?local/?emulator/?draft) reads the production bucket\'s current/ and polls its manifest', async ({ page, baseURL }) => {
   const urls = [];
   page.on('request', (r) => urls.push(r.url()));
   await page.goto('index.html');
   await expect(firstCard(page)).toBeVisible();
+  // The status line takes the manifest's updatedAt (without a manifest it would be metadata.lastUpdated, 8:45 PM).
+  await expect(status(page)).toHaveText('Results updated 7:58 PM');
+  const data = urls.filter((u) => /\.(json|js)(\?|$)/.test(u) && !/\/(app|results-config)\.js|validate\.js/.test(u));
+  expect(data.length).toBeGreaterThan(0);
+  for (const u of data) expect(u.startsWith(`${PROD_BUCKET}current/`), u).toBe(true);
+  expect(data.some((u) => u.startsWith(baseURL))).toBe(false);
+  expect(data.filter((u) => u.includes('/current/manifest.json'))).toHaveLength(1);
+  expect(data.filter((u) => u.includes('/current/summary.json'))).toHaveLength(1);
+  await expect(firstCard(page)).toContainText(fixtureData('summary.json').latest.contests[0].title);
+
+  // A poll asks only for the manifest while its dataVersion stays the same.
+  urls.length = 0;
+  await poll(page);
+  await expect.poll(() => urls.filter((u) => u.includes('manifest.json')).length).toBe(1);
+  expect(urls.filter((u) => /summary\.json/.test(u))).toEqual([]);
+});
+
+test('?local reads ./ only (the offline fallback): no bucket, no manifest', async ({ page, baseURL }) => {
+  const urls = [];
+  page.on('request', (r) => urls.push(r.url()));
+  await page.goto('index.html?local');
+  await expect(firstCard(page)).toBeVisible();
   const data = urls.filter((u) => /\.(json|js)(\?|$)/.test(u) && !/\/(app|results-config)\.js|validate\.js/.test(u));
   expect(data.length).toBeGreaterThan(0);
   for (const u of data) expect(u.startsWith(baseURL), u).toBe(true);
+  expect(urls.some((u) => u.includes('storage.googleapis.com'))).toBe(false);
   expect(data.some((u) => u.includes('manifest.json'))).toBe(false);
 });
 
-test('when the page JSON is missing, data.js is the fallback and results still show', async ({ page }) => {
+test('?local: when the page JSON is missing, data.js is the fallback and results still show', async ({ page }) => {
   await page.route('**/summary.json*', (route) => route.fulfill({ status: 404, body: '' }));
   const urls = [];
   page.on('request', (r) => urls.push(new URL(r.url()).pathname));
-  await page.goto('index.html');
+  await page.goto('index.html?local');
   await expect(firstCard(page)).toBeVisible();
   expect(urls).toContain('/data.js');
   await expect(status(page)).toHaveText(/^Results updated /);
@@ -328,7 +351,7 @@ test('prefers-reduced-motion: no transitions or smooth scrolling', async ({ page
 
 test('a site copy without validate.js still shows results, and says so in the console', async ({ page }) => {
   await fakeBucket(page, { dir: V03, updatedAt: '2026-11-03T21:42:00-05:00' });
-  await page.route('**/functions/src/validate.js', (route) => route.fulfill({ status: 404, body: '' }));
+  await page.route('**/functions/src/validate.js?v=*', (route) => route.fulfill({ status: 404, body: '' }));
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('index.html?emulator');
@@ -364,8 +387,8 @@ test('an older page that preloads data.js (no results-config.js) still renders a
   // Serve index.html as it was before Phase 4: data.js preloaded, no results-config.js or validator.
   await page.route('**/legacy-index.html', async (route) => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
-      .replace(/<script src="\.\/results-config\.js"[^>]*><\/script>/, '')
-      .replace('<script src="./functions/src/validate.js" defer></script>', '<script src="./data.js" defer></script>');
+      .replace(/<script src="\.\/results-config\.js[^"]*"[^>]*><\/script>/, '')
+      .replace(/<script src="\.\/functions\/src\/validate\.js[^"]*" defer><\/script>/, '<script src="./data.js" defer></script>');
     await route.fulfill({ status: 200, contentType: 'text/html', body: html });
   });
   const urls = [];
@@ -394,6 +417,7 @@ for (const width of [375, 1280]) {
       expect(await gap(slug)).toBeGreaterThanOrEqual(4);
     }
     const context = await page.context().browser().newContext({ viewport: { width, height: 800 }, reducedMotion: 'reduce', baseURL: test.info().project.use.baseURL });
+    await routeProdBucket(context); // a context of its own: give it the fake production bucket too
     const fresh = await context.newPage();
     await fresh.goto(`index.html#${slugs[30]}`);
     await expect.poll(() => fresh.evaluate((s) => {

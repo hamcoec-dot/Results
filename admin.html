@@ -6,15 +6,15 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com/firebasejs/10.8.0/; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app http://127.0.0.1:* http://localhost:*; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="robots" content="noindex">
   <title>Election Admin – Hamilton County Election Results</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="styles.css?v=b1fd4f8560">
+  <link rel="stylesheet" href="admin.css?v=6304c74fa8">
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-functions-compat.js"></script>
-  <script defer src="firebase-config.js"></script>
-  <script defer src="admin-common.js"></script>
-  <script defer src="admin.js"></script>
+  <script defer src="firebase-config.js?v=ab0794b825"></script>
+  <script defer src="admin-common.js?v=ffdf1ecc9f"></script>
+  <script defer src="admin.js?v=9f06df51bf"></script>
 </head>
 <body class="admin">
   <a href="#main-content" class="sr-only">Skip to main content</a>
@@ -56,6 +56,49 @@
     <div id="app" hidden>
       <p class="row">Signed in as <strong class="who"></strong> <button class="btn sign-out" type="button">Sign out</button></p>
       <div id="audit-alert" class="alert" role="alert"></div>
+
+      <section class="card" aria-labelledby="upload-h">
+        <h2 id="upload-h">Upload results</h2>
+        <p id="upload-for" class="row"></p>
+        <!-- hidden until an election is selected (admin.js selectElection) -->
+        <form id="upload-form" novalidate hidden>
+          <fieldset class="field" aria-describedby="kind-error">
+            <legend>What is this file?</legend>
+            <label class="choice" for="k-zero"><input id="k-zero" type="radio" name="kind" value="zero"> Zero report (before any votes)</label>
+            <label class="choice" for="k-early"><input id="k-early" type="radio" name="kind" value="early"> Early voting / Absentee</label>
+            <label class="choice" for="k-ed"><input id="k-ed" type="radio" name="kind" value="ed"> Election Day</label>
+            <p id="kind-error" class="field-error"></p>
+          </fieldset>
+          <div class="field">
+            <label for="u-file">CSV file (Custom Table Report)</label>
+            <input id="u-file" name="file" type="file" accept=".csv,text/csv" aria-describedby="file-error">
+            <p id="file-error" class="field-error"></p>
+          </div>
+          <button class="btn btn-primary" type="submit">Upload &amp; create draft</button>
+          <p class="hint">Nothing is published here. The draft opens on the Review screen.</p>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="drafts-h">
+        <h2 id="drafts-h">Open drafts</h2>
+        <div id="drafts"></div>
+      </section>
+
+      <section class="card" aria-labelledby="history-h">
+        <h2 id="history-h">Published versions</h2>
+        <div id="history"></div>
+      </section>
+
+      <section class="card" aria-labelledby="reported-h">
+        <h2 id="reported-h">Precincts reporting</h2>
+        <p class="hint" id="reported-hint">Which precincts the public pages show as Reported right now. The "X of Y precincts" count always comes from the ES&amp;S file. Mark a precinct as reported only if ES&amp;S counts it but it shows Pending here (the review screen warns "Reported precincts do not match the count" and names it). Marks apply once an Election Day file is in use, in every contest the precinct is in.</p>
+        <div id="reported"></div>
+      </section>
+
+      <section class="card" aria-labelledby="uploads-h">
+        <h2 id="uploads-h">Uploads</h2>
+        <div id="uploads"></div>
+      </section>
 
       <section class="card" aria-labelledby="election-h">
         <h2 id="election-h">Election</h2>
@@ -107,42 +150,6 @@
           <button class="btn" type="button" id="settings-draft-btn" aria-describedby="settings-draft-hint">Create draft with these settings</button>
           <p class="hint" id="settings-draft-hint">Rebuilds what is published from the same files with the saved settings (max precincts, Precinct Results page), for review. Nothing is published here.</p>
         </div>
-      </section>
-
-      <section class="card" aria-labelledby="upload-h">
-        <h2 id="upload-h">Upload results</h2>
-        <!-- hidden until an election is selected (admin.js selectElection) -->
-        <form id="upload-form" novalidate hidden>
-          <fieldset class="field" aria-describedby="kind-error">
-            <legend>What is this file?</legend>
-            <label class="choice" for="k-zero"><input id="k-zero" type="radio" name="kind" value="zero"> Zero report (before any votes)</label>
-            <label class="choice" for="k-early"><input id="k-early" type="radio" name="kind" value="early"> Early voting / Absentee</label>
-            <label class="choice" for="k-ed"><input id="k-ed" type="radio" name="kind" value="ed"> Election Day</label>
-            <p id="kind-error" class="field-error"></p>
-          </fieldset>
-          <div class="field">
-            <label for="u-file">CSV file (Custom Table Report)</label>
-            <input id="u-file" name="file" type="file" accept=".csv,text/csv" aria-describedby="file-error">
-            <p id="file-error" class="field-error"></p>
-          </div>
-          <button class="btn btn-primary" type="submit">Upload &amp; create draft</button>
-          <p class="hint">Nothing is published here. The draft opens on the Review screen.</p>
-        </form>
-      </section>
-
-      <section class="card" aria-labelledby="drafts-h">
-        <h2 id="drafts-h">Open drafts</h2>
-        <div id="drafts"></div>
-      </section>
-
-      <section class="card" aria-labelledby="history-h">
-        <h2 id="history-h">Published versions</h2>
-        <div id="history"></div>
-      </section>
-
-      <section class="card" aria-labelledby="uploads-h">
-        <h2 id="uploads-h">Uploads</h2>
-        <div id="uploads"></div>
       </section>
     </div>
 

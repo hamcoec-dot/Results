@@ -4,7 +4,7 @@
 // Needs the emulators running and seeded, so it is skipped unless EMULATORS=1:
 //   npm run a11y:admin   (starts the emulators, seeds them, runs this file)
 // Signed-out states are covered here too, and need no emulator.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const { AxeBuilder } = require('@axe-core/playwright');
 const path = require('node:path');
 
@@ -64,7 +64,9 @@ test.describe('signed in (emulators)', () => {
       await audit(page);
       await noHorizontalScroll(page);
     }
-    // Errors are announced next to the fields (3.3.1): submit with nothing chosen.
+    // Errors are announced next to the fields (3.3.1): submit with nothing chosen. The earlier specs
+    // leave an Election Day file live, which preselects Election Day, so clear it as a new election has it.
+    await page.evaluate(() => document.querySelectorAll('input[name=kind]').forEach((r) => { r.checked = false; }));
     await page.click('#upload-form button[type="submit"]');
     await expect(page.locator('#kind-error')).not.toBeEmpty();
     await audit(page);

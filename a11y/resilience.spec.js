@@ -3,7 +3,7 @@
 // clock and a tab hidden for hours. It never shows wrong or partial numbers, keeps the last good
 // data with a "delayed" status, and recovers on its own. ?emulator points the page at the Storage
 // emulator's URLs; page.route answers them from the golden outputs, so no emulator needs to run.
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');

@@ -54,11 +54,16 @@ type the precincts-reporting number shown in the sentence → **Confirm**.
    **Create draft with these settings**. Review and publish it.
    - [ ] The Precinct Results page disappears from the public site.
    - [ ] Turn it back on the same way, and check it comes back.
-6. **Practice mistakes on purpose:**
+6. **If a precinct ES&S counts shows as Pending.** The review warns **Reported precincts do not match the count**
+   and names the contest. This happens only when a precinct reported with no new Election Day votes in a contest.
+   On the admin page, under **Precincts reporting**, tick **Marked as reported** for that precinct, then
+   **Save marks & create draft**. Review and publish it. The "X of Y" count always stays the one ES&S printed.
+   - [ ] **Precincts reporting** on the admin page lists every precinct the public pages show as Reported.
+7. **Practice mistakes on purpose:**
    - [ ] Upload an Election Day file but choose "Zero report". The draft is **BLOCKED** and cannot be published.
    - [ ] Upload an earlier file after a later one (lower totals). A warning appears and must be ticked before publishing.
    - [ ] Upload two files to make two drafts (A, then B). Publish B, then open A. It is refused as **Stale**.
-7. Under **Open drafts**, click **Discard** on anything left over.
+8. Under **Open drafts**, click **Discard** on anything left over.
 
 ## After
 - [ ] Untick **This is the active election** on the test election. Make the real election the active one before its Zero publish.

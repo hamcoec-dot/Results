@@ -34,7 +34,7 @@
  *   version before the latest, the latest file again, the Precinct Results page off and on with settings
  *   drafts, and the three deliberate mistakes (an ED file chosen as Zero is BLOCKED; an older file warns
  *   and cannot be published unticked; the older of two drafts is refused as stale once the newer one is
- *   published). After each publish it checks the public manifest, and it ends on the latest file.
+ *   published), then a Pending precinct marked as reported and unmarked (settings drafts). After each publish it checks the public manifest, and it ends on the latest file.
  * The election id must start with "test-". A run that starts at 00 clears the test election's selected
  * uploads first, so it can be repeated.
  *   node tools/staging-election.js --emulator   the running emulators (project demo-hcec, no key or IAM needed)
@@ -124,6 +124,7 @@ function makeContext({ call, db, checker }) {
   const filesOf = new Map(); // dataVersion -> { early, ed } sample paths
   let slots = { early: null, ed: null }; // what the election has selected now
   let precinctPage = true;
+  let marked = []; // precincts the admin marked as reported (the election setting)
   const ctx = { call, db, versions, pageProblems: 0 };
   ctx.fail = (msg) => { throw new Error(msg); };
   ctx.draftDoc = async (id) => (await db.doc(`elections/${electionId}/drafts/${id}`).get()).data();
@@ -151,12 +152,13 @@ function makeContext({ call, db, checker }) {
     ctx.fail(`draft ${d.draftId} is ${d.status}`);
   };
   ctx.setPrecinctPage = (on) => { precinctPage = on; };
+  ctx.setMarked = (list) => { marked = list; };
   ctx.filesOf = (version) => filesOf.get(version);
   ctx.slots = () => slots;
   /** Publishes a ready draft as the operator does (tick every warning, type the count), then checks the pages. */
   ctx.publishIt = async ({ d, doc, files }, head, t0) => {
     // The operator opens the four previews before publishing; check them against the CSVs too.
-    if (checker) ctx.pageProblems += (await checker.check({ ...files, cap: Number(set), precinctPage, draft: d.draftId, version: doc.dataVersion })).length;
+    if (checker) ctx.pageProblems += (await checker.check({ ...files, cap: Number(set), precinctPage, marked, draft: d.draftId, version: doc.dataVersion })).length;
     const warns = doc.checks.filter((c) => c.severity === 'warn').map((c) => c.key);
     // publishDraft checks baseVersion from the draft doc; sent too, as the plan's contract names it.
     const r = await call('publishDraft', {
@@ -171,7 +173,7 @@ function makeContext({ call, db, checker }) {
       const m = await served('manifest.json');
       if (m?.dataVersion !== r.dataVersion) ctx.fail(`the public manifest says ${m?.dataVersion}, expected ${r.dataVersion}`);
     }
-    if (checker) ctx.pageProblems += (await checker.check({ ...files, cap: Number(set), precinctPage })).length;
+    if (checker) ctx.pageProblems += (await checker.check({ ...files, cap: Number(set), precinctPage, marked })).length;
     if (pause) await new Promise((res) => setTimeout(res, pause * 1000));
     return r.dataVersion;
   };
@@ -189,6 +191,9 @@ async function refused(call, data) {
 }
 
 /** docs/REHEARSAL.md › Run, steps 4 to 7, after 00→06 are published. */
+/** Step 6d's precinct: still Pending in 05 (15 reporting). */
+const MARK = 'AIRPORT A';
+
 async function rehearse(ctx) {
   const { call, db, versions, fail } = ctx;
   const settings = (enablePrecinctResults) => call('upsertElection', {
@@ -255,6 +260,24 @@ async function rehearse(ctx) {
   console.log(`6c A: ${a.head}; publish refused (${codes.join(', ')})`);
   await discard(a.d);
 
+  // 6d. Precincts reporting (docs/REHEARSAL.md step 6): mark a precinct that is still Pending as
+  // reported, publish the settings draft, and the pages list it as Reported while the count stays the
+  // file's. Then untick it and publish again.
+  for (const list of [[MARK], []]) {
+    t0 = Date.now();
+    await call('setMarkedReported', { electionId, precincts: list });
+    ctx.setMarked(list);
+    const sd = await ctx.draft(await call('createSettingsDraft', { electionId }), `6d marked as reported: ${list.join(', ') || 'none'}`, ctx.slots());
+    ctx.requireReady(sd);
+    const info = sd.doc.checks.some((c) => c.id === 'marked-reported');
+    if (info !== list.length > 0) fail(`6d: the draft ${info ? 'has' : 'has no'} "Precincts marked as reported" note`);
+    if (list.length && !sd.doc.checks.some((c) => c.severity === 'warn' && c.detail?.includes(`marked by an admin: ${MARK}`))) {
+      fail('6d: no reporting-mismatch warning names the marked precinct');
+    }
+    if (sd.doc.confirmCount !== b.doc.confirmCount) fail(`6d: ${sd.doc.confirmCount} reporting, expected the file's ${b.doc.confirmCount}`);
+    await ctx.publishIt(sd, sd.head, t0);
+  }
+
   // End on the latest file, as after the night's last upload.
   t0 = Date.now();
   u = await ctx.upload('06');
@@ -319,6 +342,11 @@ async function main() {
     if (steps[0] === '00' && (existing.selectedEarlyUploadId || existing.selectedEdUploadId)) {
       await db.doc(`elections/${electionId}`).update({ selectedEarlyUploadId: null, selectedEdUploadId: null });
       console.log(`Cleared ${electionId}'s selected uploads from a previous run.`);
+    }
+    // A run that stopped in step 6d could leave a precinct marked as reported.
+    if (steps[0] === '00' && existing.markedReported?.length) {
+      await call('setMarkedReported', { electionId, precincts: [] });
+      console.log(`Cleared ${electionId}'s precincts marked as reported from a previous run.`);
     }
 
     const ctx = makeContext({ call, db, checker });

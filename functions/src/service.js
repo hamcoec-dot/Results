@@ -100,7 +100,7 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
       { contentType: contentType(f), cacheControl: NO_STORE, gzip: true })));
     return Object.fromEntries(Object.entries(files).map(([f, text]) => [f, P.sha256Hex(text)]));
   }
-  const electionView = (e) => ({ name: e.name, date: e.date, county: e.county, precinctCap: e.precinctCap ?? 92 });
+  const electionView = (e) => ({ name: e.name, date: e.date, county: e.county, precinctCap: e.precinctCap ?? 92, markedReported: e.markedReported ?? [] });
 
   /** Creates a frozen draft from one uploaded export. */
   async function createDraft(actor, data) {
@@ -207,6 +207,7 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
         precinctCap,
         config: pageConfig(election),
         lastUpdated: formatLastUpdated(new Date(t)),
+        markedReported: election.markedReported ?? [],
       });
       checks = runChecks({ kind: subject.kind, rows, result, current, election: settings, upload: subject, history, settingsChange });
     } catch (e) {
@@ -379,6 +380,27 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     return { ok: true };
   }
 
+  /**
+   * Saves the precincts an admin marks as reported (for a precinct that reported with no new
+   * Election Day votes). Like the other settings it applies to the next draft; never touches what is
+   * published. The admin page follows it with createSettingsDraft.
+   */
+  async function setMarkedReported(actor, data) {
+    const eid = data?.electionId;
+    const election = await requireElection(eid);
+    const list = data?.precincts;
+    if (!Array.isArray(list) || list.length > 999 || !list.every((p) => typeof p === 'string' && p.trim() && p.length <= 100)) {
+      throw new ServiceError('invalid-argument', 'precincts: a list of precinct names.');
+    }
+    const precincts = [...new Set(list.map((p) => p.trim()))].sort();
+    const before = election.markedReported ?? [];
+    await db.update(paths.election(eid), { markedReported: precincts, updatedAt: iso(now()), updatedBy: actor.email });
+    const added = precincts.filter((p) => !before.includes(p));
+    const removed = before.filter((p) => !precincts.includes(p));
+    await audit(actor, 'markReported', eid, `marked as reported: ${precincts.join(', ') || 'none'}${added.length ? `; added ${added.join(', ')}` : ''}${removed.length ? `; removed ${removed.join(', ')}` : ''}`);
+    return { precincts };
+  }
+
   /** Creates or edits an election's settings; never touches what is published. */
   async function upsertElection(actor, data) {
     const s = validateSettings(data);
@@ -448,7 +470,7 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
       : { ok: true, problems: [] };
   }
 
-  return { createDraft, createSettingsDraft, createRollbackDraft, publishDraft, extendDraft, discardDraft, upsertElection, auditLive };
+  return { createDraft, createSettingsDraft, createRollbackDraft, publishDraft, extendDraft, discardDraft, upsertElection, setMarkedReported, auditLive };
 }
 
 function countBy(checks) {

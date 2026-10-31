@@ -84,7 +84,7 @@ function contestDiff(title, cur, next) {
  * @param {object|null} a.current  published `latest`, or null
  * @param {{rows: string[][], lines: number[]}} a.source  the uploaded file's rows + line numbers
  * @param {object} a.meta          {draftId, baseVersion, kind, filename, size, sha256, lastModified, uploadedAt, uploadedBy}
- * @param {object} a.election      {name, date, county, precinctCap}
+ * @param {object} a.election      {name, date, county, precinctCap, markedReported?}
  * @param {object|null} [a.otherSlot]  {kind, filename, uploadedAt} of the upload filling the other slot
  * @returns {{review: object, trace: object}}
  */
@@ -131,6 +131,9 @@ function buildReview({ result, current = null, source, meta, election, otherSlot
     precincts: {
       newlyReported: [...after].filter(([p, r]) => r && !before.get(p)).map(([p]) => p),
       stoppedReporting: [...before].filter(([p, r]) => r && !after.get(p)).map(([p]) => p),
+      // Every precinct reported in the draft, and those an admin marked (election setting).
+      reported: [...after].filter(([, r]) => r).map(([p]) => p).sort(),
+      marked: (election.markedReported ?? []).filter((p) => after.get(p)),
       statsChanged: precinctChanges,
     },
     counts: {

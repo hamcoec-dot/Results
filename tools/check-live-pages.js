@@ -55,9 +55,9 @@ function bridge(op, inputs) {
  * The reference result: convert_data.merge_parsed_data of the two files (either may be null), with
  * which precincts have reported worked out as the plan specifies (defect d1, fixed in
  * functions/src/merge.js): an ED file's own "R of T" per contest; a precinct has reported when its ED
- * votes are not all zero and differ from the early file's (all of them when R = T).
+ * votes are not all zero and differ from the early file's (all of them when R = T), or an admin marked it.
  */
-function expected(early, ed) {
+function expected(early, ed, marked = []) {
   const b64 = (f) => (f ? fs.readFileSync(f).toString('base64') : null);
   const [want] = bridge('merge', [[b64(early), b64(ed)]]);
   if (!ed) return want;
@@ -67,16 +67,17 @@ function expected(early, ed) {
     if (!e) continue;
     const before = earlyP?.contests_raw[c.title];
     const all = e.csvPrecinctsTotal > 0 && e.csvPrecinctsReporting >= e.csvPrecinctsTotal;
-    const reported = (p) => {
+    const byVotes = (p) => {
       if (all) return true;
       const cands = Object.entries(e.candidates).filter(([, x]) => p in x.precinctVotes);
       return cands.some(([, x]) => x.precinctVotes[p] !== 0) && cands.some(([n, x]) => x.precinctVotes[p] !== before?.candidates[n]?.precinctVotes[p]);
     };
     c.precinctsReporting = e.csvPrecinctsReporting;
     c.precinctsTotal = e.csvPrecinctsTotal;
-    c.precinctsStatus = c.precinctsStatus.map((p) => ({ name: p.name, reported: reported(p.name) }));
+    // A precinct the admin marked as reported is Reported in every contest it is in (merge.js).
+    c.precinctsStatus = c.precinctsStatus.map((p) => ({ name: p.name, reported: byVotes(p.name) || marked.includes(p.name) }));
     // The file's own count and the precincts with new ED votes must agree (merge.js flags it otherwise).
-    const n = c.precinctsStatus.filter((p) => p.reported).length;
+    const n = c.precinctsStatus.filter((p) => byVotes(p.name)).length;
     if (!all && n !== e.csvPrecinctsReporting) c.reportedMismatch = `${c.title}: the CSV says ${e.csvPrecinctsReporting} reporting, but ${n} precincts have new Election Day votes`;
   }
   want.overallPrecinctsReporting = Math.max(0, ...want.contests.map((c) => c.precinctsReporting));
@@ -165,8 +166,8 @@ async function createChecker({ bucket, emulator = false }) {
   });
 
   /** `draft` (+ its `version`): the review screen's previews of that draft instead of what is live. */
-  async function check({ early = null, ed = null, cap = 92, precinctPage = true, label = '', draft = null, version = null }) {
-    const want = expected(early, ed);
+  async function check({ early = null, ed = null, cap = 92, precinctPage = true, marked = [], label = '', draft = null, version = null }) {
+    const want = expected(early, ed, marked);
     const problems = [];
     const eq = (what, got, exp) => { if (norm(got) !== norm(exp)) problems.push(`${what}: page shows "${norm(got)}", expected "${norm(exp)}"`); };
     const capped = (n) => Math.min(n || 0, cap);
@@ -247,6 +248,8 @@ async function createChecker({ bucket, emulator = false }) {
       if (!r[2].includes(`${capped(c.precinctsReporting)} of ${capped(c.precinctsTotal)}`)) problems.push(`reporting ${c.title}: "${r[2]}", expected ${capped(c.precinctsReporting)} of ${capped(c.precinctsTotal)}`);
       eq(`reporting ${c.title} total votes`, r[4], fmt(c.totalVotes));
     }
+    // Every precinct a dialog lists as Reported, for the log (which precincts the public saw as in).
+    const shownReported = new Set();
     for (const c of contests) {
       const at = shown.findIndex((x) => x[0] === norm(c.title));
       if (at < 0) continue;
@@ -254,6 +257,7 @@ async function createChecker({ bucket, emulator = false }) {
       const chips = () => page.locator('#modal-precinct-grid .precinct-chip span:first-child').allTextContents();
       await page.locator('.modal-filter-btn[data-mfilter="REPORTED"]').click();
       const reported = (await chips()).map(norm).sort();
+      reported.forEach((n) => shownReported.add(n));
       await page.locator('.modal-filter-btn[data-mfilter="PENDING"]').click();
       const pending = (await chips()).map(norm).sort();
       await page.keyboard.press('Escape');
@@ -338,6 +342,10 @@ async function createChecker({ bucket, emulator = false }) {
     const flags = contests.reduce((n, c) => n + c.precinctsStatus.filter((p) => p.reported).length, 0);
     const counts = [...new Set(contests.map((c) => capped(c.precinctsReporting)))].sort((a, b) => a - b).join('/');
     console.log(`  ${draft ? 'draft previews' : 'public pages'} ${label}${label ? ' ' : ''}(${files}; ${manifest.dataVersion}): ${problems.length ? `${problems.length} PROBLEM(S)\n    ${problems.slice(0, 40).join('\n    ')}` : `all 4 pages match the CSV (${contests.length} contests, ${contests.reduce((n, c) => n + c.candidates.length, 0)} candidates, ${want.masterPrecincts.length} precincts; ${capped(want.overallPrecinctsReporting)} of ${Math.min(want.overallPrecinctsTotal || cap, cap)} reporting, per contest ${counts}; ${flags} reported precinct-contest pairs, each listed as reported)`}`);
+    if (ed) {
+      const names = [...shownReported].sort();
+      console.log(`    precincts shown as Reported (${names.length}): ${names.join(', ') || 'none'}`);
+    }
     return problems;
   }
 

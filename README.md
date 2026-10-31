@@ -10,10 +10,11 @@ Design: [plans/cloud-admin-upload.md](plans/cloud-admin-upload.md). Tests and tr
 | Node port of the parser, merge, outputs and verify (`functions/src/`) | done: byte-identical to the Python pipeline, legacy defects D1–D4 fixed |
 | Checks, review payload, validation, publish rules, callables (`functions/src/`) | done: tested on in-memory fakes and on the emulators |
 | `admin.html` / `review.html` | first pass done (Phase 3), signed-in pages checked with axe on the emulators |
-| Public pages reading the cloud bucket (`results-config.js`, `?draft`, pause control) | done (Phase 4); they keep reading `./` until Phase 5 sets `PUBLIC_BASE` |
+| Public pages reading the cloud bucket (`results-config.js`, `?draft`, pause control) | done: by default they read the production bucket's `current/` (switch-over, docs/DEPLOY.md › Switch-over); `?local` reads `./` |
 | GCP projects, deploy, monitoring | not done yet (Phase 5) |
 
-Until Phase 5 deploys the cloud side, results publish the legacy way (see **Offline fallback**).
+The public pages read what admin.html publishes to the production bucket. The legacy way (see **Offline fallback**)
+stays available with `?local`.
 
 ## How it works
 An admin uploads a tally-system "Custom Table Report" CSV and picks its kind (Zero, Early/ABS or Election Day).
@@ -95,8 +96,11 @@ Every copy of the public site (GitHub Pages, the county IIS server) must include
 but they show bucket and draft data unvalidated, and log an error in the console.
 
 Public pages: serve the repo root (`npx http-server -p 8123 -c-1`) and open a page with
-- no parameter: the files next to the pages (`./`), as the live site does until `PUBLIC_BASE` is set in `results-config.js`;
-- `?local`: always `./` (the offline fallback);
+- no parameter: the production bucket's `current/` (`PUBLIC_BASE` in `results-config.js`), polled through `manifest.json`;
+  data that fails `validate.js` is never shown;
+- `?local`: always `./` (the offline fallback), no manifest, validation problems only logged. A page opened
+  from disk (`file://`) is always local;
+- `?staging`: the staging bucket's `current/` (rehearsals);
 - `?emulator`: the Storage emulator's published `current/` files (localhost only);
 - `?draft=<32-hex id>`: a draft, with a red DRAFT banner, no live updates and `DRAFT_` export names.
 
@@ -109,7 +113,8 @@ npm run perf             # Lighthouse mobile vs the budgets (needs Chrome); see 
 ```
 
 ## Offline fallback
-No internet? Drop CSVs in `Results/`, run `Run_Monitor.bat`, open the pages. The legacy Python pipeline
+No internet? Drop CSVs in `Results/`, run `Run_Monitor.bat`, open the pages with `?local` (for example
+`index.html?local`; without it they read the cloud bucket). The legacy Python pipeline
 (`convert_data.py`, `verify.py`) stays byte-compatible with the Node port (`functions/test/parity.test.js`).
 
 ## Data files
