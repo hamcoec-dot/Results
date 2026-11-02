@@ -17,5 +17,9 @@
     "@playwright/test": "1.59.1",
     "html-validate": "9.5.5",
     "http-server": "14.1.1"
+  },
+  "overrides": {
+    "glob": "14.0.3",
+    "minimatch": "11.0.4"
   }
 }
