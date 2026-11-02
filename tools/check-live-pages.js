@@ -58,6 +58,24 @@ function bridge(op, inputs) {
  * votes are not all zero and differ from the early file's (all of them when R = T), or an admin marked it.
  */
 function expected(early, ed, marked = []) {
+  const want = expectedRaw(early, ed, marked);
+  for (const c of want.contests) c.title = shownTitle(c.title);
+  return want;
+}
+
+/**
+ * The name the pages show for a contest (app.js displayContestTitle): a title ending with the words
+ * it starts with ("East Ridge Mayor East Ridge") loses the trailing copy.
+ */
+function shownTitle(title) {
+  const w = title.trim().split(/\s+/);
+  for (let n = Math.floor((w.length - 1) / 2); n >= 1; n--) {
+    if (w.slice(0, n).join(' ').toLowerCase() === w.slice(-n).join(' ').toLowerCase()) return w.slice(0, -n).join(' ');
+  }
+  return title;
+}
+
+function expectedRaw(early, ed, marked = []) {
   const b64 = (f) => (f ? fs.readFileSync(f).toString('base64') : null);
   const [want] = bridge('merge', [[b64(early), b64(ed)]]);
   if (!ed) return want;

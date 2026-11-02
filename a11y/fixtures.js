@@ -52,4 +52,16 @@ const test = base.test.extend({
   }, { auto: true }],
 });
 
-module.exports = { test, expect: base.expect, routeProdBucket, fixtureData, PROD_BUCKET, FIXTURE_DIR, UPDATED_AT };
+/**
+ * The contest name the pages show (app.js displayContestTitle): a title ending with the words it
+ * starts with ("East Ridge Mayor East Ridge") loses the trailing copy.
+ */
+function shownTitle(title) {
+  const w = title.trim().split(/\s+/);
+  for (let n = Math.floor((w.length - 1) / 2); n >= 1; n--) {
+    if (w.slice(0, n).join(' ').toLowerCase() === w.slice(-n).join(' ').toLowerCase()) return w.slice(0, -n).join(' ');
+  }
+  return title;
+}
+
+module.exports = { test, expect: base.expect, routeProdBucket, fixtureData, shownTitle, PROD_BUCKET, FIXTURE_DIR, UPDATED_AT };

@@ -265,20 +265,34 @@
     var trace = h('details', null, h('summary', null, 'Show the raw CSV rows for this contest'), h('pre', { class: 'trace' }, 'Loading…'));
     trace.addEventListener('toggle', function () { if (trace.open) fillTrace(c.title, trace.querySelector('pre')); });
     var card = h('section', { class: 'card contest', id: slug(i), 'aria-labelledby': slug(i) + '-h' },
-      h('h3', { id: slug(i) + '-h', tabindex: '-1' }, c.title, badges),
+      h('h3', { id: slug(i) + '-h', tabindex: '-1' }, shownTitle(c.title), badges),
       h('p', { class: 'contest-meta' }, 'Vote for ' + c.seats + ' · Precincts reporting ' + (c.reporting.current === null ? '—' : c.reporting.current) + ' → '
         + (c.reporting.draft === null ? '—' : c.reporting.draft) + ' of ' + c.reporting.of + ' · Total votes ' + C.num(c.total.current) + ' → ' + C.num(c.total.draft) + ' (' + C.delta(c.total.delta) + ')'),
       h('div', { class: 'scroll-region', role: 'region', 'aria-labelledby': capId, tabindex: '0' },
         h('table', { class: 'data' },
-          h('caption', { id: capId }, c.title + ': published → draft'),
+          h('caption', { id: capId }, shownTitle(c.title) + ': published → draft'),
           h('thead', null, h('tr', null, ['Candidate', 'Party', { t: 'Published', n: 1 }, { t: 'Draft', n: 1 }, { t: 'Change', n: 1 }, { t: '% published', n: 1 }, { t: '% draft', n: 1 }, 'Leading']
             .map(function (x) { return h('th', { scope: 'col', class: x.n ? 'n' : null }, x.t || x); }))),
           h('tbody', null, rows))),
       c.newlyReported.length ? h('p', null, 'Newly reporting: ' + c.newlyReported.join(', ')) : null,
       c.stoppedReporting.length ? h('p', { class: 'field-error' }, '▼ No longer reporting: ' + c.stoppedReporting.join(', ')) : null,
       trace);
-    S.contests.push({ el: card, c: c, text: (c.title + ' ' + c.candidates.map(function (x) { return x.name; }).join(' ')).toLowerCase() });
+    S.contests.push({ el: card, c: c, text: (c.title + ' ' + shownTitle(c.title) + ' ' + c.candidates.map(function (x) { return x.name; }).join(' ')).toLowerCase() });
     return card;
+  }
+
+  /**
+   * The name the public pages show (app.js displayContestTitle): a title that ends with the words
+   * it starts with ("East Ridge Mayor East Ridge") loses the trailing copy.
+   */
+  function shownTitle(title) {
+    var words = String(title || '').trim().split(/\s+/);
+    for (var n = Math.floor((words.length - 1) / 2); n >= 1; n--) {
+      if (words.slice(0, n).join(' ').toLowerCase() === words.slice(words.length - n).join(' ').toLowerCase()) {
+        return words.slice(0, words.length - n).join(' ');
+      }
+    }
+    return title;
   }
 
   /** The current filter and search, as a test of one S.contests entry. */

@@ -1,7 +1,7 @@
 // Behaviour of the public pages' controls: filters, search, the precinct picker in the URL, and the
 // CSV exports, whose numbers must equal the data the page shows (a DOM oracle for downloads).
 // The pages run in their default mode: the production bucket's current/, answered by ./fixtures.
-const { test, expect, fixtureData } = require('./fixtures'); // fixtures: the production bucket is never fetched
+const { test, expect, fixtureData, shownTitle } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const fs = require('node:fs');
 
 const summary = fixtureData('summary.json').latest;
@@ -64,7 +64,7 @@ test('summary export CSV: one row per candidate, numbers equal to summary.json',
   expect(name).toBe('Hamilton_Election_Summary_Results.csv');
   const [head, ...rows] = parseCsv(text);
   expect(head).toEqual(['Election', 'County', 'Contest', 'Vote For', 'Election Day Precincts Reporting', 'Total Precincts', 'Candidate', 'Party', 'Votes', 'Percentage']);
-  const expected = summary.contests.flatMap((c) => c.candidates.map((x) => [c.title, x.name, String(x.votes), `${x.percentage.toFixed(2)}%`]));
+  const expected = summary.contests.flatMap((c) => c.candidates.map((x) => [shownTitle(c.title), x.name, String(x.votes), `${x.percentage.toFixed(2)}%`]));
   expect(rows.map((r) => [r[2], r[6], r[8], r[9]])).toEqual(expected);
 });
 

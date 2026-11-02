@@ -1,7 +1,7 @@
 // End-to-end admin flows on the emulators (plan: Verification checklist): publish two versions through
 // the UI, roll back to the first through a rollback draft and see the public page revert, and discard a
 // draft so its files are gone. Runs with npm run a11y:admin (emulators:exec sets FIREBASE_EMULATOR_HUB).
-const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
+const { test, expect, shownTitle } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const { AxeBuilder } = require('@axe-core/playwright');
 const path = require('node:path');
 
@@ -104,10 +104,10 @@ test.describe('admin flows (emulators)', () => {
         t.querySelector('caption').textContent.replace(/: published → draft$/, ''),
         Array.from(t.querySelectorAll('tbody tr')).map((r) => [r.querySelector('th').textContent, r.cells[2].textContent, r.cells[3].textContent]),
       ])));
-      expect(Object.keys(diff).sort(), sample).toEqual(want.contests.map((c) => c.title).sort());
+      expect(Object.keys(diff).sort(), sample).toEqual(want.contests.map((c) => shownTitle(c.title)).sort());
       for (const c of want.contests) {
         const old = before && before.contests.find((x) => x.title === c.title);
-        expect(diff[c.title], `${sample} review / ${c.title}`).toEqual(c.candidates.map((x) => {
+        expect(diff[shownTitle(c.title)], `${sample} review / ${c.title}`).toEqual(c.candidates.map((x) => {
           const was = old && old.candidates.find((y) => y.name === x.name);
           return [was ? x.name : `${x.name} (added)`, was ? fmt(was.votes) : '—', fmt(x.votes)];
         }));
@@ -146,7 +146,7 @@ test.describe('admin flows (emulators)', () => {
           pct: r.querySelector('.vote-percent').textContent,
         })),
       })));
-      expect(shown.map((c) => c.title), sample).toEqual(want.contests.map((c) => c.title));
+      expect(shown.map((c) => c.title), sample).toEqual(want.contests.map((c) => shownTitle(c.title)));
       want.contests.forEach((c, i) => {
         expect(norm(shown[i].meta), `${sample} / ${c.title}`).toContain(`Total Votes: ${fmt(c.totalVotes)}`);
         expect(norm(shown[i].reporting), `${sample} / ${c.title}`).toMatch(/\d+ of \d+ Election Day Precincts Reporting/);
