@@ -1,7 +1,7 @@
 // Layer 8, DOM oracle (plan: Test strategy): every number a public page shows is the number in
 // the file it read. The pages are opened as a draft view on the Storage emulator's URLs, answered
 // from a golden output, so no emulator is needed and nothing polls.
-const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
+const { test, expect, shownTitle } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -43,11 +43,18 @@ test('summary page: every contest, candidate, vote count and percentage', async 
   })));
   s.contests.forEach((c, i) => {
     const card = shown[i];
-    expect(card.title).toBe(c.title);
+    expect(card.title).toBe(shownTitle(c.title));
     expect(norm(card.meta)).toContain(`Total Votes: ${fmt(c.totalVotes)}`);
     expect(norm(card.reporting)).toContain(`${c.precinctsReporting} of ${c.precinctsTotal} Election Day Precincts Reporting`);
     expect(card.rows).toEqual(c.candidates.map((x) => ({ name: x.name, votes: fmt(x.votes), pct: `(${x.percentage.toFixed(1)}%)` })));
   });
+  // ES&S repeats the town at the end of some titles; the page drops only that trailing copy.
+  const titles = shown.map((x) => x.title);
+  for (const t of ['East Ridge Mayor', 'East Ridge City Council', 'East Ridge City Court Clerk', 'East Ridge Charter Amendment 1',
+    'Red Bank Commission', 'Red Bank Charter Referendum', 'Walden Referendum', 'Tennessee House of Representatives, District 28']) {
+    expect(titles).toContain(t);
+  }
+  expect(titles.filter((t) => / East Ridge$| Red Bank$/.test(t))).toEqual([]);
 });
 
 test('reporting page: every contest row and the exact reported precincts of each', async ({ page }) => {
@@ -58,7 +65,7 @@ test('reporting page: every contest row and the exact reported precincts of each
   await expect(rows).toHaveCount(s.contests.length);
   const shown = await rows.evaluateAll((trs) => trs.map((tr) => Array.from(tr.cells).map((td) => td.textContent.replace(/\s+/g, ' ').trim())));
   s.contests.forEach((c, i) => {
-    expect(shown[i][0]).toBe(c.title);
+    expect(shown[i][0]).toBe(shownTitle(c.title));
     expect(shown[i][2]).toContain(`${c.precinctsReporting} of ${c.precinctsTotal}`);
     expect(shown[i][4]).toBe(fmt(c.totalVotes));
   });
@@ -84,7 +91,7 @@ test('precinct page: by-contest table matches precincts.json for every precinct 
   await page.locator('#precinct-results-container article').first().waitFor();
   await page.click('#view-mode-contest-btn');
   for (const c of [p.contests[0], p.contests[p.contests.length - 1]]) {
-    await page.selectOption('#contest-precinct-select', c.title);
+    await page.selectOption('#contest-precinct-select', shownTitle(c.title));
     const table = page.locator('#precinct-results-container table');
     await table.waitFor();
     const head = await table.locator('thead th').allTextContents();

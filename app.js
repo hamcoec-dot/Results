@@ -195,6 +195,41 @@ window.ElectionApp = (function() {
     return [];
   }
 
+  /**
+   * Display name for a contest: ES&S repeats the town at the end of some municipal titles
+   * ("East Ridge Mayor East Ridge", "Red Bank Charter Referendum Red Bank"). When a title ends with
+   * the same words it starts with (any case), the trailing copy is dropped. The words in between
+   * must remain, so "District 3 District 3"-style repeats are left to the upload's own cleanup.
+   */
+  function displayContestTitle(title) {
+    if (typeof title !== 'string') return title;
+    const words = title.trim().split(/\s+/);
+    for (let n = Math.floor((words.length - 1) / 2); n >= 1; n--) {
+      const head = words.slice(0, n).join(' ').toLowerCase();
+      const tail = words.slice(words.length - n).join(' ').toLowerCase();
+      if (head === tail) return words.slice(0, words.length - n).join(' ');
+    }
+    return title;
+  }
+
+  /**
+   * Show display names on every contest of a file (the published data keeps the CSV's names;
+   * rawTitle holds them). A rename that would give two contests the same name is skipped.
+   */
+  function tidyContestTitles(contests) {
+    if (!Array.isArray(contests)) return;
+    const raw = contests.map(c => (c && (c.rawTitle || c.title)));
+    const tidy = raw.map(displayContestTitle);
+    const taken = new Map();
+    tidy.forEach(t => taken.set(t, (taken.get(t) || 0) + 1));
+    contests.forEach((c, i) => {
+      if (!c || typeof raw[i] !== 'string') return;
+      const clash = taken.get(tidy[i]) > 1 || (tidy[i] !== raw[i] && raw.includes(tidy[i]));
+      c.rawTitle = raw[i];
+      c.title = clash ? raw[i] : tidy[i];
+    });
+  }
+
   /** Give every contest a {name, reported}[] precinctsStatus list (the files carry index pairs). */
   function expandStatuses(contests, masterPrecincts) {
     (contests || []).forEach(c => { c.precinctsStatus = resolvePrecinctStatus(c, masterPrecincts); });
@@ -202,10 +237,10 @@ window.ElectionApp = (function() {
 
   /** Copy reporting.json's per-precinct flags onto the summary's contests (matched by title). */
   function attachStatuses(data, reporting) {
-    const byTitle = new Map((reporting.latest.contests || []).map(c => [c.title, c]));
+    const byTitle = new Map((reporting.latest.contests || []).map(c => [c.rawTitle || c.title, c]));
     const master = reporting.masterPrecincts || [];
     (data.latest.contests || []).forEach(c => {
-      const r = byTitle.get(c.title);
+      const r = byTitle.get(c.rawTitle || c.title);
       c.precinctsStatus = r ? resolvePrecinctStatus(r, master) : [];
     });
     data.latest.masterPrecincts = master;
@@ -358,6 +393,7 @@ window.ElectionApp = (function() {
   }
 
   function applyData(data, manifest) {
+    tidyContestTitles(data.latest ? data.latest.contests : data.contests);
     const first = !electionData;
     electionData = data;
     window.ELECTION_DATA = data;
