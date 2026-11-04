@@ -310,7 +310,7 @@ async function createChecker({ bucket, emulator = false }) {
           eq(`precincts ${c.title} / ${p.name} status`, row[1], p.reported ? 'REPORTED' : 'PENDING');
           const votes = c.candidates.map((x) => x.precinctVotes[p.name] || 0);
           eq(`precincts ${c.title} / ${p.name} total`, row[2], fmt(votes.reduce((a, b) => a + b, 0)));
-          eq(`precincts ${c.title} / ${p.name} votes`, row.slice(3).map((v) => v.replace(' ✔', '')).join(' | '), votes.map(fmt).join(' | '));
+          eq(`precincts ${c.title} / ${p.name} votes`, row.slice(3).map((v) => v.split(' ')[0]).join(' | '), votes.map(fmt).join(' | '));
         }
       }
       await page.click('#view-mode-precinct-btn');

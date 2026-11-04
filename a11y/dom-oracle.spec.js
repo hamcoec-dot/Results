@@ -105,7 +105,7 @@ test('precinct page: by-contest table matches precincts.json for every precinct 
       expect(row[1]).toBe(flag ? 'REPORTED' : 'PENDING');
       const votes = c.candidates.map((x) => x.precinctVotes[name] || 0);
       expect(row[2]).toBe(fmt(votes.reduce((a, b) => a + b, 0)));
-      expect(row.slice(3).map((v) => v.replace(' ✔', ''))).toEqual(votes.map(fmt));
+      expect(row.slice(3).map((v) => v.split(' ')[0])).toEqual(votes.map(fmt));
     });
   }
 });

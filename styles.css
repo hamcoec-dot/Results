@@ -1870,3 +1870,103 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
     padding: 12px 4px !important;
   }
 }
+
+/* Precinct page tables: sortable headers, each candidate's share under the count, precinct names that open the precinct */
+.sort-btn {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  border-radius: 4px;
+}
+.sort-btn::after {
+  content: " \2195";
+  opacity: 0.45;
+  font-size: 0.85em;
+}
+.sort-btn.sort-asc::after { content: " \25B2"; opacity: 1; }
+.sort-btn.sort-desc::after { content: " \25BC"; opacity: 1; }
+.sort-btn:focus-visible,
+.precinct-link:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.cell-pct {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--neutral-muted);
+}
+.precinct-link {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  border-radius: 4px;
+}
+.turnout-mini {
+  display: block;
+  height: 6px;
+  margin-top: 4px;
+  margin-left: auto;
+  width: 100px;
+  max-width: 100%;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.turnout-mini > span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+
+/* Precinct map (Map view) */
+.precinct-map-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
+  padding: 16px 24px;
+  align-items: start;
+}
+.precinct-map-svg {
+  width: 100%;
+  height: auto;
+  max-height: 78vh;
+  display: block;
+}
+.map-precinct {
+  stroke: var(--surface);
+  stroke-width: 1.2;
+  cursor: pointer;
+  vector-effect: non-scaling-stroke;
+}
+.map-precinct:hover { stroke: var(--neutral-dark); stroke-width: 2; }
+.map-precinct.is-selected { stroke: var(--neutral-dark); stroke-width: 3; }
+.precinct-map-info {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--neutral-light);
+  font-size: 14px;
+  min-height: 120px;
+}
+.precinct-map-info h3 { margin: 0 0 6px; font-size: 17px; font-weight: 800; color: var(--neutral-dark); }
+.precinct-map-info p { margin: 0 0 8px; }
+.precinct-map-info .export-btn { margin-top: 6px; }
+.map-cands { list-style: none; margin: 8px 0; padding: 0; }
+.map-cands li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.map-cand-name { flex: 1; }
+.map-cand-pct { color: var(--neutral-muted); min-width: 48px; text-align: right; }
+.map-hint { color: var(--neutral-muted); }
+.map-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0 24px 16px; font-size: 13px; font-weight: 600; }
+.map-key { display: inline-flex; align-items: center; gap: 6px; }
+.map-key-note { color: var(--neutral-muted); font-weight: 500; }
+.map-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; flex: none; }
+.map-unmapped { padding: 0 24px 16px; font-size: 13px; color: var(--neutral-muted); margin: 0; }
+@media (max-width: 760px) {
+  .precinct-map-body { grid-template-columns: 1fr; padding: 12px; }
+}

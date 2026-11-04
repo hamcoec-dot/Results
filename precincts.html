@@ -18,7 +18,7 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css?v=b1fd4f8560">
+  <link rel="stylesheet" href="styles.css?v=13fb36b192">
 
   <!-- The results bucket: connect while the page loads (the data requests start just below) -->
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
@@ -145,6 +145,8 @@
         <div class="filter-tabs" role="group" aria-label="View Mode">
           <button type="button" class="tab-btn active" id="view-mode-precinct-btn" aria-pressed="true" onclick="ElectionApp.setPrecinctViewMode('BY_PRECINCT')">&#x1F4CC; By Precinct</button>
           <button type="button" class="tab-btn" id="view-mode-contest-btn" aria-pressed="false" onclick="ElectionApp.setPrecinctViewMode('BY_CONTEST')">&#x1F4FA; By Contest</button>
+          <button type="button" class="tab-btn" id="view-mode-turnout-btn" aria-pressed="false" onclick="ElectionApp.setPrecinctViewMode('TURNOUT')">&#x1F4CA; Turnout</button>
+          <button type="button" class="tab-btn" id="view-mode-map-btn" aria-pressed="false" onclick="ElectionApp.setPrecinctViewMode('MAP')">&#x1F5FA;&#xFE0F; Map</button>
         </div>
 
         <!-- Party Filter Tabs -->
@@ -184,6 +186,6 @@
 
   <!-- Load Data Payload and App Controller -->
   <script src="./functions/src/validate.js?v=60bc787319" defer></script>
-  <script src="./app.js?v=61c60c8700" defer></script>
+  <script src="./app.js?v=a7be0722b1" defer></script>
 </body>
 </html>
