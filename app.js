@@ -2028,6 +2028,13 @@ ${ballotsCard || reportingCard}
 
     const vElem = document.getElementById('precinct-stat-voters');
     if (vElem) vElem.textContent = fmtNum(voters);
+    // ES&S's PROPERTY RIGHTS rows are city property-rights voters (non-resident property owners
+    // who vote only in that city's races). They have no registered voters, so a turnout is meaningless.
+    const noRoll = voters === 0 && ballots > 0;
+    const vSub = document.getElementById('precinct-stat-voters-note');
+    if (vSub) vSub.textContent = noRoll
+      ? 'Property-rights voters: no voter roll; they vote only in city races'
+      : 'Precinct Active Registered Voters';
 
     const bElem = document.getElementById('precinct-stat-ballots');
     if (bElem) bElem.textContent = fmtNum(ballots);
@@ -2043,10 +2050,10 @@ ${ballotsCard || reportingCard}
     hidePrimaryPillsInGeneral(Object.values(electionData.latest.precinctStats || {}).reduce((n, st) => n + (st.rep || 0) + (st.dem || 0), 0));
 
     const tElem = document.getElementById('precinct-stat-turnout');
-    if (tElem) tElem.textContent = `${turnout}%`;
+    if (tElem) tElem.textContent = noRoll ? 'N/A' : `${turnout}%`;
 
     const tFill = document.getElementById('precinct-turnout-fill');
-    if (tFill) tFill.style.width = `${Math.min(100, parseFloat(turnout))}%`;
+    if (tFill) tFill.style.width = noRoll ? '0%' : `${Math.min(100, parseFloat(turnout))}%`;
   }
 
   /**
@@ -2154,7 +2161,7 @@ ${ballotsCard || reportingCard}
         </div>
         <footer class="contest-footer" style="margin-top:20px; padding-top:14px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; font-size:14px; color:var(--neutral-muted);">
           <span>Precinct Total Votes: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(precinctTotalVotes)}</strong></span>
-          <span>Countywide Contest Total: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(c.totalVotes)}</strong></span>
+          <span>Contest Total, All Precincts: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(c.totalVotes)}</strong></span>
         </footer>
       </article>`;
       return { key: `${selectedPrecinct}|${c.title}`, html };
@@ -2227,6 +2234,20 @@ ${ballotsCard || reportingCard}
       `;
     });
 
+    // A totals row for every precinct, so the table can be checked against the summary page.
+    let footHtml = '';
+    if (!precinctSearchQuery && pStatuses.length > 0) {
+      const allTotal = cands.reduce((n, cand) => n + (Number(cand.votes) || 0), 0);
+      footHtml = `
+        <tr class="precinct-total-row" style="border-top:2px solid var(--border); background:var(--neutral-light);">
+          <th scope="row" style="font-weight:800; text-align:left; padding:12px 16px; background:var(--neutral-light);">All Precincts</th>
+          <td style="padding:12px 16px;"></td>
+          <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(allTotal)}</td>
+          ${cands.map(cand => `<td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(Number(cand.votes) || 0)}</td>`).join('')}
+        </tr>
+      `;
+    }
+
     let candHeadersHtml = '';
     cands.forEach(cand => {
       candHeadersHtml += `<th scope="col" style="text-align:right; padding:12px 16px;">${escapeHtml(cand.name)}</th>`;
@@ -2261,6 +2282,7 @@ ${ballotsCard || reportingCard}
           <tbody>
             ${tableRowsHtml}
           </tbody>
+          ${footHtml ? `<tfoot>${footHtml}</tfoot>` : ''}
         </table>
       </div>
     `;
@@ -2334,11 +2356,9 @@ ${ballotsCard || reportingCard}
         contests.forEach(c => {
           const belongs = (c.precinctsStatus || []).some(p => p.name === pName);
           if (belongs) {
-            // Apply party filter if active
-            const pUpper = c.title.toUpperCase();
-            if (precinctPartyFilter === 'REP' && !pUpper.startsWith('REP')) return;
-            if (precinctPartyFilter === 'DEM' && !pUpper.startsWith('DEM')) return;
-            if (precinctPartyFilter === 'IND' && (pUpper.startsWith('REP') || pUpper.startsWith('DEM'))) return;
+            // Apply the party tab, with the same rule as the page (a general election's contests
+            // carry no REP / DEM in their titles).
+            if (!contestMatchesParty(c, precinctPartyFilter)) return;
 
             (c.candidates || []).forEach(cand => {
               const v = (cand.precinctVotes || {})[pName] || 0;
