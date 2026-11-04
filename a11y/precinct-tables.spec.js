@@ -198,3 +198,93 @@ test('without a split the ballot toggle and the extra columns are not shown', as
   await expect(page.locator('#ballot-scope-tabs')).toBeHidden();
   await expect(page.locator('#precinct-stat-ballots-split')).toBeHidden();
 });
+
+/** A minimal RFC 4180 reader for the exports (quoted fields, doubled quotes). */
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') quoted = false; else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(cell); cell = ''; } else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; } else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+async function download(page, click) {
+  const [dl] = await Promise.all([page.waitForEvent('download'), click()]);
+  return parseCsv(fs.readFileSync(await dl.path(), 'utf8'));
+}
+const filteredCsv = (page) => download(page, () => page.getByRole('button', { name: /Export Filtered CSV/ }).click());
+const VOTE_HEAD = ['Precinct', 'Contest', 'Candidate', 'Party', 'Precinct Votes', 'Early & Absentee Votes', 'Election Day Votes', 'County Total Votes'];
+
+test('exports with the early split: every view carries all, early & absentee and Election Day, whatever the switch shows', async ({ page }) => {
+  const p = withSplit();
+  await openWith(page, p);
+  const half = (n) => Math.floor(n / 2);
+  const checkVotes = (rows) => {
+    for (const r of rows) {
+      const c = p.contests.find((x) => x.title === r[1]);
+      const cand = c.candidates.find((x) => x.name === r[2]);
+      const v = cand.precinctVotes[r[0]] || 0;
+      expect(r.slice(4), `${r[0]} / ${r[1]} / ${r[2]}`).toEqual([String(v), String(half(v)), String(v - half(v)), String(cand.votes)]);
+    }
+  };
+  // The switch is on Election Day: the files still hold all three numbers.
+  await page.click('#ballot-scope-tabs [data-scope="ED"]');
+
+  const name = p.masterPrecincts[3];
+  await page.selectOption('#precinct-select', name);
+  let [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(VOTE_HEAD);
+  expect(rows.length).toBeGreaterThan(0);
+  expect(new Set(rows.map((r) => r[0]))).toEqual(new Set([name]));
+  checkVotes(rows);
+
+  await page.click('#view-mode-contest-btn');
+  const c = p.contests[2];
+  await page.selectOption('#contest-precinct-select', { index: 3 });
+  [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(VOTE_HEAD);
+  expect(new Set(rows.map((r) => r[1]))).toEqual(new Set([c.title]));
+  expect(rows.length).toBe(c.precinctsStatusIndexed.length * c.candidates.length);
+  checkVotes(rows);
+
+  // The map exports its contest (the same picker).
+  await page.click('#view-mode-map-btn');
+  await page.locator('.precinct-map-svg path').first().waitFor();
+  const mapRows = (await filteredCsv(page)).slice(1);
+  expect(mapRows).toEqual(rows);
+
+  await page.click('#view-mode-turnout-btn');
+  [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(['Precinct', 'Registered Voters', 'Ballots Cast', 'Early & Absentee Ballots', 'Election Day Ballots', 'Turnout Percent']);
+  expect(rows.length).toBe(p.masterPrecincts.length);
+  for (const r of rows) {
+    const s = p.precinctStats[r[0]];
+    expect(r.slice(1), r[0]).toEqual([String(s.voters), String(s.ballots), String(half(s.ballots)), String(s.ballots - half(s.ballots)), s.turnoutPercent.toFixed(2)]);
+  }
+
+  const all = await download(page, () => page.getByRole('button', { name: /Export All Precincts CSV/ }).click());
+  expect(all[0]).toEqual(VOTE_HEAD);
+  expect(all.length - 1).toBe(p.contests.reduce((n, x) => n + x.precinctsStatusIndexed.length * x.candidates.length, 0));
+  checkVotes(all.slice(1, 400));
+});
+
+test('exports without a split keep the original columns (turnout view and map too)', async ({ page }) => {
+  await open(page);
+  await page.click('#view-mode-turnout-btn');
+  const [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(['Precinct', 'Registered Voters', 'Ballots Cast', 'Turnout Percent']);
+  expect(rows.length).toBeGreaterThan(0);
+  await page.click('#view-mode-map-btn');
+  await page.locator('.precinct-map-svg path').first().waitFor();
+  const map = await filteredCsv(page);
+  expect(map[0]).toEqual(['Precinct', 'Contest', 'Candidate', 'Party', 'Precinct Votes', 'County Total Votes']);
+  expect(new Set(map.slice(1).map((r) => r[1])).size).toBe(1);
+});

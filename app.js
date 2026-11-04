@@ -2783,17 +2783,36 @@ ${ballotsCard || reportingCard}
     const contests = latest.contests || [];
     const pStats = latest.precinctStats || {};
 
+    // With the Early/ABS split in the file, every export carries all three numbers (all ballots,
+    // early & absentee, Election Day) whatever the page's ballots switch shows, so one file has it all.
+    const split = hasEarlySplit(latest);
+    const voteRow = (pName, c, k) => {
+      const cand = c.candidates[k];
+      const cells = [formatCsvCell(pName), formatCsvCell(c.title), formatCsvCell(cand.name), formatCsvCell(getCandidateParty(cand, c)),
+        (cand.precinctVotes || {})[pName] || 0];
+      if (split) cells.push(scopedPrecinctVotes(latest, c, k, pName, 'EARLY'), scopedPrecinctVotes(latest, c, k, pName, 'ED'));
+      cells.push(cand.votes);
+      return cells.join(',') + '\n';
+    };
+
     let filename = '';
-    let csvContent = 'Precinct,Contest,Candidate,Party,Precinct Votes,County Total Votes\n';
+    let csvContent = split
+      ? 'Precinct,Contest,Candidate,Party,Precinct Votes,Early & Absentee Votes,Election Day Votes,County Total Votes\n'
+      : 'Precinct,Contest,Candidate,Party,Precinct Votes,County Total Votes\n';
 
     if (mode === 'FILTERED' && precinctViewMode === 'TURNOUT') {
       filename = `Hamilton_County_Precinct_Turnout_${Date.now()}.csv`;
-      csvContent = 'Precinct,Registered Voters,Ballots Cast,Turnout Percent\n';
-      turnoutRows(latest)
+      csvContent = split
+        ? 'Precinct,Registered Voters,Ballots Cast,Early & Absentee Ballots,Election Day Ballots,Turnout Percent\n'
+        : 'Precinct,Registered Voters,Ballots Cast,Turnout Percent\n';
+      turnoutRows(latest, 'ALL')
         .filter(r => !precinctSearchQuery || r.name.toLowerCase().includes(precinctSearchQuery))
         .sort((a, b) => a.name.localeCompare(b.name))
         .forEach(r => {
-          csvContent += [formatCsvCell(r.name), r.voters, r.ballots, r.turnout === null ? '' : r.turnout.toFixed(2)].join(',') + '\n';
+          const cells = [formatCsvCell(r.name), r.voters, r.ballots];
+          if (split) cells.push(r.early, r.ed);
+          cells.push(r.turnout === null ? '' : r.turnout.toFixed(2));
+          csvContent += cells.join(',') + '\n';
         });
     } else if (mode === 'FILTERED' && precinctViewMode === 'BY_PRECINCT') {
       const cleanPrecinct = selectedPrecinct.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -2814,14 +2833,11 @@ ${ballotsCard || reportingCard}
       });
 
       filtered.forEach(c => {
-        (c.candidates || []).forEach(cand => {
-          const v = (cand.precinctVotes || {})[selectedPrecinct] || 0;
-          const cParty = getCandidateParty(cand, c);
-          csvContent += [formatCsvCell(selectedPrecinct), formatCsvCell(c.title), formatCsvCell(cand.name), formatCsvCell(cParty), v, cand.votes].join(',') + '\n';
-        });
+        (c.candidates || []).forEach((cand, k) => { csvContent += voteRow(selectedPrecinct, c, k); });
       });
 
-    } else if (mode === 'FILTERED' && precinctViewMode === 'BY_CONTEST') {
+    } else if (mode === 'FILTERED' && (precinctViewMode === 'BY_CONTEST' || precinctViewMode === 'MAP')) {
+      // The map shows one contest (the same contest picker as By Contest), so it exports that contest.
       let contest = contests.find(c => c.title === selectedContestForPrecinctView) || contests[0];
       const cleanContest = contest.title.replace(/[^a-zA-Z0-9_-]/g, '_');
       filename = `Hamilton_County_${cleanContest}_Precincts_${Date.now()}.csv`;
@@ -2833,11 +2849,7 @@ ${ballotsCard || reportingCard}
       });
 
       filteredPrecincts.forEach(p => {
-        (contest.candidates || []).forEach(cand => {
-          const v = (cand.precinctVotes || {})[p.name] || 0;
-          const cParty = getCandidateParty(cand, contest);
-          csvContent += [formatCsvCell(p.name), formatCsvCell(contest.title), formatCsvCell(cand.name), formatCsvCell(cParty), v, cand.votes].join(',') + '\n';
-        });
+        (contest.candidates || []).forEach((cand, k) => { csvContent += voteRow(p.name, contest, k); });
       });
 
     } else {
@@ -2857,11 +2869,7 @@ ${ballotsCard || reportingCard}
             // carry no REP / DEM in their titles).
             if (!contestMatchesParty(c, precinctPartyFilter)) return;
 
-            (c.candidates || []).forEach(cand => {
-              const v = (cand.precinctVotes || {})[pName] || 0;
-              const cParty = getCandidateParty(cand, c);
-              csvContent += [formatCsvCell(pName), formatCsvCell(c.title), formatCsvCell(cand.name), formatCsvCell(cParty), v, cand.votes].join(',') + '\n';
-            });
+            (c.candidates || []).forEach((cand, k) => { csvContent += voteRow(pName, c, k); });
           }
         });
       });
