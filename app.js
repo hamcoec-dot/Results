@@ -1821,6 +1821,11 @@ ${ballotsCard || reportingCard}
   let precinctPartyFilter = 'ALL';
   let precinctSearchQuery = '';
   let selectedContestForPrecinctView = '';
+  // The By Contest and Turnout tables' sort: key ('name', 'total', 'c<candidate index>', 'voters',
+  // 'ballots', 'turnout') and direction. null key = the file's own order (alphabetical).
+  let precinctTableSort = { key: null, dir: 'asc' };
+  let sortFocusPending = false;
+  const PRECINCT_VIEW_MODES = ['BY_PRECINCT', 'BY_CONTEST', 'TURNOUT', 'MAP'];
 
   function savePrecinctStateToURL() {
     try {
@@ -1865,7 +1870,7 @@ ${ballotsCard || reportingCard}
       }
 
       if (state.precinct) selectedPrecinct = state.precinct;
-      if (state.mode) precinctViewMode = state.mode;
+      if (state.mode && PRECINCT_VIEW_MODES.includes(state.mode)) precinctViewMode = state.mode;
       if (state.party) precinctPartyFilter = state.party;
       if (state.contest) selectedContestForPrecinctView = state.contest;
       if (state.search) precinctSearchQuery = state.search;
@@ -1876,6 +1881,23 @@ ${ballotsCard || reportingCard}
   function initPrecinctPage() {}
 
   function bindPrecinctPageControls() {
+    // Precinct names in the tables open that precinct's own results (By Precinct).
+    const results = document.getElementById('precinct-results-container');
+    if (results) {
+      results.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-open-precinct]');
+        if (!btn) return;
+        selectedPrecinct = btn.getAttribute('data-open-precinct');
+        precinctSearchQuery = '';
+        const search = document.getElementById('precinct-search');
+        if (search) search.value = '';
+        const pSelect = document.getElementById('precinct-select');
+        if (pSelect) pSelect.value = selectedPrecinct;
+        setPrecinctViewMode('BY_PRECINCT');
+        const sel = document.getElementById('precinct-select');
+        if (sel) { sel.scrollIntoView({ block: 'center' }); sel.focus(); }
+      });
+    }
     const searchInput = document.getElementById('precinct-search');
     if (searchInput) {
       if (precinctSearchQuery) searchInput.value = precinctSearchQuery;
@@ -1942,30 +1964,34 @@ ${ballotsCard || reportingCard}
 
   function selectContestForPrecinctView(cTitle) {
     selectedContestForPrecinctView = cTitle;
+    precinctTableSort = { key: null, dir: 'asc' };
     savePrecinctStateToURL();
     renderPrecinctPage();
   }
 
   function setPrecinctViewMode(mode) {
+    if (!PRECINCT_VIEW_MODES.includes(mode)) mode = 'BY_PRECINCT';
+    if (mode !== precinctViewMode) precinctTableSort = { key: null, dir: 'asc' };
     precinctViewMode = mode;
-    const pBtn = document.getElementById('view-mode-precinct-btn');
-    const cBtn = document.getElementById('view-mode-contest-btn');
+    [['view-mode-precinct-btn', 'BY_PRECINCT'], ['view-mode-contest-btn', 'BY_CONTEST'], ['view-mode-turnout-btn', 'TURNOUT'], ['view-mode-map-btn', 'MAP']].forEach(([id, m]) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.classList.toggle('active', mode === m);
+      btn.setAttribute('aria-pressed', mode === m);
+    });
     const cWrapper = document.getElementById('contest-select-wrapper');
-    if (pBtn && cBtn) {
-      pBtn.classList.toggle('active', mode === 'BY_PRECINCT');
-      pBtn.setAttribute('aria-pressed', mode === 'BY_PRECINCT');
-      cBtn.classList.toggle('active', mode === 'BY_CONTEST');
-      cBtn.setAttribute('aria-pressed', mode === 'BY_CONTEST');
-    }
     if (cWrapper) {
-      cWrapper.style.display = (mode === 'BY_CONTEST') ? 'block' : 'none';
+      cWrapper.style.display = (mode === 'BY_CONTEST' || mode === 'MAP') ? 'block' : 'none';
     }
-    // By Contest lists precincts: the party tabs don't apply there, and the search box finds precincts.
+    // The map has no search: its precinct is picked on the map or in the precinct list above.
+    const searchBox = document.querySelector('#precinct-search') && document.querySelector('#precinct-search').closest('.search-box-container');
+    if (searchBox) searchBox.hidden = mode === 'MAP';
+    // By Contest and Turnout list precincts: the party tabs don't apply there, and the search box finds precincts.
     const partyTabs = document.querySelector('[data-precinct-party]');
-    if (partyTabs && partyTabs.parentElement) partyTabs.parentElement.hidden = mode === 'BY_CONTEST';
+    if (partyTabs && partyTabs.parentElement) partyTabs.parentElement.hidden = mode !== 'BY_PRECINCT';
     const search = document.getElementById('precinct-search');
     if (search) {
-      const label = mode === 'BY_CONTEST' ? 'Search precinct name' : 'Search contest or candidate';
+      const label = mode !== 'BY_PRECINCT' ? 'Search precinct name' : 'Search contest or candidate';
       search.placeholder = `\u{1F50D} ${label}...`;
       search.setAttribute('aria-label', label);
     }
@@ -1995,6 +2021,10 @@ ${ballotsCard || reportingCard}
 
     if (precinctViewMode === 'BY_PRECINCT') {
       renderByPrecinctView(container, latest);
+    } else if (precinctViewMode === 'TURNOUT') {
+      renderTurnoutPrecinctView(container, latest);
+    } else if (precinctViewMode === 'MAP') {
+      renderMapPrecinctView(container, latest);
     } else {
       renderByContestPrecinctView(container, latest);
     }
@@ -2197,15 +2227,28 @@ ${ballotsCard || reportingCard}
       return true;
     });
 
-    let tableRowsHtml = '';
-    filteredPrecincts.forEach(p => {
-      let pTotal = 0;
-      const candVotes = cands.map(cand => {
-        const v = (cand.precinctVotes || {})[p.name] || 0;
-        pTotal += v;
-        return v;
+    const rows = filteredPrecincts.map(p => {
+      const votes = cands.map(cand => (cand.precinctVotes || {})[p.name] || 0);
+      const total = votes.reduce((a, b) => a + b, 0);
+      return { p, votes, total, pct: votes.map(v => (total > 0 ? (v / total) * 100 : 0)) };
+    });
+    // Candidate columns sort by share of the precinct's vote (a candidate's strongest precincts
+    // first), then by votes; Total Votes by votes; Precinct by name.
+    const sk = precinctTableSort.key;
+    if (sk) {
+      const dir = precinctTableSort.dir === 'asc' ? 1 : -1;
+      const ci = sk.charAt(0) === 'c' ? Number(sk.slice(1)) : -1;
+      rows.sort((a, b) => {
+        let d;
+        if (sk === 'name') d = a.p.name.localeCompare(b.p.name);
+        else if (sk === 'total') d = a.total - b.total;
+        else d = ((a.pct[ci] || 0) - (b.pct[ci] || 0)) || ((a.votes[ci] || 0) - (b.votes[ci] || 0));
+        return (d * dir) || a.p.name.localeCompare(b.p.name);
       });
+    }
 
+    let tableRowsHtml = '';
+    rows.forEach(({ p, votes: candVotes, total: pTotal, pct }) => {
       const sortedPV = candVotes.slice().sort((a, b) => b - a);
       const positivePV = sortedPV.filter(v => v > 0);
       const cutoffPV = positivePV.length > 0 ? positivePV[Math.min(vfNum, positivePV.length) - 1] : null;
@@ -2216,13 +2259,14 @@ ${ballotsCard || reportingCard}
         candCellsHtml += `
           <td style="text-align:right; font-weight:${isLead ? '700' : '400'}; color:${isLead ? 'var(--primary)' : 'inherit'}; padding:12px 16px;">
             ${fmtNum(v)} ${isLead ? '&#x2714;' : ''}
+            <span class="cell-pct">${pTotal > 0 ? pct[idx].toFixed(1) + '%' : '&ndash;'}</span>
           </td>
         `;
       });
 
       tableRowsHtml += `
         <tr style="border-bottom:1px solid var(--border);">
-          <th scope="row" style="font-weight:600; text-align:left; padding:12px 16px;">${escapeHtml(p.name)}</th>
+          <th scope="row" style="font-weight:600; text-align:left; padding:12px 16px;"><button type="button" class="precinct-link" data-open-precinct="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button></th>
           <td style="text-align:center; padding:12px 16px;">
             <span class="status-pill ${p.reported ? 'status-reported' : 'status-pending'}" style="font-size:11px; padding:3px 8px;">
               ${p.reported ? 'REPORTED' : 'PENDING'}
@@ -2243,14 +2287,14 @@ ${ballotsCard || reportingCard}
           <th scope="row" style="font-weight:800; text-align:left; padding:12px 16px; background:var(--neutral-light);">All Precincts</th>
           <td style="padding:12px 16px;"></td>
           <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(allTotal)}</td>
-          ${cands.map(cand => `<td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(Number(cand.votes) || 0)}</td>`).join('')}
+          ${cands.map(cand => `<td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(Number(cand.votes) || 0)}<span class="cell-pct">${allTotal > 0 ? ((Number(cand.votes) || 0) / allTotal * 100).toFixed(1) + '%' : '&ndash;'}</span></td>`).join('')}
         </tr>
       `;
     }
 
     let candHeadersHtml = '';
-    cands.forEach(cand => {
-      candHeadersHtml += `<th scope="col" style="text-align:right; padding:12px 16px;">${escapeHtml(cand.name)}</th>`;
+    cands.forEach((cand, idx) => {
+      candHeadersHtml += sortHeader('c' + idx, cand.name, 'right', 'desc');
     });
 
     const wrapper = document.createElement('div');
@@ -2270,12 +2314,12 @@ ${ballotsCard || reportingCard}
       </header>
       <div style="overflow-x:auto; padding:8px 0;" role="region" tabindex="0" aria-label="Precinct results for ${escapeHtml(contest.title)}, scrolls sideways">
         <table class="reporting-table" style="width:100%; border-collapse:collapse;">
-          <caption class="sr-only">Votes by precinct for ${escapeHtml(contest.title)}</caption>
+          <caption class="sr-only">Votes by precinct for ${escapeHtml(contest.title)}. Each candidate's share of the precinct's votes is under the count. Column header buttons sort the table.</caption>
           <thead>
             <tr style="background:var(--neutral-light); border-bottom:2px solid var(--border);">
-              <th scope="col" style="text-align:left; padding:12px 16px;">Precinct</th>
+              ${sortHeader('name', 'Precinct', 'left', 'asc')}
               <th scope="col" style="text-align:center; padding:12px 16px;">Status</th>
-              <th scope="col" style="text-align:right; padding:12px 16px;">Total Votes</th>
+              ${sortHeader('total', 'Total Votes', 'right', 'desc')}
               ${candHeadersHtml}
             </tr>
           </thead>
@@ -2287,6 +2331,336 @@ ${ballotsCard || reportingCard}
       </div>
     `;
     container.appendChild(wrapper);
+    focusSortedHeader(wrapper);
+  }
+
+  /** A sortable column header: a button inside the th, aria-sort on the th (the arrow is CSS, not text). */
+  function sortHeader(key, label, align, firstDir) {
+    const active = precinctTableSort.key === key;
+    const ariaSort = active ? (precinctTableSort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+    return `<th scope="col" aria-sort="${ariaSort}" style="text-align:${align}; padding:12px 16px;">` +
+      `<button type="button" class="sort-btn${active ? ' sort-' + precinctTableSort.dir : ''}"${active ? ' data-sorted' : ''} onclick="ElectionApp.sortPrecinctTable('${key}', '${firstDir}')">${escapeHtml(label)}</button></th>`;
+  }
+
+  /** After a header click redraws the table, put keyboard focus back on that header. */
+  function focusSortedHeader(wrapper) {
+    if (sortFocusPending) {
+      const sorted = wrapper.querySelector('.sort-btn[data-sorted]');
+      if (sorted) sorted.focus();
+    }
+    sortFocusPending = false;
+  }
+
+  /** Click a column header: sort by it (first click uses the column's natural direction), click again to reverse. */
+  function sortPrecinctTable(key, firstDir) {
+    if (precinctTableSort.key === key) {
+      precinctTableSort = { key, dir: precinctTableSort.dir === 'asc' ? 'desc' : 'asc' };
+    } else {
+      precinctTableSort = { key, dir: firstDir === 'asc' ? 'asc' : 'desc' };
+    }
+    sortFocusPending = true;
+    renderPrecinctPage();
+  }
+
+  /** Every precinct's registered voters, ballots and turnout (null for PROPERTY RIGHTS rows, which have no voter roll). */
+  function turnoutRows(latest) {
+    const pStats = latest.precinctStats || {};
+    const master = latest.masterPrecincts || electionData.masterPrecincts || [];
+    const names = Array.from(new Set([].concat(Array.isArray(master) ? master : [], Object.keys(pStats))));
+    return names.map(name => {
+      const st = pStats[name] || {};
+      const voters = Number(st.voters) || 0;
+      const ballots = Number(st.ballots) || 0;
+      const turnout = voters > 0 ? (st.turnoutPercent !== undefined ? Number(st.turnoutPercent) : (ballots / voters) * 100) : null;
+      return { name, voters, ballots, turnout };
+    });
+  }
+
+  /** Registered voters, ballots cast and turnout for every precinct, sortable. */
+  function renderTurnoutPrecinctView(container, latest) {
+    renderedCards.delete(container);
+    container.innerHTML = '';
+    const all = turnoutRows(latest);
+    const rows = all.filter(r => !precinctSearchQuery || r.name.toLowerCase().includes(precinctSearchQuery));
+    const sk = precinctTableSort.key;
+    const dir = precinctTableSort.dir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      // Rows without a turnout always go last when sorting by turnout.
+      if (sk === 'turnout' && (a.turnout === null) !== (b.turnout === null)) return a.turnout === null ? 1 : -1;
+      let d = 0;
+      if (sk === 'voters') d = a.voters - b.voters;
+      else if (sk === 'ballots') d = a.ballots - b.ballots;
+      else if (sk === 'turnout') d = (a.turnout || 0) - (b.turnout || 0);
+      else if (sk === 'name') d = a.name.localeCompare(b.name);
+      return (d * dir) || a.name.localeCompare(b.name);
+    });
+
+    const body = rows.map(r => `
+        <tr style="border-bottom:1px solid var(--border);">
+          <th scope="row" style="font-weight:600; text-align:left; padding:12px 16px;"><button type="button" class="precinct-link" data-open-precinct="${escapeHtml(r.name)}">${escapeHtml(r.name)}</button></th>
+          <td style="text-align:right; padding:12px 16px;">${fmtNum(r.voters)}</td>
+          <td style="text-align:right; padding:12px 16px;">${fmtNum(r.ballots)}</td>
+          <td style="text-align:right; padding:12px 16px; font-weight:700;">${r.turnout === null
+            ? 'N/A<span class="cell-pct">no voter roll</span>'
+            : `${r.turnout.toFixed(2)}%<span class="turnout-mini" aria-hidden="true"><span style="width:${Math.min(100, r.turnout)}%"></span></span>`}</td>
+        </tr>`).join('');
+
+    const totVoters = all.reduce((n, r) => n + r.voters, 0);
+    const totBallots = all.reduce((n, r) => n + r.ballots, 0);
+    const foot = (!precinctSearchQuery && all.length) ? `<tfoot><tr class="precinct-total-row" style="border-top:2px solid var(--border); background:var(--neutral-light);">
+          <th scope="row" style="font-weight:800; text-align:left; padding:12px 16px; background:var(--neutral-light);">All Precincts</th>
+          <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(totVoters)}</td>
+          <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(totBallots)}</td>
+          <td style="text-align:right; font-weight:800; padding:12px 16px;">${totVoters > 0 ? ((totBallots / totVoters) * 100).toFixed(2) + '%' : '&ndash;'}</td>
+        </tr></tfoot>` : '';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-card';
+    wrapper.style.cssText = 'grid-column:1 / -1; background:var(--surface); border-radius:12px; border:1px solid var(--border); box-shadow:var(--shadow-sm); overflow:hidden;';
+    wrapper.innerHTML = `
+      <header style="padding:20px 24px; border-bottom:1px solid var(--border); background:var(--neutral-light);">
+        <h2 style="font-size:22px; font-weight:800; color:var(--neutral-dark); margin:0;">Turnout by Precinct</h2>
+        <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">Click a column heading to sort. Click a precinct to see its results.</div>
+      </header>
+      <div style="overflow-x:auto; padding:8px 0;" role="region" tabindex="0" aria-label="Turnout by precinct, scrolls sideways">
+        <table class="reporting-table turnout-table" style="width:100%; border-collapse:collapse;">
+          <caption class="sr-only">Turnout by precinct. Column header buttons sort the table.</caption>
+          <thead>
+            <tr style="background:var(--neutral-light); border-bottom:2px solid var(--border);">
+              ${sortHeader('name', 'Precinct', 'left', 'asc')}
+              ${sortHeader('voters', 'Registered Voters', 'right', 'desc')}
+              ${sortHeader('ballots', 'Ballots Cast', 'right', 'desc')}
+              ${sortHeader('turnout', 'Turnout', 'right', 'desc')}
+            </tr>
+          </thead>
+          <tbody>${body || '<tr><td colspan="4" style="padding:24px; text-align:center;">No precincts match the search</td></tr>'}</tbody>
+          ${foot}
+        </table>
+      </div>`;
+    container.appendChild(wrapper);
+    focusSortedHeader(wrapper);
+  }
+
+  /* ---------- Precinct map (Map view) ----------
+   * precinct-shapes.json: the county's precinct boundaries (Hamilton County GIS, 2023 lines),
+   * WGS84, simplified, one feature per precinct with properties.name in the ES&S spelling. It is
+   * a static site file, fetched once and only when the Map view opens. Precincts are matched by
+   * name; a precinct with results but no shape (the PROPERTY RIGHTS rows) is listed under the map.
+   * Drawn as inline SVG: no map tiles, no third-party requests. The By Contest and Turnout tables
+   * hold the same numbers for keyboard and screen-reader users. */
+  const PRECINCT_SHAPES_URL = 'precinct-shapes.json?v=2023-1';
+  let precinctShapes = null;       // {features, viewBox, paths: Map(name -> d)}
+  let precinctShapesState = 'idle'; // idle | loading | ready | failed
+  let precinctMapColorBy = 'WINNER'; // WINNER | TURNOUT
+  const MAP_PARTY_COLORS = { REP: '#b91c1c', DEM: '#1d4ed8' };
+  const MAP_OTHER_COLORS = ['#0f766e', '#7c3aed', '#b45309', '#be185d', '#4d7c0f', '#0369a1', '#9a3412', '#475569', '#a16207', '#155e75'];
+  const MAP_TURNOUT_COLORS = ['#dbeafe', '#93c5fd', '#3b82f6', '#1d4ed8', '#1e3a8a'];
+  const MAP_EMPTY = '#d1d5db';
+
+  function loadPrecinctShapes() {
+    if (precinctShapesState === 'loading' || precinctShapesState === 'ready') return;
+    precinctShapesState = 'loading';
+    fetch(PRECINCT_SHAPES_URL, { cache: 'force-cache' })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(geo => {
+        precinctShapes = buildMapPaths(geo);
+        precinctShapesState = 'ready';
+        if (precinctViewMode === 'MAP') renderPrecinctPage();
+      })
+      .catch(() => {
+        precinctShapesState = 'failed';
+        if (precinctViewMode === 'MAP') renderPrecinctPage();
+      });
+  }
+
+  /** Project lon/lat onto a flat plane (fine at county scale) and build one SVG path per precinct. */
+  function buildMapPaths(geo) {
+    const feats = (geo && geo.features) || [];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, latSum = 0, n = 0;
+    const eachRing = (g, fn) => {
+      const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      polys.forEach(poly => poly.forEach(ring => fn(ring)));
+    };
+    feats.forEach(f => eachRing(f.geometry || {}, ring => ring.forEach(([, lat]) => { latSum += lat; n++; })));
+    const k = Math.cos(((n ? latSum / n : 35) * Math.PI) / 180);
+    const W = 1000;
+    feats.forEach(f => eachRing(f.geometry || {}, ring => ring.forEach(([lon, lat]) => {
+      const x = lon * k, y = -lat;
+      if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+    })));
+    const s = W / ((maxX - minX) || 1);
+    const H = Math.round((maxY - minY) * s);
+    const paths = new Map();
+    feats.forEach(f => {
+      const name = String((f.properties && f.properties.name) || '').trim().toUpperCase();
+      if (!name) return;
+      let d = '';
+      eachRing(f.geometry || {}, ring => {
+        ring.forEach(([lon, lat], i) => {
+          d += (i === 0 ? 'M' : 'L') + ((lon * k - minX) * s).toFixed(1) + ' ' + ((-lat - minY) * s).toFixed(1);
+        });
+        d += 'Z';
+      });
+      paths.set(name, (paths.get(name) || '') + d);
+    });
+    return { paths, viewBox: `0 0 ${W} ${H}` };
+  }
+
+  /** For each precinct in the contest: its votes, total, and the leader (null on a tie or no votes). */
+  function mapContestResults(contest) {
+    const cands = contest.candidates || [];
+    const out = new Map();
+    (contest.precinctsStatus || []).forEach(p => {
+      const votes = cands.map(c => (c.precinctVotes || {})[p.name] || 0);
+      const total = votes.reduce((a, b) => a + b, 0);
+      const sorted = votes.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
+      const top = sorted[0] || [0, -1];
+      const second = sorted[1] || [0, -1];
+      const leader = total > 0 && top[0] > second[0] ? top[1] : null;
+      out.set(p.name, { votes, total, leader, margin: total > 0 ? (top[0] - second[0]) / total : 0, reported: p.reported });
+    });
+    return out;
+  }
+
+  /** One color per candidate: party colors for REP / DEM, a fixed palette for the rest. */
+  function mapCandidateColors(contest) {
+    let next = 0;
+    return (contest.candidates || []).map(c => {
+      const party = getCandidateParty(c, contest);
+      return MAP_PARTY_COLORS[party] || MAP_OTHER_COLORS[next++ % MAP_OTHER_COLORS.length];
+    });
+  }
+
+  function renderMapPrecinctView(container, latest) {
+    renderedCards.delete(container);
+    container.innerHTML = '';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-card precinct-map-card';
+    wrapper.style.cssText = 'grid-column:1 / -1; background:var(--surface); border-radius:12px; border:1px solid var(--border); box-shadow:var(--shadow-sm); overflow:hidden;';
+    container.appendChild(wrapper);
+
+    if (precinctShapesState !== 'ready') {
+      if (precinctShapesState === 'idle') loadPrecinctShapes();
+      wrapper.innerHTML = `<p class="map-status" role="status" style="padding:48px; text-align:center; font-weight:600;">${
+        precinctShapesState === 'failed' ? 'The precinct map could not be loaded. Use Refresh to try again, or the By Contest and Turnout views.' : 'Loading the precinct map…'}</p>`;
+      if (precinctShapesState === 'failed') precinctShapesState = 'idle'; // Refresh tries again
+      return;
+    }
+
+    const contests = latest.contests || [];
+    let contest = contests.find(c => c.title === selectedContestForPrecinctView) || contests[0];
+    if (contest) selectedContestForPrecinctView = contest.title;
+    const byTurnout = precinctMapColorBy === 'TURNOUT' || !contest;
+    const turnout = new Map(turnoutRows(latest).map(r => [r.name, r]));
+    const results = contest ? mapContestResults(contest) : new Map();
+    const colors = contest ? mapCandidateColors(contest) : [];
+    const cands = contest ? contest.candidates || [] : [];
+
+    // Turnout: five equal steps between the lowest and highest precinct turnout.
+    const tVals = Array.from(turnout.values()).map(r => r.turnout).filter(t => t !== null && t > 0);
+    const tMin = tVals.length ? Math.min(...tVals) : 0;
+    const tMax = tVals.length ? Math.max(...tVals) : 100;
+    const step = (tMax - tMin) / MAP_TURNOUT_COLORS.length || 1;
+    const turnoutBucket = t => Math.min(MAP_TURNOUT_COLORS.length - 1, Math.max(0, Math.floor((t - tMin) / step)));
+
+    let shapesHtml = '';
+    const unmapped = [];
+    const names = new Set([...precinctShapes.paths.keys()]);
+    precinctShapes.paths.forEach((d, name) => {
+      let fill = MAP_EMPTY, opacity = 1;
+      if (byTurnout) {
+        const r = turnout.get(name);
+        if (r && r.turnout !== null && r.ballots > 0) fill = MAP_TURNOUT_COLORS[turnoutBucket(r.turnout)];
+      } else {
+        const r = results.get(name);
+        if (!r) { fill = MAP_EMPTY; opacity = 0.35; } // not in this contest
+        else if (r.leader !== null) { fill = colors[r.leader]; opacity = 0.45 + Math.min(1, r.margin / 0.4) * 0.55; }
+        else if (r.total > 0) fill = '#6b7280'; // tied
+      }
+      const sel = name === selectedPrecinct ? ' is-selected' : '';
+      shapesHtml += `<path class="map-precinct${sel}" d="${d}" fill="${fill}" fill-opacity="${opacity.toFixed(2)}" data-map-precinct="${escapeHtml(name)}"><title>${escapeHtml(name)}</title></path>`;
+    });
+    (byTurnout ? Array.from(turnout.keys()) : Array.from(results.keys())).forEach(n => { if (!names.has(n)) unmapped.push(n); });
+
+    // Legend
+    let legend = '';
+    if (byTurnout) {
+      legend = MAP_TURNOUT_COLORS.map((c, i) => `<span class="map-key"><span class="map-swatch" style="background:${c}"></span>${(tMin + step * i).toFixed(0)}–${(tMin + step * (i + 1)).toFixed(0)}%</span>`).join('');
+    } else {
+      const winners = new Set(Array.from(results.values()).map(r => r.leader).filter(x => x !== null));
+      legend = cands.map((c, i) => winners.has(i) ? `<span class="map-key"><span class="map-swatch" style="background:${colors[i]}"></span>${escapeHtml(c.name)}</span>` : '').join('') +
+        (Array.from(results.values()).some(r => r.leader === null && r.total > 0) ? '<span class="map-key"><span class="map-swatch" style="background:#6b7280"></span>Tied</span>' : '') +
+        `<span class="map-key"><span class="map-swatch" style="background:${MAP_EMPTY}; opacity:.5"></span>Not in this contest</span>` +
+        '<span class="map-key map-key-note">Darker = wider winning margin</span>';
+    }
+
+    wrapper.innerHTML = `
+      <header style="padding:20px 24px; border-bottom:1px solid var(--border); background:var(--neutral-light); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h2 style="font-size:22px; font-weight:800; color:var(--neutral-dark); margin:0;">${byTurnout ? 'Turnout by Precinct' : escapeHtml(contest.title)}</h2>
+          <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${byTurnout ? 'Share of registered voters who cast a ballot' : 'Who received the most votes in each precinct'} &bull; Tap or hover over a precinct for its numbers</div>
+        </div>
+        <div class="filter-tabs" role="group" aria-label="Color the map by">
+          <button type="button" class="tab-btn${byTurnout ? '' : ' active'}" aria-pressed="${!byTurnout}" onclick="ElectionApp.setPrecinctMapColorBy('WINNER')">Winner</button>
+          <button type="button" class="tab-btn${byTurnout ? ' active' : ''}" aria-pressed="${byTurnout}" onclick="ElectionApp.setPrecinctMapColorBy('TURNOUT')">Turnout</button>
+        </div>
+      </header>
+      <div class="precinct-map-body">
+        <svg class="precinct-map-svg" viewBox="${precinctShapes.viewBox}" role="img" aria-label="Map of Hamilton County precincts colored by ${byTurnout ? 'turnout' : 'the candidate with the most votes in ' + escapeHtml(contest.title)}. The same numbers are in the By Contest and Turnout tables.">${shapesHtml}</svg>
+        <aside class="precinct-map-info" aria-live="polite"></aside>
+      </div>
+      <div class="map-legend">${legend}</div>
+      ${unmapped.length ? `<p class="map-unmapped">Not on the map (no boundary): ${unmapped.map(escapeHtml).join(', ')}</p>` : ''}
+    `;
+
+    const info = wrapper.querySelector('.precinct-map-info');
+    const showInfo = name => {
+      if (!name) { info.innerHTML = '<p class="map-hint">Select a precinct on the map.</p>'; return; }
+      const t = turnout.get(name);
+      let html = `<h3>${escapeHtml(name)}</h3>`;
+      if (t) html += `<p>${fmtNum(t.ballots)} ballots of ${fmtNum(t.voters)} registered &bull; ${t.turnout === null ? 'N/A' : t.turnout.toFixed(2) + '%'} turnout</p>`;
+      if (!byTurnout) {
+        const r = results.get(name);
+        if (!r) html += '<p>Not in this contest.</p>';
+        else {
+          const rows = r.votes.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]).slice(0, 6);
+          html += '<ul class="map-cands">' + rows.map(([v, i]) => `<li><span class="map-swatch" style="background:${colors[i]}"></span><span class="map-cand-name">${escapeHtml(cands[i].name)}</span><strong>${fmtNum(v)}</strong> <span class="map-cand-pct">${r.total ? ((v / r.total) * 100).toFixed(1) + '%' : ''}</span></li>`).join('') + '</ul>';
+          if (cands.length > 6) html += `<p class="map-hint">${cands.length - 6} more candidates in the full results</p>`;
+        }
+      }
+      html += `<button type="button" class="export-btn" data-open-precinct="${escapeHtml(name)}">Open precinct results</button>`;
+      info.innerHTML = html;
+    };
+    showInfo(names.has(selectedPrecinct) ? selectedPrecinct : '');
+
+    const svg = wrapper.querySelector('svg');
+    let pinned = names.has(selectedPrecinct) ? selectedPrecinct : '';
+    svg.addEventListener('mouseover', e => {
+      const p = e.target.closest('[data-map-precinct]');
+      if (p) showInfo(p.getAttribute('data-map-precinct'));
+    });
+    svg.addEventListener('mouseleave', () => showInfo(pinned));
+    svg.addEventListener('click', e => {
+      const p = e.target.closest('[data-map-precinct]');
+      if (!p) return;
+      pinned = p.getAttribute('data-map-precinct');
+      selectedPrecinct = pinned;
+      const pSelect = document.getElementById('precinct-select');
+      if (pSelect) pSelect.value = selectedPrecinct;
+      renderPrecinctHeaderMetrics();
+      savePrecinctStateToURL();
+      svg.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
+      p.classList.add('is-selected');
+      p.parentNode.appendChild(p); // draw its outline on top
+      showInfo(pinned);
+    });
+    const selPath = svg.querySelector('.is-selected');
+    if (selPath) selPath.parentNode.appendChild(selPath);
+  }
+
+  function setPrecinctMapColorBy(mode) {
+    precinctMapColorBy = mode === 'TURNOUT' ? 'TURNOUT' : 'WINNER';
+    renderPrecinctPage();
   }
 
   function exportPrecinctCSV(mode) {
@@ -2298,7 +2672,16 @@ ${ballotsCard || reportingCard}
     let filename = '';
     let csvContent = 'Precinct,Contest,Candidate,Party,Precinct Votes,County Total Votes\n';
 
-    if (mode === 'FILTERED' && precinctViewMode === 'BY_PRECINCT') {
+    if (mode === 'FILTERED' && precinctViewMode === 'TURNOUT') {
+      filename = `Hamilton_County_Precinct_Turnout_${Date.now()}.csv`;
+      csvContent = 'Precinct,Registered Voters,Ballots Cast,Turnout Percent\n';
+      turnoutRows(latest)
+        .filter(r => !precinctSearchQuery || r.name.toLowerCase().includes(precinctSearchQuery))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(r => {
+          csvContent += [formatCsvCell(r.name), r.voters, r.ballots, r.turnout === null ? '' : r.turnout.toFixed(2)].join(',') + '\n';
+        });
+    } else if (mode === 'FILTERED' && precinctViewMode === 'BY_PRECINCT') {
       const cleanPrecinct = selectedPrecinct.replace(/[^a-zA-Z0-9_-]/g, '_');
       filename = `Hamilton_County_${cleanPrecinct}_Results_${Date.now()}.csv`;
 
@@ -2402,6 +2785,8 @@ ${ballotsCard || reportingCard}
     selectPrecinct: selectPrecinct,
     selectContestForPrecinctView: selectContestForPrecinctView,
     setPrecinctViewMode: setPrecinctViewMode,
+    sortPrecinctTable: sortPrecinctTable,
+    setPrecinctMapColorBy: setPrecinctMapColorBy,
     setPrecinctPartyFilter: setPrecinctPartyFilter,
     exportPrecinctCSV: exportPrecinctCSV,
 
