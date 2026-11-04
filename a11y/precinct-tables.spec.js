@@ -122,3 +122,169 @@ test('the boundary file names every precinct of the 2026-11-03 General (the ES&S
   const missing = p.masterPrecincts.filter((n) => !/PROPERTY RIGHTS/.test(n) && !names.has(n));
   expect(missing).toEqual([]);
 });
+
+// Early & absentee vs Election Day (precincts.json earlyByPrecinct, pipeline fix d5): a synthetic
+// split (half of every number early) on top of a real sample output.
+function withSplit() {
+  const p = JSON.parse(fs.readFileSync(path.join(GOLDEN, 'samples-92-05-end-ed', 'precincts.json'), 'utf8'));
+  p.precinctStats = Object.fromEntries(p.masterPrecincts.map((n, i) => [n, { name: n, voters: 1000 + i, ballots: 400 + i, rep: 0, dem: 0, gen: 0, turnoutPercent: Math.round(((400 + i) / (1000 + i)) * 10000) / 100 }]));
+  const half = (n) => Math.floor(n / 2);
+  p.earlyByPrecinct = {
+    ballots: Object.fromEntries(Object.entries(p.precinctStats).map(([n, s]) => [n, half(s.ballots)])),
+    contests: p.contests.map((c) => c.candidates.map((x) => Object.fromEntries(Object.entries(x.precinctVotes).map(([n, v]) => [n, half(v)])))),
+  };
+  return p;
+}
+
+async function openWith(page, precincts) {
+  await page.route('http://127.0.0.1:9199/**', (route) => {
+    const name = path.basename(decodeURIComponent(new URL(route.request().url()).pathname));
+    if (name === 'precincts.json') return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(precincts) });
+    const f = path.join(GOLDEN, 'samples-92-05-end-ed', name);
+    if (!fs.existsSync(f)) return route.fulfill({ status: 404, body: '' });
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(f) });
+  });
+  await page.goto(`precincts.html?emulator&draft=${DRAFT_ID}`);
+  await page.locator('#precinct-results-container article').first().waitFor();
+}
+
+test('early vs Election Day: precinct header, candidate rows, turnout columns and the map toggle', async ({ page }) => {
+  const p = withSplit();
+  await openWith(page, p);
+  const name = p.masterPrecincts[3];
+  await page.selectOption('#precinct-select', name);
+  const b = p.precinctStats[name].ballots;
+  const e = Math.floor(b / 2);
+  await expect(page.locator('#precinct-stat-ballots-split')).toHaveText(`Early & absentee ${fmt(e)} • Election Day ${fmt(b - e)}`);
+  const c = p.contests.find((x) => x.precinctsStatusIndexed.some(([k]) => k === 3));
+  const v = c.candidates[0].precinctVotes[name] || 0;
+  await expect(page.locator('#precinct-results-container article .vote-split').first()).toHaveText(`Early & absentee ${fmt(Math.floor(v / 2))} • Election Day ${fmt(v - Math.floor(v / 2))}`);
+
+  // The ballots switch changes the results themselves: Election Day only, then early only.
+  await page.click('#ballot-scope-tabs [data-scope="ED"]');
+  await expect(page.locator('#precinct-results-container article .vote-count').first()).toHaveText(`${fmt(v - Math.floor(v / 2))} votes`);
+  await expect(page.locator('#precinct-stat-ballots')).toHaveText(fmt(b - e));
+  await page.click('#ballot-scope-tabs [data-scope="EARLY"]');
+  await expect(page.locator('#precinct-results-container article .vote-count').first()).toHaveText(`${fmt(Math.floor(v / 2))} votes`);
+  await page.click('#view-mode-contest-btn');
+  await page.selectOption('#contest-precinct-select', { index: p.contests.indexOf(c) + 1 });
+  const cRow = (await bodyRows(page)).find((r) => r[0] === name);
+  expect(cRow[3].split(' ')[0]).toBe(fmt(Math.floor(v / 2)));
+  await page.click('#ballot-scope-tabs [data-scope="ALL"]');
+
+  await page.click('#view-mode-turnout-btn');
+  const row = (await bodyRows(page)).find((r) => r[0] === name);
+  expect(row[4].split(' ')[0]).toBe(fmt(e));
+  expect(row[5].split(' ')[0]).toBe(fmt(b - e));
+
+  await page.click('#view-mode-map-btn');
+  await page.locator('.precinct-map-svg path').first().waitFor();
+  for (const k of ['EARLY', 'ED', 'ALL']) {
+    await page.click(`#ballot-scope-tabs [data-scope="${k}"]`);
+    await expect(page.locator(`#ballot-scope-tabs [data-scope="${k}"]`)).toHaveAttribute('aria-pressed', 'true');
+  }
+  await page.click('#ballot-scope-tabs [data-scope="ED"]');
+  await page.click('.precinct-map-card .tab-btn:has-text("Turnout")');
+  await page.locator(`.precinct-map-svg path[data-map-precinct="${name}"]`).click({ force: true });
+  await expect(page.locator('.precinct-map-info')).toContainText(`${fmt(b - e)} Election Day ballots`);
+});
+
+test('without a split the ballot toggle and the extra columns are not shown', async ({ page }) => {
+  await open(page);
+  await page.click('#view-mode-turnout-btn');
+  await expect(page.locator('#precinct-results-container thead th')).toHaveCount(4);
+  await page.click('#view-mode-map-btn');
+  await page.locator('.precinct-map-svg path').first().waitFor();
+  await expect(page.locator('#ballot-scope-tabs')).toBeHidden();
+  await expect(page.locator('#precinct-stat-ballots-split')).toBeHidden();
+});
+
+/** A minimal RFC 4180 reader for the exports (quoted fields, doubled quotes). */
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') quoted = false; else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(cell); cell = ''; } else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; } else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+async function download(page, click) {
+  const [dl] = await Promise.all([page.waitForEvent('download'), click()]);
+  return parseCsv(fs.readFileSync(await dl.path(), 'utf8'));
+}
+const filteredCsv = (page) => download(page, () => page.getByRole('button', { name: /Export Filtered CSV/ }).click());
+const VOTE_HEAD = ['Precinct', 'Contest', 'Candidate', 'Party', 'Precinct Votes', 'Early & Absentee Votes', 'Election Day Votes', 'County Total Votes'];
+
+test('exports with the early split: every view carries all, early & absentee and Election Day, whatever the switch shows', async ({ page }) => {
+  const p = withSplit();
+  await openWith(page, p);
+  const half = (n) => Math.floor(n / 2);
+  const checkVotes = (rows) => {
+    for (const r of rows) {
+      const c = p.contests.find((x) => x.title === r[1]);
+      const cand = c.candidates.find((x) => x.name === r[2]);
+      const v = cand.precinctVotes[r[0]] || 0;
+      expect(r.slice(4), `${r[0]} / ${r[1]} / ${r[2]}`).toEqual([String(v), String(half(v)), String(v - half(v)), String(cand.votes)]);
+    }
+  };
+  // The switch is on Election Day: the files still hold all three numbers.
+  await page.click('#ballot-scope-tabs [data-scope="ED"]');
+
+  const name = p.masterPrecincts[3];
+  await page.selectOption('#precinct-select', name);
+  let [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(VOTE_HEAD);
+  expect(rows.length).toBeGreaterThan(0);
+  expect(new Set(rows.map((r) => r[0]))).toEqual(new Set([name]));
+  checkVotes(rows);
+
+  await page.click('#view-mode-contest-btn');
+  const c = p.contests[2];
+  await page.selectOption('#contest-precinct-select', { index: 3 });
+  [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(VOTE_HEAD);
+  expect(new Set(rows.map((r) => r[1]))).toEqual(new Set([c.title]));
+  expect(rows.length).toBe(c.precinctsStatusIndexed.length * c.candidates.length);
+  checkVotes(rows);
+
+  // The map exports its contest (the same picker).
+  await page.click('#view-mode-map-btn');
+  await page.locator('.precinct-map-svg path').first().waitFor();
+  const mapRows = (await filteredCsv(page)).slice(1);
+  expect(mapRows).toEqual(rows);
+
+  await page.click('#view-mode-turnout-btn');
+  [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(['Precinct', 'Registered Voters', 'Ballots Cast', 'Early & Absentee Ballots', 'Election Day Ballots', 'Turnout Percent']);
+  expect(rows.length).toBe(p.masterPrecincts.length);
+  for (const r of rows) {
+    const s = p.precinctStats[r[0]];
+    expect(r.slice(1), r[0]).toEqual([String(s.voters), String(s.ballots), String(half(s.ballots)), String(s.ballots - half(s.ballots)), s.turnoutPercent.toFixed(2)]);
+  }
+
+  const all = await download(page, () => page.getByRole('button', { name: /Export All Precincts CSV/ }).click());
+  expect(all[0]).toEqual(VOTE_HEAD);
+  expect(all.length - 1).toBe(p.contests.reduce((n, x) => n + x.precinctsStatusIndexed.length * x.candidates.length, 0));
+  checkVotes(all.slice(1, 400));
+});
+
+test('exports without a split keep the original columns (turnout view and map too)', async ({ page }) => {
+  await open(page);
+  await page.click('#view-mode-turnout-btn');
+  const [head, ...rows] = await filteredCsv(page);
+  expect(head).toEqual(['Precinct', 'Registered Voters', 'Ballots Cast', 'Turnout Percent']);
+  expect(rows.length).toBeGreaterThan(0);
+  await page.click('#view-mode-map-btn');
+  await page.locator('.precinct-map-svg path').first().waitFor();
+  const map = await filteredCsv(page);
+  expect(map[0]).toEqual(['Precinct', 'Contest', 'Candidate', 'Party', 'Precinct Votes', 'County Total Votes']);
+  expect(new Set(map.slice(1).map((r) => r[1])).size).toBe(1);
+});

@@ -1970,3 +1970,9 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 @media (max-width: 760px) {
   .precinct-map-body { grid-template-columns: 1fr; padding: 12px; }
 }
+
+/* Early & absentee vs Election Day (precinct page) */
+.map-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.vote-split { font-size: 13px; color: var(--neutral-muted); font-weight: 500; flex: 1; text-align: center; }
+@media (max-width: 640px) { .vote-split { flex-basis: 100%; order: 3; text-align: left; } .candidate-stats { flex-wrap: wrap; } }
+.scope-label { align-self: center; font-size: 13px; font-weight: 700; color: var(--neutral-muted); margin: 0 2px 0 10px; }

@@ -142,6 +142,21 @@
           Object.keys(x.precinctVotes).forEach(function (pn) { count(r, p + '.candidates[' + i + '].precinctVotes[' + JSON.stringify(pn) + ']', x.precinctVotes[pn]); });
         });
       });
+      // Optional (fix d5): the Early/ABS file's per-precinct ballots and votes, aligned with contests.
+      if (d.earlyByPrecinct !== undefined) {
+        var e = d.earlyByPrecinct;
+        if (!obj(r, 'earlyByPrecinct', e) || !obj(r, 'earlyByPrecinct.ballots', e.ballots) || !arr(r, 'earlyByPrecinct.contests', e.contests)) return;
+        Object.keys(e.ballots).forEach(function (pn) { count(r, 'earlyByPrecinct.ballots[' + JSON.stringify(pn) + ']', e.ballots[pn]); });
+        if (Array.isArray(d.contests) && e.contests.length !== d.contests.length) r.fail('earlyByPrecinct.contests', e.contests.length + ' contests, the file has ' + d.contests.length);
+        e.contests.forEach(function (row, ci) {
+          if (!arr(r, 'earlyByPrecinct.contests[' + ci + ']', row)) return;
+          row.forEach(function (pv, k) {
+            var p = 'earlyByPrecinct.contests[' + ci + '][' + k + ']';
+            if (!obj(r, p, pv)) return;
+            Object.keys(pv).forEach(function (pn) { count(r, p + '[' + JSON.stringify(pn) + ']', pv[pn]); });
+          });
+        });
+      }
     },
     'manifest.json': function (r, d) {
       if (typeof d.dataVersion !== 'string' || !VERSION_RE.test(d.dataVersion)) r.fail('dataVersion', 'expected 12 hex characters');

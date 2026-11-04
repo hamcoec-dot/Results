@@ -160,6 +160,8 @@ function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES, markedRep
     c.precinctsStatusIndexed = c.precinctsStatus.map((p) => [index.get(p.name), p.reported ? 1 : 0]);
   }
 
+  const earlyByPrecinct = fixes.d5 ? splitEarly(early, ed, contests) : null;
+
   const dataVersion = crypto.createHash('md5').update(pyDumps(contests, { sortKeys: true })).digest('hex').slice(0, 12);
 
   const data = {
@@ -184,7 +186,47 @@ function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES, markedRep
     contests,
     dataVersion,
   };
+  if (earlyByPrecinct) data.earlyByPrecinct = earlyByPrecinct;
   return { data, diagnostics: { reportingMismatches } };
 }
 
-module.exports = { mergeParsedData, voteForNumber, inferReported };
+/**
+ * Fix d5 — early vs Election Day per precinct. The Early/ABS export already spreads early and
+ * absentee ballots and votes across precincts, and the ED export is cumulative, so a precinct's
+ * Election Day share is (ED file) - (Early file). This returns the Early-slot side:
+ *   { ballots: {precinct: n}, contests: [ per merged contest, [ per candidate, {precinct: votes} ] ] }
+ * (zero entries left out; contests and candidates in the merged order). null when the Early slot
+ * is empty or a Zero report, or when any early number is above the cumulative one (a mismatched
+ * pair of files): then nothing is split rather than showing a negative Election Day count.
+ */
+function splitEarly(early, ed, contests) {
+  if (!early || !(early.totalBallots > 0)) return null;
+  const ballots = {};
+  for (const [name, st] of early.precinctStats) {
+    if (!(st.ballots > 0)) continue;
+    const total = ed && ed.precinctStats.size ? ed.precinctStats.get(name)?.ballots ?? 0 : st.ballots;
+    if (st.ballots > total) return null;
+    ballots[name] = st.ballots;
+  }
+  const out = [];
+  for (const c of contests) {
+    const earlyC = early.contestsRaw.get(c.title);
+    const row = [];
+    for (const cand of c.candidates) {
+      const pv = {};
+      const src = earlyC?.candidates.get(cand.name);
+      if (src) {
+        for (const [p, v] of src.precinctVotes) {
+          if (!(v > 0)) continue;
+          if (v > (cand.precinctVotes.get(p) ?? 0)) return null;
+          pv[p] = v;
+        }
+      }
+      row.push(pv);
+    }
+    out.push(row);
+  }
+  return { ballots, contests: out };
+}
+
+module.exports = { mergeParsedData, voteForNumber, inferReported, splitEarly };

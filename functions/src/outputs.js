@@ -95,6 +95,7 @@ function buildOutputs(merged, { config, lastUpdated }) {
     precinctStats: merged.precinctStats,
     contests: merged.contests.map(({ precinctsStatus, ...rest }) => rest),
   };
+  if (merged.earlyByPrecinct) precincts.earlyByPrecinct = merged.earlyByPrecinct;
 
   const compact = (v) => pyDumps(v, { itemSep: ',', keySep: ':' });
   return {
