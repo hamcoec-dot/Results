@@ -115,7 +115,7 @@
         <div class="metric-card">
           <div class="metric-label">Registered Voters</div>
           <div id="precinct-stat-voters" class="metric-value">--</div>
-          <div class="metric-subtext">Precinct Active Registered Voters</div>
+          <div id="precinct-stat-voters-note" class="metric-subtext">Precinct Active Registered Voters</div>
         </div>
 
         <div class="metric-card" style="flex: 1.8 1 300px !important;">
@@ -152,7 +152,7 @@
           <button type="button" class="tab-btn active" data-precinct-party="ALL" aria-pressed="true" onclick="ElectionApp.setPrecinctPartyFilter('ALL')">All Contests</button>
           <button type="button" class="tab-btn" data-precinct-party="REP" aria-pressed="false" onclick="ElectionApp.setPrecinctPartyFilter('REP')">Republican</button>
           <button type="button" class="tab-btn" data-precinct-party="DEM" aria-pressed="false" onclick="ElectionApp.setPrecinctPartyFilter('DEM')">Democratic</button>
-          <button type="button" class="tab-btn" data-precinct-party="IND" aria-pressed="false" onclick="ElectionApp.setPrecinctPartyFilter('IND')">Non-Partisan</button>
+          <button type="button" class="tab-btn" data-precinct-party="IND" aria-pressed="false" onclick="ElectionApp.setPrecinctPartyFilter('IND')">Non-Partisan / Independent</button>
         </div>
       </div>
 
@@ -184,6 +184,6 @@
 
   <!-- Load Data Payload and App Controller -->
   <script src="./functions/src/validate.js?v=60bc787319" defer></script>
-  <script src="./app.js?v=67644580da" defer></script>
+  <script src="./app.js?v=61c60c8700" defer></script>
 </body>
 </html>
