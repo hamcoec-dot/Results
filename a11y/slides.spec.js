@@ -40,6 +40,30 @@ test('summary slide: a general election shows ballots by voting method, not empt
   expect(text).toContain(`Election Day & Provisional ${ed}`);
 });
 
+test('summary slide: a general election with stray numbers in the primary columns still shows voting method', async ({ page }) => {
+  // 2026-11-03: the Early/ABS file gave the General ballotsRep 5, and the slide showed Republican /
+  // Democratic Primary rows. Only a primary (by its title or a REP / DEM contest) gets those rows.
+  const dir = 'samples-92-05-end-ed';
+  await page.route('http://127.0.0.1:9199/**', (route) => {
+    const name = path.basename(decodeURIComponent(new URL(route.request().url()).pathname));
+    const f = path.join(GOLDEN, dir, name);
+    if (!fs.existsSync(f)) return route.fulfill({ status: 404, body: '' });
+    let body = fs.readFileSync(f, 'utf8');
+    if (name === 'summary.json') {
+      const j = JSON.parse(body);
+      j.latest.ballotsRep = 5;
+      j.latest.ballotsDem = 2;
+      body = JSON.stringify(j);
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body });
+  });
+  await page.goto(`scrolling.html?emulator&draft=${DRAFT_ID}`);
+  await page.locator('#slide-viewport .slide-card').first().waitFor();
+  const text = norm(await page.locator('#slide-viewport').textContent());
+  expect(text).not.toContain('Primary');
+  expect(text).toContain('Early Voting & Absentee');
+});
+
 test('contest slides: a tie says Tied, a multi-seat race shows the closest seat', async ({ page }) => {
   await open(page, 'scrolling.html', 'samples-92-05-end-ed');
   // Governor: seven candidates share the top count.

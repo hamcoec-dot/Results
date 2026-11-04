@@ -649,9 +649,21 @@ window.ElectionApp = (function() {
     return electionData.latest || electionData;
   }
 
+  /**
+   * A primary: the election title says so, or a contest is a party primary (REP / DEM in its
+   * title). A general election's CSV can still carry numbers in the statistics columns the primary
+   * ballot counts come from, so those counts alone never decide it.
+   */
+  function isPrimaryElection(data) {
+    const d = data || getCurrentDataset() || {};
+    if (/\bprimary\b/i.test(d.electionTitle || '')) return true;
+    return (d.contests || []).some(c => /\b(REP|DEM)\b/.test(c.title || ''));
+  }
+
   /** REP / DEM / GEN ballot counts exist only in a primary; a general election would show three zeros. */
   function hidePrimaryPillsInGeneral(primaryBallots) {
-    document.querySelectorAll('.ballot-breakdown-pills').forEach(el => { el.hidden = !(primaryBallots > 0); });
+    const show = primaryBallots > 0 && isPrimaryElection();
+    document.querySelectorAll('.ballot-breakdown-pills').forEach(el => { el.hidden = !show; });
   }
 
   function renderDashboard() {
@@ -1443,7 +1455,7 @@ window.ElectionApp = (function() {
     const pctOf = n => (total ? n / total * 100 : 0);
     let title;
     let rows;
-    if ((data.ballotsRep || 0) + (data.ballotsDem || 0) > 0) {
+    if ((data.ballotsRep || 0) + (data.ballotsDem || 0) > 0 && isPrimaryElection(data)) {
       title = 'Ballots Cast by Primary';
       rows = [
         { cls: 'rep', label: 'Republican Primary', n: data.ballotsRep || 0, color: '#dc2626' },
