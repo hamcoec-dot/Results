@@ -16,8 +16,8 @@
 const { PY_WS, pyStrip, pyLowerChars, pyInt, pyIntBig, pyTrueDiv, pyFloat, pyRound2 } = require('./pycompat');
 const { readCsv } = require('./csv');
 
-const FIXES = Object.freeze({ d1: true, d2: true, d3: true, d4: true });
-const LEGACY = Object.freeze({ d1: false, d2: false, d3: false, d4: false });
+const FIXES = Object.freeze({ d1: true, d2: true, d3: true, d4: true, d5: true });
+const LEGACY = Object.freeze({ d1: false, d2: false, d3: false, d4: false, d5: false });
 
 /** Raised where the legacy parser raises (an IndexError on a malformed header). */
 class ParseError extends Error {

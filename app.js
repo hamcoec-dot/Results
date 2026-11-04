@@ -1824,6 +1824,7 @@ ${ballotsCard || reportingCard}
   // The By Contest and Turnout tables' sort: key ('name', 'total', 'c<candidate index>', 'voters',
   // 'ballots', 'turnout') and direction. null key = the file's own order (alphabetical).
   let precinctTableSort = { key: null, dir: 'asc' };
+  let precinctVoteScope = 'ALL'; // ALL | EARLY | ED (the ballots switch)
   let sortFocusPending = false;
   const PRECINCT_VIEW_MODES = ['BY_PRECINCT', 'BY_CONTEST', 'TURNOUT', 'MAP'];
 
@@ -1831,7 +1832,8 @@ ${ballotsCard || reportingCard}
     try {
       // Keep the data-source switches (?local, ?emulator, ?draft) and replace only the page state.
       const params = new URLSearchParams(window.location.search);
-      ['precinct', 'mode', 'party', 'contest', 'search'].forEach(k => params.delete(k));
+      ['precinct', 'mode', 'party', 'contest', 'search', 'ballots'].forEach(k => params.delete(k));
+      if (precinctVoteScope !== 'ALL') params.set('ballots', precinctVoteScope);
       if (selectedPrecinct) params.set('precinct', selectedPrecinct);
       if (precinctViewMode) params.set('mode', precinctViewMode);
       if (precinctPartyFilter) params.set('party', precinctPartyFilter);
@@ -1874,6 +1876,8 @@ ${ballotsCard || reportingCard}
       if (state.party) precinctPartyFilter = state.party;
       if (state.contest) selectedContestForPrecinctView = state.contest;
       if (state.search) precinctSearchQuery = state.search;
+      const b = new URLSearchParams(window.location.search).get('ballots');
+      if (b === 'EARLY' || b === 'ED') precinctVoteScope = b;
     } catch (e) {}
   }
 
@@ -2014,6 +2018,7 @@ ${ballotsCard || reportingCard}
     if (!electionData || !electionData.latest) return;
     const latest = electionData.latest;
 
+    syncScopeTabs(latest);
     renderPrecinctHeaderMetrics();
 
     const container = document.getElementById('precinct-results-container');
@@ -2053,14 +2058,21 @@ ${ballotsCard || reportingCard}
     }
 
     const voters = pStats.voters || 0;
-    const ballots = pStats.ballots || 0;
-    const turnout = pStats.turnoutPercent !== undefined ? pStats.turnoutPercent : (voters > 0 ? (ballots/voters*100).toFixed(2) : '0.00');
+    const allBallots = pStats.ballots || 0;
+    const hScope = currentScope(electionData.latest);
+    const earlyB = hScope === 'ALL' ? 0 : Math.min(allBallots, Number(electionData.latest.earlyByPrecinct.ballots[selectedPrecinct]) || 0);
+    const ballots = hScope === 'EARLY' ? earlyB : hScope === 'ED' ? allBallots - earlyB : allBallots;
+    const turnout = hScope === 'ALL' && pStats.turnoutPercent !== undefined ? pStats.turnoutPercent : (voters > 0 ? (ballots/voters*100).toFixed(2) : '0.00');
+    const bLabel = document.getElementById('precinct-stat-ballots-label');
+    if (bLabel) bLabel.textContent = hScope === 'EARLY' ? 'Early & Absentee Ballots' : hScope === 'ED' ? 'Election Day Ballots' : 'Total Ballots Cast';
+    const tLabel = document.getElementById('precinct-stat-turnout-label');
+    if (tLabel) tLabel.textContent = hScope === 'EARLY' ? 'Early & Absentee Turnout' : hScope === 'ED' ? 'Election Day Turnout' : 'Precinct Turnout';
 
     const vElem = document.getElementById('precinct-stat-voters');
     if (vElem) vElem.textContent = fmtNum(voters);
     // ES&S's PROPERTY RIGHTS rows are city property-rights voters (non-resident property owners
     // who vote only in that city's races). They have no registered voters, so a turnout is meaningless.
-    const noRoll = voters === 0 && ballots > 0;
+    const noRoll = voters === 0 && allBallots > 0;
     const vSub = document.getElementById('precinct-stat-voters-note');
     if (vSub) vSub.textContent = noRoll
       ? 'Property-rights voters: no voter roll; they vote only in city races'
@@ -2068,6 +2080,18 @@ ${ballotsCard || reportingCard}
 
     const bElem = document.getElementById('precinct-stat-ballots');
     if (bElem) bElem.textContent = fmtNum(ballots);
+    const splitElem = document.getElementById('precinct-stat-ballots-split');
+    if (splitElem) {
+      const latest = electionData.latest;
+      if (hasEarlySplit(latest)) {
+        const early = Math.min(allBallots, Number(latest.earlyByPrecinct.ballots[selectedPrecinct]) || 0);
+        splitElem.textContent = (hScope === 'ALL' ? '' : `All ballots ${fmtNum(allBallots)}: `) + `Early & absentee ${fmtNum(early)} \u2022 Election Day ${fmtNum(allBallots - early)}`;
+        splitElem.hidden = false;
+      } else {
+        splitElem.textContent = '';
+        splitElem.hidden = true;
+      }
+    }
 
     const repElem = document.getElementById('precinct-stat-ballots-rep');
     if (repElem) repElem.textContent = fmtNum(pStats.rep || 0);
@@ -2133,10 +2157,15 @@ ${ballotsCard || reportingCard}
       const isReported = pStatus ? pStatus.reported : false;
 
       let precinctTotalVotes = 0;
-      const candsWithPV = (c.candidates || []).map(cand => {
-        const pv = (cand.precinctVotes || {})[selectedPrecinct] || 0;
+      const splitOk = hasEarlySplit(latest);
+      const scope = currentScope(latest);
+      const candsWithPV = (c.candidates || []).map((cand, k) => {
+        const allPv = (cand.precinctVotes || {})[selectedPrecinct] || 0;
+        const pv = scope === 'ALL' ? allPv : scopedPrecinctVotes(latest, c, k, selectedPrecinct, scope);
         precinctTotalVotes += pv;
+        const ev = splitOk ? scopedPrecinctVotes(latest, c, k, selectedPrecinct, 'EARLY') : 0;
         return {
+          split: splitOk && scope === 'ALL' ? [ev, allPv - ev] : null,
           name: cand.name,
           party: getCandidateParty(cand, c),
           votes: pv,
@@ -2166,7 +2195,7 @@ ${ballotsCard || reportingCard}
               ${isLead ? '<span class="status-pill status-reported" style="font-size:12px; padding:3px 8px; font-weight:700;">&#x2714; LEADING IN PRECINCT</span>' : ''}
             </div>
             <div class="candidate-stats" style="display:flex; justify-content:space-between; margin-top:8px; font-size:15px;">
-              <span class="vote-count" style="font-weight:700; color:var(--primary);">${fmtNum(cand.votes)} votes</span>
+              <span class="vote-count" style="font-weight:700; color:var(--primary);">${fmtNum(cand.votes)} votes</span>${cand.split ? `<span class="vote-split">Early & absentee ${fmtNum(cand.split[0])} &bull; Election Day ${fmtNum(cand.split[1])}</span>` : ''}
               <span class="vote-percent" style="font-weight:600; color:var(--neutral-muted);">${pct}%</span>
             </div>
             <div class="progress-bar-bg" style="height:10px; background:var(--border); border-radius:5px; margin-top:6px; overflow:hidden;">
@@ -2191,10 +2220,10 @@ ${ballotsCard || reportingCard}
         </div>
         <footer class="contest-footer" style="margin-top:20px; padding-top:14px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; font-size:14px; color:var(--neutral-muted);">
           <span>Precinct Total Votes: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(precinctTotalVotes)}</strong></span>
-          <span>Contest Total, All Precincts: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(c.totalVotes)}</strong></span>
+          <span>Contest Total, All Precincts${scope === 'ALL' ? '' : ' (' + SCOPE_LABEL[scope].toLowerCase() + ')'}: <strong style="color:var(--neutral-dark); font-weight:700;">${fmtNum(scopedContestTotal(latest, c, scope))}</strong></span>
         </footer>
       </article>`;
-      return { key: `${selectedPrecinct}|${c.title}`, html };
+      return { key: `${selectedPrecinct}|${c.title}|${scope}`, html };
     });
 
     // A live update swaps only the cards that changed (see patchCards).
@@ -2227,8 +2256,9 @@ ${ballotsCard || reportingCard}
       return true;
     });
 
+    const scope = currentScope(latest);
     const rows = filteredPrecincts.map(p => {
-      const votes = cands.map(cand => (cand.precinctVotes || {})[p.name] || 0);
+      const votes = cands.map((cand, k) => scopedPrecinctVotes(latest, contest, k, p.name, scope));
       const total = votes.reduce((a, b) => a + b, 0);
       return { p, votes, total, pct: votes.map(v => (total > 0 ? (v / total) * 100 : 0)) };
     });
@@ -2281,13 +2311,14 @@ ${ballotsCard || reportingCard}
     // A totals row for every precinct, so the table can be checked against the summary page.
     let footHtml = '';
     if (!precinctSearchQuery && pStatuses.length > 0) {
-      const allTotal = cands.reduce((n, cand) => n + (Number(cand.votes) || 0), 0);
+      const candTotals = cands.map((cand, k) => scopedCandidateTotal(latest, contest, k, scope));
+      const allTotal = candTotals.reduce((n, v) => n + v, 0);
       footHtml = `
         <tr class="precinct-total-row" style="border-top:2px solid var(--border); background:var(--neutral-light);">
           <th scope="row" style="font-weight:800; text-align:left; padding:12px 16px; background:var(--neutral-light);">All Precincts</th>
           <td style="padding:12px 16px;"></td>
           <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(allTotal)}</td>
-          ${cands.map(cand => `<td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(Number(cand.votes) || 0)}<span class="cell-pct">${allTotal > 0 ? ((Number(cand.votes) || 0) / allTotal * 100).toFixed(1) + '%' : '&ndash;'}</span></td>`).join('')}
+          ${candTotals.map(v => `<td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(v)} <span class="cell-pct">${allTotal > 0 ? (v / allTotal * 100).toFixed(1) + '%' : '&ndash;'}</span></td>`).join('')}
         </tr>
       `;
     }
@@ -2309,7 +2340,7 @@ ${ballotsCard || reportingCard}
       <header style="padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:var(--neutral-light);">
         <div>
           <h2 style="font-size:22px; font-weight:800; color:var(--neutral-dark); margin:0;">${escapeHtml(contest.title)}</h2>
-          <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${escapeHtml(contest.voteFor)} &bull; ${Number(contest.precinctsReporting) || 0} of ${Number(contest.precinctsTotal) || 0} Precincts Reporting</div>
+          <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${escapeHtml(contest.voteFor)} &bull; ${Number(contest.precinctsReporting) || 0} of ${Number(contest.precinctsTotal) || 0} Precincts Reporting${scope === 'ALL' ? '' : ' &bull; ' + SCOPE_LABEL[scope] + ' votes only'}</div>
         </div>
       </header>
       <div style="overflow-x:auto; padding:8px 0;" role="region" tabindex="0" aria-label="Precinct results for ${escapeHtml(contest.title)}, scrolls sideways">
@@ -2363,24 +2394,92 @@ ${ballotsCard || reportingCard}
   }
 
   /** Every precinct's registered voters, ballots and turnout (null for PROPERTY RIGHTS rows, which have no voter roll). */
-  function turnoutRows(latest) {
+  function turnoutRows(latest, scope) {
     const pStats = latest.precinctStats || {};
     const master = latest.masterPrecincts || electionData.masterPrecincts || [];
     const names = Array.from(new Set([].concat(Array.isArray(master) ? master : [], Object.keys(pStats))));
+    const split = hasEarlySplit(latest);
+    const eb = split ? latest.earlyByPrecinct.ballots || {} : {};
     return names.map(name => {
       const st = pStats[name] || {};
       const voters = Number(st.voters) || 0;
-      const ballots = Number(st.ballots) || 0;
-      const turnout = voters > 0 ? (st.turnoutPercent !== undefined ? Number(st.turnoutPercent) : (ballots / voters) * 100) : null;
-      return { name, voters, ballots, turnout };
+      const all = Number(st.ballots) || 0;
+      const early = split ? Math.min(all, Number(eb[name]) || 0) : null;
+      const ed = split ? all - early : null;
+      const ballots = split && scope === 'EARLY' ? early : split && scope === 'ED' ? ed : all;
+      const turnout = voters > 0
+        ? (ballots === all && st.turnoutPercent !== undefined ? Number(st.turnoutPercent) : (ballots / voters) * 100)
+        : null;
+      return { name, voters, ballots, turnout, early, ed, all };
     });
+  }
+
+  /**
+   * True when precincts.json carries the Early/ABS file's per-precinct numbers (fix d5 in the
+   * pipeline): Election Day = cumulative - early, per precinct.
+   */
+  function hasEarlySplit(latest) {
+    const e = latest && latest.earlyByPrecinct;
+    return !!(e && e.ballots && Array.isArray(e.contests) && e.contests.length === (latest.contests || []).length);
+  }
+
+  /** A candidate's votes in a precinct for a scope: ALL, EARLY (early + absentee) or ED (Election Day only). */
+  function scopedPrecinctVotes(latest, contest, candIdx, precinct, scope) {
+    const cand = (contest.candidates || [])[candIdx] || {};
+    const all = (cand.precinctVotes || {})[precinct] || 0;
+    if (scope === 'ALL' || !hasEarlySplit(latest)) return all;
+    const ci = latest.contests.indexOf(contest);
+    const row = ci >= 0 ? latest.earlyByPrecinct.contests[ci] : null;
+    const early = Math.min(all, Number(row && row[candIdx] && row[candIdx][precinct]) || 0);
+    return scope === 'EARLY' ? early : all - early;
+  }
+
+  const SCOPE_LABEL = { ALL: 'All ballots', EARLY: 'Early & absentee', ED: 'Election Day' };
+  /** The page-wide ballots switch (All / Early & absentee / Election Day); ALL when the file has no split. */
+  function currentScope(latest) {
+    return hasEarlySplit(latest) ? precinctVoteScope : 'ALL';
+  }
+  function setPrecinctVoteScope(scope) {
+    precinctVoteScope = ['EARLY', 'ED'].includes(scope) ? scope : 'ALL';
+    precinctTableSort = precinctTableSort.key ? precinctTableSort : { key: null, dir: 'asc' };
+    savePrecinctStateToURL();
+    renderPrecinctPage();
+  }
+  /** Show the switch only when the published file carries the split; mark the active button. */
+  function syncScopeTabs(latest) {
+    const group = document.getElementById('ballot-scope-tabs');
+    if (!group) return;
+    const split = hasEarlySplit(latest);
+    group.hidden = !split;
+    const scope = currentScope(latest);
+    group.querySelectorAll('[data-scope]').forEach(btn => {
+      const on = btn.getAttribute('data-scope') === scope;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on);
+    });
+  }
+  /** A contest's countywide votes for the scope (sum of every precinct). */
+  function scopedContestTotal(latest, contest, scope) {
+    if (scope === 'ALL') return Number(contest.totalVotes) || 0;
+    let n = 0;
+    (contest.candidates || []).forEach((cand, k) => {
+      Object.keys(cand.precinctVotes || {}).forEach(p => { n += scopedPrecinctVotes(latest, contest, k, p, scope); });
+    });
+    return n;
+  }
+  function scopedCandidateTotal(latest, contest, k, scope) {
+    const cand = (contest.candidates || [])[k] || {};
+    if (scope === 'ALL') return Number(cand.votes) || 0;
+    return Object.keys(cand.precinctVotes || {}).reduce((n, p) => n + scopedPrecinctVotes(latest, contest, k, p, scope), 0);
   }
 
   /** Registered voters, ballots cast and turnout for every precinct, sortable. */
   function renderTurnoutPrecinctView(container, latest) {
     renderedCards.delete(container);
     container.innerHTML = '';
-    const all = turnoutRows(latest);
+    const scope = currentScope(latest);
+    const all = turnoutRows(latest, scope);
+    const split = hasEarlySplit(latest);
     const rows = all.filter(r => !precinctSearchQuery || r.name.toLowerCase().includes(precinctSearchQuery));
     const sk = precinctTableSort.key;
     const dir = precinctTableSort.dir === 'asc' ? 1 : -1;
@@ -2391,6 +2490,8 @@ ${ballotsCard || reportingCard}
       if (sk === 'voters') d = a.voters - b.voters;
       else if (sk === 'ballots') d = a.ballots - b.ballots;
       else if (sk === 'turnout') d = (a.turnout || 0) - (b.turnout || 0);
+      else if (sk === 'early') d = (a.early || 0) - (b.early || 0);
+      else if (sk === 'ed') d = (a.ed || 0) - (b.ed || 0);
       else if (sk === 'name') d = a.name.localeCompare(b.name);
       return (d * dir) || a.name.localeCompare(b.name);
     });
@@ -2403,6 +2504,8 @@ ${ballotsCard || reportingCard}
           <td style="text-align:right; padding:12px 16px; font-weight:700;">${r.turnout === null
             ? 'N/A<span class="cell-pct">no voter roll</span>'
             : `${r.turnout.toFixed(2)}%<span class="turnout-mini" aria-hidden="true"><span style="width:${Math.min(100, r.turnout)}%"></span></span>`}</td>
+          ${split && scope === 'ALL' ? `<td style="text-align:right; padding:12px 16px;">${fmtNum(r.early)} <span class="cell-pct">${r.all ? ((r.early / r.all) * 100).toFixed(1) + '%' : '&ndash;'}</span></td>
+          <td style="text-align:right; padding:12px 16px;">${fmtNum(r.ed)} <span class="cell-pct">${r.all ? ((r.ed / r.all) * 100).toFixed(1) + '%' : '&ndash;'}</span></td>` : ''}
         </tr>`).join('');
 
     const totVoters = all.reduce((n, r) => n + r.voters, 0);
@@ -2412,6 +2515,8 @@ ${ballotsCard || reportingCard}
           <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(totVoters)}</td>
           <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(totBallots)}</td>
           <td style="text-align:right; font-weight:800; padding:12px 16px;">${totVoters > 0 ? ((totBallots / totVoters) * 100).toFixed(2) + '%' : '&ndash;'}</td>
+          ${split && scope === 'ALL' ? `<td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(all.reduce((n, r) => n + r.early, 0))}</td>
+          <td style="text-align:right; font-weight:800; padding:12px 16px;">${fmtNum(all.reduce((n, r) => n + r.ed, 0))}</td>` : ''}
         </tr></tfoot>` : '';
 
     const wrapper = document.createElement('div');
@@ -2429,11 +2534,12 @@ ${ballotsCard || reportingCard}
             <tr style="background:var(--neutral-light); border-bottom:2px solid var(--border);">
               ${sortHeader('name', 'Precinct', 'left', 'asc')}
               ${sortHeader('voters', 'Registered Voters', 'right', 'desc')}
-              ${sortHeader('ballots', 'Ballots Cast', 'right', 'desc')}
-              ${sortHeader('turnout', 'Turnout', 'right', 'desc')}
+              ${sortHeader('ballots', scope === 'EARLY' ? 'Early & Absentee Ballots' : scope === 'ED' ? 'Election Day Ballots' : 'Ballots Cast', 'right', 'desc')}
+              ${sortHeader('turnout', scope === 'ALL' ? 'Turnout' : SCOPE_LABEL[scope] + ' Turnout', 'right', 'desc')}
+              ${split && scope === 'ALL' ? sortHeader('early', 'Early & Absentee Ballots', 'right', 'desc') + sortHeader('ed', 'Election Day Ballots', 'right', 'desc') : ''}
             </tr>
           </thead>
-          <tbody>${body || '<tr><td colspan="4" style="padding:24px; text-align:center;">No precincts match the search</td></tr>'}</tbody>
+          <tbody>${body || `<tr><td colspan="${split && scope === 'ALL' ? 6 : 4}" style="padding:24px; text-align:center;">No precincts match the search</td></tr>`}</tbody>
           ${foot}
         </table>
       </div>`;
@@ -2507,11 +2613,11 @@ ${ballotsCard || reportingCard}
   }
 
   /** For each precinct in the contest: its votes, total, and the leader (null on a tie or no votes). */
-  function mapContestResults(contest) {
+  function mapContestResults(contest, latest, scope) {
     const cands = contest.candidates || [];
     const out = new Map();
     (contest.precinctsStatus || []).forEach(p => {
-      const votes = cands.map(c => (c.precinctVotes || {})[p.name] || 0);
+      const votes = cands.map((c, k) => scopedPrecinctVotes(latest, contest, k, p.name, scope));
       const total = votes.reduce((a, b) => a + b, 0);
       const sorted = votes.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
       const top = sorted[0] || [0, -1];
@@ -2551,8 +2657,11 @@ ${ballotsCard || reportingCard}
     let contest = contests.find(c => c.title === selectedContestForPrecinctView) || contests[0];
     if (contest) selectedContestForPrecinctView = contest.title;
     const byTurnout = precinctMapColorBy === 'TURNOUT' || !contest;
-    const turnout = new Map(turnoutRows(latest).map(r => [r.name, r]));
-    const results = contest ? mapContestResults(contest) : new Map();
+    const split = hasEarlySplit(latest);
+    const scope = currentScope(latest);
+    const scopeText = scope === 'EARLY' ? ' (early & absentee ballots)' : scope === 'ED' ? ' (Election Day ballots)' : '';
+    const turnout = new Map(turnoutRows(latest, scope).map(r => [r.name, r]));
+    const results = contest ? mapContestResults(contest, latest, scope) : new Map();
     const colors = contest ? mapCandidateColors(contest) : [];
     const cands = contest ? contest.candidates || [] : [];
 
@@ -2598,11 +2707,13 @@ ${ballotsCard || reportingCard}
       <header style="padding:20px 24px; border-bottom:1px solid var(--border); background:var(--neutral-light); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div>
           <h2 style="font-size:22px; font-weight:800; color:var(--neutral-dark); margin:0;">${byTurnout ? 'Turnout by Precinct' : escapeHtml(contest.title)}</h2>
-          <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${byTurnout ? 'Share of registered voters who cast a ballot' : 'Who received the most votes in each precinct'} &bull; Tap or hover over a precinct for its numbers</div>
+          <div style="font-size:14px; font-weight:600; color:var(--neutral-muted); margin-top:4px;">${byTurnout ? 'Share of registered voters who cast a ballot' : 'Who received the most votes in each precinct'}${scopeText} &bull; Tap or hover over a precinct for its numbers</div>
         </div>
-        <div class="filter-tabs" role="group" aria-label="Color the map by">
-          <button type="button" class="tab-btn${byTurnout ? '' : ' active'}" aria-pressed="${!byTurnout}" onclick="ElectionApp.setPrecinctMapColorBy('WINNER')">Winner</button>
-          <button type="button" class="tab-btn${byTurnout ? ' active' : ''}" aria-pressed="${byTurnout}" onclick="ElectionApp.setPrecinctMapColorBy('TURNOUT')">Turnout</button>
+        <div class="map-toggles">
+          <div class="filter-tabs" role="group" aria-label="Color the map by">
+            <button type="button" class="tab-btn${byTurnout ? '' : ' active'}" aria-pressed="${!byTurnout}" onclick="ElectionApp.setPrecinctMapColorBy('WINNER')">Winner</button>
+            <button type="button" class="tab-btn${byTurnout ? ' active' : ''}" aria-pressed="${byTurnout}" onclick="ElectionApp.setPrecinctMapColorBy('TURNOUT')">Turnout</button>
+          </div>
         </div>
       </header>
       <div class="precinct-map-body">
@@ -2618,7 +2729,10 @@ ${ballotsCard || reportingCard}
       if (!name) { info.innerHTML = '<p class="map-hint">Select a precinct on the map.</p>'; return; }
       const t = turnout.get(name);
       let html = `<h3>${escapeHtml(name)}</h3>`;
-      if (t) html += `<p>${fmtNum(t.ballots)} ballots of ${fmtNum(t.voters)} registered &bull; ${t.turnout === null ? 'N/A' : t.turnout.toFixed(2) + '%'} turnout</p>`;
+      if (t) {
+        html += `<p>${fmtNum(t.ballots)} ${scope === 'EARLY' ? 'early & absentee ' : scope === 'ED' ? 'Election Day ' : ''}ballots of ${fmtNum(t.voters)} registered &bull; ${t.turnout === null ? 'N/A' : t.turnout.toFixed(2) + '%'} turnout</p>`;
+        if (split) html += `<p class="map-hint">All ballots ${fmtNum(t.all)}: early & absentee ${fmtNum(t.early)}, Election Day ${fmtNum(t.ed)}</p>`;
+      }
       if (!byTurnout) {
         const r = results.get(name);
         if (!r) html += '<p>Not in this contest.</p>';
@@ -2786,6 +2900,7 @@ ${ballotsCard || reportingCard}
     selectContestForPrecinctView: selectContestForPrecinctView,
     setPrecinctViewMode: setPrecinctViewMode,
     sortPrecinctTable: sortPrecinctTable,
+    setPrecinctVoteScope: setPrecinctVoteScope,
     setPrecinctMapColorBy: setPrecinctMapColorBy,
     setPrecinctPartyFilter: setPrecinctPartyFilter,
     exportPrecinctCSV: exportPrecinctCSV,

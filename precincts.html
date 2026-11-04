@@ -18,7 +18,7 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css?v=13fb36b192">
+  <link rel="stylesheet" href="styles.css?v=6d3ab671ca">
 
   <!-- The results bucket: connect while the page loads (the data requests start just below) -->
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
@@ -119,8 +119,9 @@
         </div>
 
         <div class="metric-card" style="flex: 1.8 1 300px !important;">
-          <div class="metric-label">Total Ballots Cast</div>
+          <div id="precinct-stat-ballots-label" class="metric-label">Total Ballots Cast</div>
           <div id="precinct-stat-ballots" class="metric-value">--</div>
+          <div id="precinct-stat-ballots-split" class="metric-subtext" hidden></div>
           <div class="ballot-breakdown-pills" role="group" aria-label="Party Ballot Breakdown">
             <span class="ballot-pill ballot-pill-rep">REP: <strong id="precinct-stat-ballots-rep">--</strong></span>
             <span class="ballot-pill ballot-pill-dem">DEM: <strong id="precinct-stat-ballots-dem">--</strong></span>
@@ -129,7 +130,7 @@
         </div>
 
         <div class="metric-card">
-          <div class="metric-label">Precinct Turnout</div>
+          <div id="precinct-stat-turnout-label" class="metric-label">Precinct Turnout</div>
           <div id="precinct-stat-turnout" class="metric-value">--%</div>
           <div class="turnout-bar-container" aria-hidden="true">
             <div id="precinct-turnout-fill" class="turnout-bar-fill" style="width: 0%;"></div>
@@ -149,6 +150,13 @@
           <button type="button" class="tab-btn" id="view-mode-map-btn" aria-pressed="false" onclick="ElectionApp.setPrecinctViewMode('MAP')">&#x1F5FA;&#xFE0F; Map</button>
         </div>
 
+        <!-- Which ballots (shown when the results carry the early / Election Day split) -->
+        <div id="ballot-scope-tabs" class="filter-tabs" role="group" aria-label="Which ballots" hidden>
+          <span class="scope-label" aria-hidden="true">Ballots:</span>
+          <button type="button" class="tab-btn active" data-scope="ALL" aria-pressed="true" onclick="ElectionApp.setPrecinctVoteScope('ALL')">All Ballots</button>
+          <button type="button" class="tab-btn" data-scope="EARLY" aria-pressed="false" onclick="ElectionApp.setPrecinctVoteScope('EARLY')">Early &amp; Absentee</button>
+          <button type="button" class="tab-btn" data-scope="ED" aria-pressed="false" onclick="ElectionApp.setPrecinctVoteScope('ED')">Election Day</button>
+        </div>
         <!-- Party Filter Tabs -->
         <div class="filter-tabs" role="group" aria-label="Party Filter">
           <button type="button" class="tab-btn active" data-precinct-party="ALL" aria-pressed="true" onclick="ElectionApp.setPrecinctPartyFilter('ALL')">All Contests</button>
@@ -185,7 +193,7 @@
   </button>
 
   <!-- Load Data Payload and App Controller -->
-  <script src="./functions/src/validate.js?v=60bc787319" defer></script>
-  <script src="./app.js?v=a7be0722b1" defer></script>
+  <script src="./functions/src/validate.js?v=8dabed1fcf" defer></script>
+  <script src="./app.js?v=6f34b44e00" defer></script>
 </body>
 </html>
