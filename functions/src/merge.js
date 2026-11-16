@@ -186,7 +186,10 @@ function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES, markedRep
     contests,
     dataVersion,
   };
-  if (earlyByPrecinct) data.earlyByPrecinct = earlyByPrecinct;
+  if (earlyByPrecinct) {
+    data.earlyByPrecinct = earlyByPrecinct;
+    data.earlyTotals = earlyTotals(early, earlyByPrecinct, data);
+  }
   return { data, diagnostics: { reportingMismatches } };
 }
 
@@ -229,4 +232,23 @@ function splitEarly(early, ed, contests) {
   return { ballots, contests: out };
 }
 
-module.exports = { mergeParsedData, voteForNumber, inferReported, splitEarly };
+/**
+ * Countywide early & absentee totals for the summary page's ballots switch (fix d5, with
+ * earlyByPrecinct): each candidate's early votes are the sum of its earlyByPrecinct numbers (so
+ * never above its cumulative votes), ballots the sum of the early precinct ballots. Election Day =
+ * cumulative - early. The REP / DEM / GEN ballot counts are the Early file's, capped at the
+ * cumulative ones.
+ *   { ballots, ballotsRep, ballotsDem, ballotsGen, contests: [ per contest, [ per candidate, votes ] ] }
+ */
+function earlyTotals(early, split, data) {
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+  return {
+    ballots: Math.min(sum(split.ballots), data.totalBallots),
+    ballotsRep: Math.min(early.ballotsRep || 0, data.ballotsRep || 0),
+    ballotsDem: Math.min(early.ballotsDem || 0, data.ballotsDem || 0),
+    ballotsGen: Math.min(early.ballotsGen || 0, data.ballotsGen || 0),
+    contests: split.contests.map((row, ci) => row.map((pv, k) => Math.min(sum(pv), data.contests[ci].candidates[k].votes))),
+  };
+}
+
+module.exports = { mergeParsedData, voteForNumber, inferReported, splitEarly, earlyTotals };

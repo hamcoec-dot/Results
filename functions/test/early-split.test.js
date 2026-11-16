@@ -62,3 +62,37 @@ test('validate: a malformed split is refused', () => {
   p.earlyByPrecinct.contests.pop();
   assert.ok(validateFile('precincts.json', p).errors.some((e) => /earlyByPrecinct\.contests/.test(e)));
 });
+
+test('summary.json carries countywide early totals (sum of the split), never above the cumulative numbers', () => {
+  const r = buildResults({ early: read('Results/Early Votes.csv'), ed: read('Results/ED_Final_Unofficial.csv') }, { precinctCap: 94 });
+  const s = JSON.parse(r.outputs.files['summary.json']).latest;
+  const p = JSON.parse(r.outputs.files['precincts.json']);
+  const e = s.earlyTotals;
+  assert.ok(e, 'earlyTotals present');
+  assert.equal(e.ballots, r.parsed.early.totalBallots);
+  assert.ok(e.ballots < s.totalBallots);
+  assert.equal(e.contests.length, s.contests.length);
+  s.contests.forEach((c, ci) => c.candidates.forEach((cand, k) => {
+    const sum = Object.values(p.earlyByPrecinct.contests[ci][k]).reduce((a, b) => a + b, 0);
+    assert.equal(e.contests[ci][k], sum, `${c.title} ${cand.name}`);
+    assert.equal(e.contests[ci][k], r.parsed.early.contestsRaw.get(c.title).candidates.get(cand.name).votes, `${c.title} ${cand.name} = Early file total`);
+    assert.ok(e.contests[ci][k] <= cand.votes);
+  }));
+  assert.deepEqual(validateFile('summary.json', JSON.parse(r.outputs.files['summary.json'])).errors, []);
+});
+
+test('no early totals without the split; a malformed earlyTotals is refused', () => {
+  const none = buildResults({ early: read('Test_Files/EV test.csv'), ed: read('Test_Files/ED test.csv') });
+  assert.equal(JSON.parse(none.outputs.files['summary.json']).latest.earlyTotals, undefined);
+  const r = buildResults({ early: read('Results/Early Votes.csv'), ed: read('Results/ED_Final_Unofficial.csv') }, { precinctCap: 94 });
+  const bad = (mutate, re) => {
+    const s = JSON.parse(r.outputs.files['summary.json']);
+    mutate(s.latest.earlyTotals, s.latest);
+    assert.ok(validateFile('summary.json', s).errors.some((x) => re.test(x)), String(re));
+  };
+  bad((e) => e.contests.pop(), /earlyTotals\.contests: /);
+  bad((e) => e.contests[0].pop(), /earlyTotals\.contests\[0\]: .* candidates/);
+  bad((e, l) => { e.contests[0][0] = l.contests[0].candidates[0].votes + 1; }, /earlyTotals\.contests\[0\]\[0\]: is more/);
+  bad((e, l) => { e.ballots = l.totalBallots + 1; }, /earlyTotals\.ballots: is more/);
+  bad((e) => { e.ballots = -1; }, /earlyTotals\.ballots: expected a whole number/);
+});

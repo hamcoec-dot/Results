@@ -2029,3 +2029,15 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
     min-width: 0;
   }
 }
+
+/* Early & absentee vs Election Day (summary page): what the ballots switch is showing. */
+.ballot-scope-note {
+  margin: -12px 0 16px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--primary);
+  background: var(--surface);
+  border-radius: var(--radius-md, 8px);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--neutral-dark);
+}

@@ -18,7 +18,7 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css?v=c8e5150738">
+  <link rel="stylesheet" href="styles.css?v=239d9af079">
 
   <!-- The results bucket: connect while the page loads (the data requests start just below) -->
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
@@ -108,7 +108,7 @@
         </div>
 
         <div class="metric-card" style="flex: 2 1 320px !important;">
-          <div class="metric-label">Total Ballots Cast</div>
+          <div id="stat-ballots-label" class="metric-label">Total Ballots Cast</div>
           <div id="stat-ballots" class="metric-value">--</div>
           <div class="ballot-breakdown-pills" role="group" aria-label="Party Ballot Breakdown">
             <span class="ballot-pill ballot-pill-rep">REP: <strong id="stat-ballots-rep">--</strong></span>
@@ -118,7 +118,7 @@
         </div>
 
         <div class="metric-card">
-          <div class="metric-label">Voter Turnout</div>
+          <div id="stat-turnout-label" class="metric-label">Voter Turnout</div>
           <div id="stat-turnout" class="metric-value">--%</div>
           <div class="turnout-bar-container" aria-hidden="true">
             <div id="turnout-fill" class="turnout-bar-fill" style="width: 0%;"></div>
@@ -138,6 +138,12 @@
 
     <!-- Filter Bar & Search Controls -->
     <section class="filter-bar" aria-label="Contest Filters and Search">
+      <div id="ballot-scope-tabs" class="filter-tabs" role="group" aria-label="Which ballots" hidden>
+        <span class="scope-label" aria-hidden="true">Ballots:</span>
+        <button type="button" class="tab-btn active" data-scope="ALL" aria-pressed="true" onclick="ElectionApp.setSummaryScope('ALL')">All Ballots</button>
+        <button type="button" class="tab-btn" data-scope="EARLY" aria-pressed="false" onclick="ElectionApp.setSummaryScope('EARLY')">Early &amp; Absentee</button>
+        <button type="button" class="tab-btn" data-scope="ED" aria-pressed="false" onclick="ElectionApp.setSummaryScope('ED')">Election Day</button>
+      </div>
       <div class="filter-tabs" role="group" aria-label="Party Filter">
         <button type="button" class="tab-btn active" data-party="ALL" aria-pressed="true" onclick="ElectionApp.setPartyFilter('ALL')">All Contests</button>
         <button type="button" class="tab-btn" data-party="REP" aria-pressed="false" onclick="ElectionApp.setPartyFilter('REP')">Republican</button>
@@ -156,6 +162,8 @@
         </div>
       </div>
     </section>
+
+    <p id="ballot-scope-note" class="ballot-scope-note" role="status" hidden></p>
 
     <!-- Contest Cards Grid Container -->
     <section id="contests-container" class="contests-grid" aria-label="Election Results Contests">
@@ -222,7 +230,7 @@
   </footer>
 
   <!-- Election Data & Application Controller Scripts -->
-  <script src="./functions/src/validate.js?v=8dabed1fcf" defer></script>
-  <script src="./app.js?v=581759aa76" defer></script>
+  <script src="./functions/src/validate.js?v=8a82b7e7f4" defer></script>
+  <script src="./app.js?v=4a3165b8d5" defer></script>
 </body>
 </html>

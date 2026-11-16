@@ -115,6 +115,25 @@
       pct(r, 'latest.turnoutPercent', l.turnoutPercent);
       overall(r, 'latest', l);
       contestList(r, 'latest.contests', l.contests, function (p, c) { str(r, p + '.voteFor', c.voteFor); candidates(r, p, c); });
+      // Optional (fix d5): countywide early & absentee totals, aligned with contests and candidates,
+      // never above the cumulative numbers (Election Day = cumulative - early).
+      if (l.earlyTotals !== undefined) {
+        var e = l.earlyTotals;
+        if (!obj(r, 'latest.earlyTotals', e) || !arr(r, 'latest.earlyTotals.contests', e.contests)) return;
+        [['ballots', 'totalBallots'], ['ballotsRep', 'ballotsRep'], ['ballotsDem', 'ballotsDem'], ['ballotsGen', 'ballotsGen']].forEach(function (kk) {
+          if (count(r, 'latest.earlyTotals.' + kk[0], e[kk[0]]) && typeof l[kk[1]] === 'number' && e[kk[0]] > l[kk[1]]) r.fail('latest.earlyTotals.' + kk[0], 'is more than latest.' + kk[1]);
+        });
+        if (Array.isArray(l.contests) && e.contests.length !== l.contests.length) return r.fail('latest.earlyTotals.contests', e.contests.length + ' contests, the file has ' + l.contests.length);
+        e.contests.forEach(function (row, ci) {
+          var p = 'latest.earlyTotals.contests[' + ci + ']';
+          var cands = Array.isArray(l.contests) && l.contests[ci] && l.contests[ci].candidates;
+          if (!arr(r, p, row) || !Array.isArray(cands)) return;
+          if (row.length !== cands.length) return r.fail(p, row.length + ' candidates, the contest has ' + cands.length);
+          row.forEach(function (v, k) {
+            if (count(r, p + '[' + k + ']', v) && cands[k] && typeof cands[k].votes === 'number' && v > cands[k].votes) r.fail(p + '[' + k + ']', 'is more than the candidate\'s votes');
+          });
+        });
+      }
     },
     'reporting.json': function (r, d) {
       metadata(r, d.metadata);
