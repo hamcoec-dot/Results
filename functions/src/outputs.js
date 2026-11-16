@@ -69,6 +69,8 @@ function buildOutputs(merged, { config, lastUpdated }) {
     },
   };
 
+  if (merged.earlyTotals) summary.latest.earlyTotals = merged.earlyTotals;
+
   const reporting = {
     metadata,
     config,

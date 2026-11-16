@@ -24,6 +24,32 @@ function withSplit() {
   return p;
 }
 
+/** samples-92-05-end-ed's summary.json with synthetic countywide early totals (a third of every number early). */
+function summaryWithSplit() {
+  const s = JSON.parse(fs.readFileSync(path.join(GOLDEN, 'samples-92-05-end-ed', 'summary.json'), 'utf8'));
+  const third = (n) => Math.floor((n || 0) / 3);
+  const l = s.latest;
+  l.earlyTotals = {
+    ballots: third(l.totalBallots), ballotsRep: third(l.ballotsRep), ballotsDem: third(l.ballotsDem), ballotsGen: third(l.ballotsGen),
+    contests: l.contests.map((c) => c.candidates.map((x) => third(x.votes))),
+  };
+  return s;
+}
+
+async function openSummary(page) {
+  const summary = JSON.stringify(summaryWithSplit());
+  await page.route('http://127.0.0.1:9199/**', (route) => {
+    const name = path.basename(decodeURIComponent(new URL(route.request().url()).pathname));
+    const cors = { 'access-control-allow-origin': '*' };
+    if (name === 'summary.json') return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: summary });
+    const f = path.join(GOLDEN, 'samples-92-05-end-ed', name);
+    if (!fs.existsSync(f)) return route.fulfill({ status: 404, body: '' });
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: fs.readFileSync(f) });
+  });
+  await page.goto(`index.html?emulator&draft=${DRAFT_ID}`);
+  await page.locator('#contests-container article').first().waitFor();
+}
+
 async function openPrecincts(page) {
   const precincts = JSON.stringify(withSplit());
   await page.route('http://127.0.0.1:9199/**', (route) => {
@@ -119,6 +145,21 @@ for (const [file, ready] of [['index.html', '#contests-container article'], ['re
     }
   });
 }
+
+test('phone layout: summary page, every ballots choice', async ({ page }, testInfo) => {
+  for (const w of widthsFor(testInfo)) {
+    if (w) await page.setViewportSize({ width: w, height: 800 });
+    await openSummary(page);
+    for (const scope of ['ALL', 'EARLY', 'ED']) {
+      await page.click(`#ballot-scope-tabs [data-scope="${scope}"]`);
+      await check(page, `index.html ${scope} @ ${w || testInfo.project.name}`);
+      // The switch fits on the screen: its three buttons are side by side and none is cut off.
+      const boxes = await page.locator('#ballot-scope-tabs .tab-btn').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
+      const vw = await page.evaluate(() => document.documentElement.clientWidth);
+      for (const b of boxes) expect(b.right, 'ballots button inside the screen').toBeLessThanOrEqual(vw + 1);
+    }
+  }
+});
 
 test('phone layout: precinct page, every view and every ballots choice', async ({ page }, testInfo) => {
   test.setTimeout(240000);

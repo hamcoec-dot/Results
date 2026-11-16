@@ -5,7 +5,8 @@
   ],
   [
    "latest.contests[0].candidates[0].votes: expected a whole number >= 0, got -1",
-   "latest.contests[0]: candidate votes add up to 1533, contest total is 1606"
+   "latest.contests[0]: candidate votes add up to 1533, contest total is 1606",
+   "latest.earlyTotals.contests[0][0]: is more than the candidate's votes"
   ],
   [
    "latest.contests[0].candidates[0].percentage: over 100"
@@ -23,7 +24,8 @@
    "latest.contests[0].candidates[0].name: expected text"
   ],
   [
-   "latest.contests[0].candidates[15]: duplicate candidate \"Marsha Blackburn\""
+   "latest.contests[0].candidates[15]: duplicate candidate \"Marsha Blackburn\"",
+   "latest.earlyTotals.contests[0]: 15 candidates, the contest has 16"
   ],
   [
    "latest.contests[0].candidates: expected a list"
@@ -33,7 +35,8 @@
    "latest.contests[0]: candidate votes add up to 1533, contest total is 1606"
   ],
   [
-   "latest.contests[25]: duplicate contest \"Governor\""
+   "latest.contests[25]: duplicate contest \"Governor\"",
+   "latest.earlyTotals.contests: 25 contests, the file has 26"
   ],
   [
    "latest.contests[0]: precincts reporting 93 is more than the total 92"

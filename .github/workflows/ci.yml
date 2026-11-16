@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 30
     defaults:
       run:
@@ -48,7 +48,7 @@ jobs:
 
   emulator:
     # Layers 6-7: security rules and the callables on the Firebase emulators.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 30
     defaults:
       run:
@@ -91,7 +91,7 @@ jobs:
 
   pages:
     # Layers 10 and 12: axe (WCAG 2.1 AA) and live-update tests on the public pages.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -118,7 +118,7 @@ jobs:
   browsers:
     # Layer 8 on the other profiles: the behaviour tests (DOM oracle, features, live updates,
     # resilience, hostile names) in Firefox, WebKit, and on emulated Pixel 7 and iPhone 14.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -139,7 +139,7 @@ jobs:
           if-no-files-found: ignore
 
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

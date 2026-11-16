@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   rehearse:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 75
     environment: ${{ inputs.target }}
     env:

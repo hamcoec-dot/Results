@@ -9,6 +9,7 @@ window.ElectionApp = (function() {
   // Application State
   let electionData = null;
   let activePartyFilter = 'ALL';
+  let summaryScope = 'ALL'; // the summary page's ballots switch: ALL | EARLY | ED
   let searchQuery = '';
   let isDarkMode = false;
   let isHighContrast = false;
@@ -425,6 +426,7 @@ window.ElectionApp = (function() {
     } else if (isSlideshowPage()) {
       initSlideshow();
     } else {
+      restoreSummaryScopeFromURL();
       renderDashboard();
       // Location & Scroll position preservation after rendering
       setTimeout(restoreSavedLocation, 150);
@@ -576,7 +578,7 @@ window.ElectionApp = (function() {
 
   function setPartyFilter(party) {
     activePartyFilter = party;
-    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabBtns = document.querySelectorAll('.tab-btn[data-party]');
     tabBtns.forEach(btn => {
       if (btn.getAttribute('data-party') === party) {
         btn.classList.add('active');
@@ -666,9 +668,85 @@ window.ElectionApp = (function() {
     document.querySelectorAll('.ballot-breakdown-pills').forEach(el => { el.hidden = !show; });
   }
 
+  /**
+   * True when summary.json carries the countywide early & absentee totals (fix d5 in the
+   * pipeline), aligned with its contests and candidates.
+   */
+  function hasSummarySplit(data) {
+    const e = data && data.earlyTotals;
+    const contests = (data && data.contests) || [];
+    return !!(e && Array.isArray(e.contests) && e.contests.length === contests.length
+      && e.contests.every((row, i) => Array.isArray(row) && row.length === (contests[i].candidates || []).length));
+  }
+  /** The summary page's ballots switch; ALL when the file has no split. */
+  function currentSummaryScope(data) {
+    return hasSummarySplit(data) ? summaryScope : 'ALL';
+  }
+  /** A countywide number for the scope: ALL = cumulative, EARLY = early & absentee, ED = cumulative - early. */
+  function scopedNumber(all, early, scope) {
+    const a = Number(all) || 0;
+    if (scope === 'ALL') return a;
+    const e = Math.min(a, Number(early) || 0);
+    return scope === 'EARLY' ? e : a - e;
+  }
+  /** A contest's candidates for the scope: {cands: [{cand, votes, percentage}], total}. */
+  function scopedSummaryContest(data, contest, scope) {
+    const ci = (data.contests || []).indexOf(contest);
+    const row = scope !== 'ALL' && ci >= 0 ? data.earlyTotals.contests[ci] : null;
+    const cands = (contest.candidates || []).map((cand, k) => ({
+      cand,
+      votes: row ? scopedNumber(cand.votes, row[k], scope) : (Number(cand.votes) || 0),
+    }));
+    const total = row ? cands.reduce((n, c) => n + c.votes, 0) : (Number(contest.totalVotes) || 0);
+    cands.forEach(c => {
+      c.percentage = row ? (total > 0 ? (c.votes / total) * 100 : 0) : (Number(c.cand.percentage) || 0);
+    });
+    return { cands, total };
+  }
+  function setSummaryScope(scope) {
+    summaryScope = ['EARLY', 'ED'].includes(scope) ? scope : 'ALL';
+    try {
+      // Keep the data-source switches (?local, ?emulator, ?draft) and the contest in the hash.
+      const params = new URLSearchParams(window.location.search);
+      params.delete('ballots');
+      if (summaryScope !== 'ALL') params.set('ballots', summaryScope);
+      const q = params.toString();
+      history.replaceState(null, '', window.location.pathname + (q ? '?' + q : '') + window.location.hash);
+    } catch (e) {}
+    renderDashboard();
+  }
+  function restoreSummaryScopeFromURL() {
+    try {
+      const b = new URLSearchParams(window.location.search).get('ballots');
+      if (b === 'EARLY' || b === 'ED') summaryScope = b;
+    } catch (e) {}
+  }
+  /** Show the summary page's switch only when the published file carries the split; mark the active button. */
+  function syncSummaryScopeTabs(data) {
+    const group = document.getElementById('ballot-scope-tabs');
+    if (!group) return;
+    group.hidden = !hasSummarySplit(data);
+    const scope = currentSummaryScope(data);
+    group.querySelectorAll('[data-scope]').forEach(btn => {
+      const on = btn.getAttribute('data-scope') === scope;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on);
+    });
+    const note = document.getElementById('ballot-scope-note');
+    if (note) {
+      note.hidden = scope === 'ALL';
+      note.textContent = scope === 'EARLY'
+        ? 'Showing early voting and absentee ballots only. Choose All Ballots for the full results.'
+        : scope === 'ED' ? 'Showing ballots cast on Election Day only. Choose All Ballots for the full results.' : '';
+    }
+  }
+
   function renderDashboard() {
     const data = getCurrentDataset();
     if (!data) return;
+    const scope = currentSummaryScope(data);
+    const early = scope === 'ALL' ? {} : data.earlyTotals;
+    syncSummaryScopeTabs(data);
 
     // Render Hero Turnout Metrics
     const heroTitle = document.getElementById('hero-title');
@@ -695,12 +773,19 @@ window.ElectionApp = (function() {
     if (heroDate) heroDate.textContent = data.electionDate;
     if (statusText) statusText.textContent = data.statusLabel || 'UNOFFICIAL RESULTS';
     if (statVoters) statVoters.textContent = fmtNum(data.totalVoters);
-    if (statBallots) statBallots.textContent = fmtNum(data.totalBallots);
-    if (statBallotsRep) statBallotsRep.textContent = fmtNum(data.ballotsRep || 0);
-    if (statBallotsDem) statBallotsDem.textContent = fmtNum(data.ballotsDem || 0);
-    if (statBallotsGen) statBallotsGen.textContent = fmtNum(data.ballotsGen || 0);
+    const scopedBallots = scopedNumber(data.totalBallots, early.ballots, scope);
+    const turnoutPct = scope === 'ALL' ? data.turnoutPercent
+      : (data.totalVoters > 0 ? (scopedBallots / data.totalVoters) * 100 : 0);
+    const ballotsLabel = document.getElementById('stat-ballots-label');
+    const turnoutLabel = document.getElementById('stat-turnout-label');
+    if (ballotsLabel) ballotsLabel.textContent = scope === 'EARLY' ? 'Early & Absentee Ballots' : scope === 'ED' ? 'Election Day Ballots' : 'Total Ballots Cast';
+    if (turnoutLabel) turnoutLabel.textContent = scope === 'EARLY' ? 'Early & Absentee Turnout' : scope === 'ED' ? 'Election Day Turnout' : 'Voter Turnout';
+    if (statBallots) statBallots.textContent = fmtNum(scopedBallots);
+    if (statBallotsRep) statBallotsRep.textContent = fmtNum(scopedNumber(data.ballotsRep, early.ballotsRep, scope));
+    if (statBallotsDem) statBallotsDem.textContent = fmtNum(scopedNumber(data.ballotsDem, early.ballotsDem, scope));
+    if (statBallotsGen) statBallotsGen.textContent = fmtNum(scopedNumber(data.ballotsGen, early.ballotsGen, scope));
     hidePrimaryPillsInGeneral((data.ballotsRep || 0) + (data.ballotsDem || 0));
-    if (statTurnout) statTurnout.textContent = `${data.turnoutPercent.toFixed(2)}%`;
+    if (statTurnout) statTurnout.textContent = `${turnoutPct.toFixed(2)}%`;
     if (statReporting) statReporting.textContent = `${overallRepCapped} of ${overallTotCapped} Precincts`;
 
     if (statEarlyVal) {
@@ -709,7 +794,7 @@ window.ElectionApp = (function() {
       const earlyBadge = earlyRep > 0 ? '&#x2705;' : '&#x23F3;';
       statEarlyVal.innerHTML = `${earlyBadge} Early &amp; Absentee: ${earlyRep} of ${earlyTot} (${earlyRep > 0 ? 'Complete' : 'Pending'})`;
     }
-    if (turnoutFill) turnoutFill.style.width = `${Math.min(data.turnoutPercent, 100)}%`;
+    if (turnoutFill) turnoutFill.style.width = `${Math.min(turnoutPct, 100)}%`;
     if (reportingFill) reportingFill.style.width = `${Math.min(reportingPct, 100)}%`;
 
     renderContests();
@@ -839,7 +924,9 @@ window.ElectionApp = (function() {
       return;
     }
 
+    const scope = currentSummaryScope(data);
     const cards = filteredContests.map(contest => {
+      const scoped = scopedSummaryContest(data, contest, scope);
       const cTitleEsc = escapeHtml(contest.title);
       const cSlug = slugify(contest.title);
       const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
@@ -853,7 +940,7 @@ window.ElectionApp = (function() {
               <div class="contest-meta" style="margin-top:4px;">
                 <span>${escapeHtml(contest.voteFor)}</span>
                 <span>&bull;</span>
-                <span>Total Votes: ${fmtNum(contest.totalVotes)}</span>
+                <span>${scope === 'EARLY' ? 'Early &amp; Absentee Votes' : scope === 'ED' ? 'Election Day Votes' : 'Total Votes'}: ${fmtNum(scoped.total)}</span>
               </div>
             </div>
             <button type="button" class="reporting-btn" data-contest="${cTitleEsc}" data-focus-key="card:${cSlug}" aria-haspopup="dialog">
@@ -865,7 +952,7 @@ window.ElectionApp = (function() {
               <tbody role="rowgroup">
       `;
 
-      contest.candidates.forEach(cand => {
+      scoped.cands.forEach(({ cand, votes, percentage }) => {
         const cParty = getCandidateParty(cand, contest);
         const partyClass = cParty === 'REP' ? 'party-rep' : cParty === 'DEM' ? 'party-dem' : 'party-ind';
         const fillClass = cParty === 'REP' ? 'fill-rep' : cParty === 'DEM' ? 'fill-dem' : 'fill-ind';
@@ -875,16 +962,16 @@ window.ElectionApp = (function() {
             <td class="cand-name-cell" role="cell">
               <span>${escapeHtml(cand.name)}</span>
               ${cParty ? `<span class="party-pill ${partyClass}">${escapeHtml(cParty)}</span>` : ''}
-              ${cand.isLeading && contest.totalVotes > 0 ? '<span class="leading-tag">&#x2714;&#xFE0F; LEADING</span>' : ''}
+              ${scope === 'ALL' && cand.isLeading && contest.totalVotes > 0 ? '<span class="leading-tag">&#x2714;&#xFE0F; LEADING</span>' : ''}
             </td>
             <td class="cand-bar-cell" role="cell">
               <div class="progress-track" aria-hidden="true">
-                <div class="progress-fill ${fillClass}" style="width: ${Math.min(cand.percentage, 100)}%;"></div>
+                <div class="progress-fill ${fillClass}" style="width: ${Math.min(percentage, 100)}%;"></div>
               </div>
             </td>
             <td class="cand-votes-cell" role="cell">
-              <span class="vote-count">${fmtNum(cand.votes)}</span>
-              <span class="vote-percent">(${cand.percentage.toFixed(1)}%)</span>
+              <span class="vote-count">${fmtNum(votes)}</span>
+              <span class="vote-percent">(${percentage.toFixed(1)}%)</span>
             </td>
           </tr>
         `;
@@ -1253,7 +1340,11 @@ window.ElectionApp = (function() {
     if (!data || !data.contests) return;
 
     let csvRows = [];
-    csvRows.push(['Election', 'County', 'Contest', 'Vote For', 'Election Day Precincts Reporting', 'Total Precincts', 'Candidate', 'Party', 'Votes', 'Percentage']);
+    // With the early & absentee split published, every export adds the two ballot-type columns,
+    // whatever the page's ballots switch shows.
+    const split = hasSummarySplit(data);
+    csvRows.push(['Election', 'County', 'Contest', 'Vote For', 'Election Day Precincts Reporting', 'Total Precincts', 'Candidate', 'Party', 'Votes', 'Percentage']
+      .concat(split ? ['Early & Absentee Votes', 'Election Day Votes'] : []));
 
     data.contests.forEach(contest => {
       if (searchQuery) {
@@ -1281,7 +1372,9 @@ window.ElectionApp = (function() {
       const cRepCapped = Math.min(contest.precinctsReporting || 0, precinctCap());
       const cTotCapped = Math.min(contest.precinctsTotal || 0, precinctCap());
 
-      contest.candidates.forEach(cand => {
+      const ci = data.contests.indexOf(contest);
+      contest.candidates.forEach((cand, k) => {
+        const early = split ? scopedNumber(cand.votes, data.earlyTotals.contests[ci][k], 'EARLY') : 0;
         csvRows.push([
           formatCsvCell(data.electionTitle),
           formatCsvCell(data.county),
@@ -1293,7 +1386,7 @@ window.ElectionApp = (function() {
           formatCsvCell(getCandidateParty(cand, contest)),
           cand.votes,
           `${cand.percentage.toFixed(2)}%`
-        ]);
+        ].concat(split ? [early, (Number(cand.votes) || 0) - early] : []));
       });
     });
 
@@ -2909,6 +3002,7 @@ ${ballotsCard || reportingCard}
     setPrecinctViewMode: setPrecinctViewMode,
     sortPrecinctTable: sortPrecinctTable,
     setPrecinctVoteScope: setPrecinctVoteScope,
+    setSummaryScope: setSummaryScope,
     setPrecinctMapColorBy: setPrecinctMapColorBy,
     setPrecinctPartyFilter: setPrecinctPartyFilter,
     exportPrecinctCSV: exportPrecinctCSV,
