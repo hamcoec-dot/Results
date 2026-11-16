@@ -125,3 +125,14 @@ test('Export CSV adds early & absentee and Election Day columns when the split i
   const e0 = s.latest.earlyTotals.contests[0][0];
   expect(lines[1].endsWith(`,${x0.votes},${x0.percentage.toFixed(2)}%,${e0},${x0.votes - e0}`), lines[1]).toBe(true);
 });
+
+test('All Ballots shares come from the votes, not the file\'s 2-decimal percentage (no double rounding)', async ({ page }) => {
+  const s = golden('summary.json');
+  const c = s.latest.contests[0];
+  // 2 of 3 votes = 66.666...%: stored as 66.67, a stale 66.65 must not show as 66.6 / 66.7 wrongly.
+  c.candidates = c.candidates.slice(0, 2).map((x, i) => ({ ...x, votes: i ? 1 : 2, percentage: i ? 33.35 : 66.65 }));
+  c.totalVotes = 3;
+  await open(page, s);
+  const shown = (await cards(page))[0].rows.map((r) => r[2]);
+  expect(shown).toEqual(['(66.7%)', '(33.3%)']);
+});
