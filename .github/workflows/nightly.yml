@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   property:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 240
     defaults:
       run:
@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         file: [csv, pycompat, parse, merge, verify, checks, validate, retry]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
     timeout-minutes: 150
     defaults:
       run:
