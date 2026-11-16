@@ -699,7 +699,9 @@ window.ElectionApp = (function() {
     }));
     const total = row ? cands.reduce((n, c) => n + c.votes, 0) : (Number(contest.totalVotes) || 0);
     cands.forEach(c => {
-      c.percentage = row ? (total > 0 ? (c.votes / total) * 100 : 0) : (Number(c.cand.percentage) || 0);
+      // From the votes, not the file's 2-decimal percentage: rounding 52.947 to 52.95 and then to one
+      // decimal would show 53.0 instead of 52.9.
+      c.percentage = total > 0 ? (c.votes / total) * 100 : 0;
     });
     return { cands, total };
   }
@@ -1733,7 +1735,7 @@ ${ballotsCard || reportingCard}
               ${cParty ? `<span class="party-pill ${partyClass}">${escapeHtml(cParty)}</span>` : ''}
               ${cand.isLeading && contest.totalVotes > 0 ? '<span class="leading-tag">&#x2714;&#xFE0F; LEADING</span>' : ''}
             </span>
-            <span>${fmtNum(cand.votes)} (${cand.percentage.toFixed(1)}%)</span>
+            <span>${fmtNum(cand.votes)} (${(contest.totalVotes > 0 ? (cand.votes / contest.totalVotes) * 100 : 0).toFixed(1)}%)</span>
           </div>
           <div class="proj-track">
             <div class="proj-fill" style="width: ${Math.min(cand.percentage, 100)}%; background: ${fillColor};"></div>
