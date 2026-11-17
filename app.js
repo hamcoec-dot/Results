@@ -927,6 +927,7 @@ window.ElectionApp = (function() {
     }
 
     const scope = currentSummaryScope(data);
+    const earlyDone = earlyVotingReported(data) > 0;
     const cards = filteredContests.map(contest => {
       const scoped = scopedSummaryContest(data, contest, scope);
       const cTitleEsc = escapeHtml(contest.title);
@@ -945,9 +946,12 @@ window.ElectionApp = (function() {
                 <span>${scope === 'EARLY' ? 'Early &amp; Absentee Votes' : scope === 'ED' ? 'Election Day Votes' : 'Total Votes'}: ${fmtNum(scoped.total)}</span>
               </div>
             </div>
-            <button type="button" class="reporting-btn" data-contest="${cTitleEsc}" data-focus-key="card:${cSlug}" aria-haspopup="dialog">
+            ${scope === 'EARLY'
+              // Early & absentee ballots are counted countywide, not by Election Day precinct.
+              ? `<span class="early-status-badge">${earlyDone ? 'Early &amp; absentee ballots: all counted' : 'Early &amp; absentee ballots: not yet reported'}</span>`
+              : `<button type="button" class="reporting-btn" data-contest="${cTitleEsc}" data-focus-key="card:${cSlug}" aria-haspopup="dialog">
               <span aria-hidden="true">&#x1F5F3;&#xFE0F;</span> ${cRepCapped} of ${cTotCapped} Election Day Precincts Reporting<span class="sr-only"> in ${cTitleEsc}</span> <span aria-hidden="true">&#x25BE;</span>
-            </button>
+            </button>`}
           </header>
           <div class="contest-body">
             <table class="candidates-table" role="table" aria-label="Candidates for ${cTitleEsc}">

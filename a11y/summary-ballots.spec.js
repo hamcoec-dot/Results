@@ -136,3 +136,26 @@ test('All Ballots shares come from the votes, not the file\'s 2-decimal percenta
   const shown = (await cards(page))[0].rows.map((r) => r[2]);
   expect(shown).toEqual(['(66.7%)', '(33.3%)']);
 });
+
+test('Early & Absentee hides the Election Day precincts-reporting button (early ballots are counted countywide)', async ({ page }) => {
+  const s = withSplit();
+  await open(page, s);
+  const n = s.latest.contests.length;
+  for (const scope of ['ALL', 'EARLY', 'ED']) {
+    await page.click(`#ballot-scope-tabs [data-scope="${scope}"]`);
+    const buttons = page.locator('#contests-container article .reporting-btn');
+    const badges = page.locator('#contests-container article .early-status-badge');
+    if (scope === 'EARLY') {
+      await expect(buttons).toHaveCount(0);
+      await expect(badges).toHaveCount(n);
+      await expect(badges.first()).toHaveText('Early & absentee ballots: all counted');
+    } else {
+      await expect(buttons).toHaveCount(n);
+      await expect(badges).toHaveCount(0);
+      await expect(buttons.first()).toContainText('Election Day Precincts Reporting');
+    }
+  }
+  // The pop-up still opens from All Ballots after visiting Early & Absentee.
+  await page.locator('#contests-container article .reporting-btn').first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+});

@@ -2041,3 +2041,17 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   font-weight: 600;
   color: var(--neutral-dark);
 }
+
+/* Early & Absentee view (summary page): early and absentee ballots are counted countywide, so the
+   contest shows their status instead of the Election Day precincts-reporting button. */
+.early-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--neutral-light);
+  color: var(--neutral-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
