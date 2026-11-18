@@ -100,6 +100,7 @@ async function routeNoElection(target, { log } = {}) {
 
 const test = base.test.extend({
   prodBucket: [async ({ context }, use) => {
+    await routeProdBucket(context);
     await use();
   }, { auto: true }],
 });
