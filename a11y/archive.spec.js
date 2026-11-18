@@ -41,11 +41,12 @@ test.describe('official archive pages', () => {
     await page.goto(`index.html${Q}`);
     await page.locator('#contests-container article').first().waitFor();
     await page.locator('nav a.nav-btn', { hasText: 'Reporting Status' }).click();
-    await expect(page).toHaveURL(new RegExp(`reporting\\.html\\?election=${ARCHIVE_ID}$`));
+    await expect(page).toHaveURL(new RegExp(`reporting\\.html\\?election=${ARCHIVE_ID}(&|$)`));
     await page.locator('#reporting-table-body tr').first().waitFor();
     await expect(page.locator('#official-banner')).toContainText('certified August 20, 2026');
     await page.locator('nav a.nav-btn', { hasText: 'Precinct Results' }).click();
-    await expect(page).toHaveURL(new RegExp(`precincts\\.html\\?election=${ARCHIVE_ID}$`));
+    // The precinct page then adds its own view to the address (precinct, mode...), after election=.
+    await expect(page).toHaveURL(new RegExp(`precincts\\.html\\?election=${ARCHIVE_ID}(&|$)`));
     await page.locator('#precinct-results-container > *').first().waitFor();
     await expect(page.locator('#status-text')).toHaveText('OFFICIAL RESULTS');
     await expect(page.locator('#hero-date')).not.toContainText('Unofficial');
