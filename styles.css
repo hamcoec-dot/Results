@@ -1623,6 +1623,95 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   }
 }
 
+/* Official archive (results-config.js ?election=): a calm navy banner, not sticky (it is not a warning) */
+.official-banner {
+  background: #1e3a8a !important;
+  color: #ffffff !important;
+  padding: 10px 16px !important;
+  text-align: center !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  border-bottom: 3px solid #172554 !important;
+  overflow-wrap: anywhere !important;
+}
+.official-banner a {
+  color: #ffffff !important;
+  text-decoration: underline !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+body.archive-view .disclaimer-banner-group,
+body.no-election-view .disclaimer-banner-group,
+body.archive-view .pulse-dot,
+body.archive-view [onclick="ElectionApp.refreshResults()"] {
+  display: none !important;
+}
+
+/* No current election (app.js showNoElection, archive.html) */
+.no-election {
+  max-width: 650px !important;
+  margin: 48px auto !important;
+  text-align: center !important;
+  padding: 32px 20px !important;
+  background: var(--neutral-light) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  overflow-wrap: anywhere !important;
+}
+.no-election h1 {
+  color: var(--primary) !important;
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  margin: 0 0 12px !important;
+}
+.no-election p {
+  font-size: 17px !important;
+  line-height: 1.6 !important;
+  margin: 0 0 20px !important;
+}
+.no-election-link {
+  display: inline-block !important;
+  padding: 10px 24px !important;
+  text-decoration: none !important;
+}
+
+/* archive.html: one card per archived election */
+.archive-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  gap: 16px !important;
+}
+.archive-item {
+  background: var(--neutral-light) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 18px 20px !important;
+  overflow-wrap: anywhere !important;
+}
+.archive-item h2 {
+  color: var(--primary) !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  margin: 0 0 6px !important;
+}
+.archive-item p {
+  margin: 0 0 12px !important;
+  line-height: 1.5 !important;
+}
+.archive-links {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+.archive-links a {
+  display: inline-block !important;
+  padding: 8px 16px !important;
+  text-decoration: none !important;
+}
+
 /* Reduced motion: no smooth scrolling, transitions or animated bars */
 @media (prefers-reduced-motion: reduce) {
   html {

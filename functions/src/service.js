@@ -25,6 +25,7 @@ const { buildReview } = require('./review');
 const { decodeUpload, UploadError } = require('./upload');
 const { auditServed } = require('./audit');
 const P = require('./publish');
+const A = require('./archive');
 
 class ServiceError extends Error {
   constructor(code, message, details) {
@@ -326,7 +327,7 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
         const e = await tx.get(paths.election(eid));
         if (e.publishLock?.holder !== holder) throw new ServiceError('aborted', 'Lost the publish lock; check History before retrying.');
         tx.update(paths.election(eid), {
-          currentVersion: version, publishLock: null,
+          currentVersion: version, publishLock: null, cleared: null,
           selectedEarlyUploadId: draft.earlyUploadId ?? null, selectedEdUploadId: draft.edUploadId ?? null,
           currentFileTime: draft.fileTime ?? e.currentFileTime ?? null, updatedAt: iso(t), updatedBy: actor.email,
         });
@@ -423,6 +424,83 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
   }
 
   /**
+   * Official archive (docs/ARCHIVE.md): the live version's files, relabelled OFFICIAL RESULTS with the
+   * certification date, written to archive/<eid>/ and listed in archive/index.json. Archiving the same
+   * election again replaces its archive (for a correction published after the first archive).
+   * Never touches current/.
+   */
+  async function archiveElection(actor, data) {
+    const eid = data?.electionId;
+    const election = await requireElection(eid);
+    const certifiedDate = data?.certifiedDate;
+    const refusals = A.archiveRefusals({ election, certifiedDate, now: now() });
+    if (refusals.length) {
+      throw new ServiceError(refusals.some((r) => r.code === 'bad-date') ? 'invalid-argument' : 'failed-precondition',
+        refusals.map((r) => r.detail).join(' '), { refusals, field: refusals.some((r) => r.code === 'bad-date') ? 'certifiedDate' : undefined });
+    }
+    const version = election.currentVersion;
+    const files = {};
+    for (const f of A.ARCHIVE_FILES) {
+      const text = await readText(publicBucket, P.versionPath(eid, version, f));
+      if (text === null) throw new ServiceError('not-found', `The published version ${version} is missing ${f}, so it cannot be archived.`);
+      files[f] = text;
+    }
+    const t = iso(now());
+    const built = A.buildArchive(files, { electionId: eid, election, version, certifiedDate, archivedAt: t, archivedBy: actor.email });
+    await Promise.all(Object.entries(built.files).map(([f, text]) => publicBucket.write(A.archivePath(eid, f), text,
+      { contentType: contentType(f), cacheControl: A.ARCHIVE_CACHE, gzip: true })));
+    // The manifest last: a page that reads it finds every file it names already in place.
+    await publicBucket.write(A.archivePath(eid, P.MANIFEST_FILE), built.manifest, { contentType: contentType('.json'), cacheControl: A.ARCHIVE_CACHE, gzip: true });
+    const index = A.mergeIndex(await readText(publicBucket, A.ARCHIVE_INDEX), built.entry, t);
+    await publicBucket.write(A.ARCHIVE_INDEX, index, { contentType: contentType('.json'), cacheControl: A.INDEX_CACHE, gzip: true });
+    const archive = { version, certifiedDate, archivedAt: t, archivedBy: actor.email };
+    await db.update(paths.election(eid), { archive });
+    await audit(actor, 'archive', eid, `official archive of ${version}, certified ${certifiedDate}${election.archive ? ` (replaces the archive of ${election.archive.version})` : ''}`, { version });
+    return { ...archive, path: A.archivePath(eid, '') };
+  }
+
+  /**
+   * Takes the active election's results off the public pages once they are archived: current/ gets a
+   * "no election" manifest (the pages then say there is no current election) and its data files are
+   * deleted, and the election stops being active. Held under the publish lease, like a publish.
+   * The next election's first publish brings the pages back.
+   */
+  async function clearCurrentResults(actor, data) {
+    const eid = data?.electionId;
+    const election = await requireElection(eid);
+    const refusals = A.clearRefusals({ election });
+    if (refusals.length) throw new ServiceError('failed-precondition', refusals.map((r) => r.detail).join(' '), { refusals });
+    const holder = `clear:${P.newDraftId()}`;
+    await db.transaction(async (tx) => {
+      const e = await tx.get(paths.election(eid));
+      const again = A.clearRefusals({ election: e });
+      if (again.length) throw new ServiceError('failed-precondition', again.map((r) => r.detail).join(' '), { refusals: again });
+      try {
+        tx.update(paths.election(eid), { publishLock: P.acquireLock(e.publishLock ?? null, { holder, now: now() }) });
+      } catch (err) {
+        throw new ServiceError('aborted', err.message, { refusals: [{ code: 'busy' }] });
+      }
+    });
+    const t = iso(now());
+    const release = (extra) => db.transaction(async (tx) => {
+      const e = await tx.get(paths.election(eid));
+      tx.update(paths.election(eid), { publishLock: P.releaseLock(e.publishLock ?? null, { holder }), ...extra });
+    });
+    try {
+      // The manifest first: pages poll it, so they switch to the message before the files go.
+      await publicBucket.write(`current/${P.MANIFEST_FILE}`, A.noElectionManifest(t), { contentType: contentType('.json'), cacheControl: P.LIVE, gzip: true });
+      await Promise.all([...P.PAGE_FILES, P.SUMMARY_FILE].map((f) => publicBucket.deletePrefix(`current/${f}`)));
+    } catch (err) {
+      await release({});
+      throw err;
+    }
+    // Inactive in the same write that ends the lease, so auditLive never checks the emptied current/.
+    await release({ active: false, cleared: { at: t, by: actor.email, version: election.currentVersion ?? null }, updatedAt: t, updatedBy: actor.email });
+    await audit(actor, 'clear', eid, `public pages cleared (no current election); ${election.currentVersion ?? 'nothing'} was live`);
+    return { clearedAt: t };
+  }
+
+  /**
    * auditLive: re-verify what the public URLs serve against the published version.
    * A publish copies current/* before it sets currentVersion, so for a few seconds the files and
    * the version disagree. That is not a fault, so the audit is skipped while the publish lease is
@@ -465,12 +543,23 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     const manifest = await fetchLive(`current/${P.MANIFEST_FILE}`);
     const after = await requireElection(eid);
     if (publishing(after) || (after.currentVersion ?? null) !== (before.currentVersion ?? null)) return skipped;
+    // Cleared (docs/ARCHIVE.md) and made active again: the pages say "no current election" until its
+    // next publish, which is what they should say, not a mismatch.
+    if (before.cleared && isNoElection(manifest)) return { ok: true, problems: [] };
     return before.currentVersion
       ? auditServed({ manifestText: manifest === null ? null : manifest.toString('utf8'), files, expectedVersion: before.currentVersion })
       : { ok: true, problems: [] };
   }
 
-  return { createDraft, createSettingsDraft, createRollbackDraft, publishDraft, extendDraft, discardDraft, upsertElection, setMarkedReported, auditLive };
+  return { createDraft, createSettingsDraft, createRollbackDraft, publishDraft, extendDraft, discardDraft, upsertElection, setMarkedReported, auditLive, archiveElection, clearCurrentResults };
+}
+
+function isNoElection(manifest) {
+  try {
+    return manifest !== null && JSON.parse(manifest.toString('utf8')).noElection === true;
+  } catch (e) {
+    return false;
+  }
 }
 
 function countBy(checks) {

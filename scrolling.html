@@ -18,13 +18,13 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css?v=6aac0e72a4">
+  <link rel="stylesheet" href="styles.css?v=2242f7d659">
 
   <!-- The results bucket: connect while the page loads (the data requests start just below) -->
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
 
   <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
-  <script src="./results-config.js?v=471d3112b9" data-files="summary.json"></script>
+  <script src="./results-config.js?v=346b86b621" data-files="summary.json"></script>
 </head>
 <body class="scrolling-body">
 
@@ -80,7 +80,7 @@
     <!-- Live Overall Summary Header Ticker -->
     <header class="scrolling-ticker">
       <div class="ticker-header-top">
-        <span id="ticker-status" class="live-badge">&#x25CF; UNOFFICIAL RESULTS</span>
+        <span id="ticker-status" class="live-badge" data-archive-text="&#x25CF; OFFICIAL RESULTS">&#x25CF; UNOFFICIAL RESULTS</span>
         <p id="live-status" class="live-status ticker-live-status" role="status">Loading results…</p>
         <span id="ticker-date" class="ticker-date-title">--</span>
       </div>
@@ -153,6 +153,6 @@
 
   <!-- Election Data & Application Controller Scripts -->
   <script src="./functions/src/validate.js?v=8a82b7e7f4" defer></script>
-  <script src="./app.js?v=1afa179b5a" defer></script>
+  <script src="./app.js?v=62a3827808" defer></script>
 </body>
 </html>

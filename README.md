@@ -47,6 +47,8 @@ contest where it does not is flagged before publishing.
 7. Spot-check what the public is served at any time: `node tools/smoke-public.js hcec-election-results-results`.
    It must print OK. See docs/DEPLOY.md.
 8. After the night: set `ELECTION_NIGHT_MIN_INSTANCES=0` and redeploy.
+9. After certification: publish the certified results, then on the admin page under **After certification**
+   create the **official archive** and **clear the public results** ([docs/ARCHIVE.md](docs/ARCHIVE.md)).
 
 Before each election, hold a mock-election rehearsal ([docs/REHEARSAL.md](docs/REHEARSAL.md)).
 

@@ -19,6 +19,8 @@
     document.getElementById('settings-form').addEventListener('submit', saveSettings);
     document.getElementById('upload-form').addEventListener('submit', upload);
     document.getElementById('settings-draft-btn').addEventListener('click', settingsDraft);
+    document.getElementById('archive-form').addEventListener('submit', archiveElection);
+    document.getElementById('clear-btn').addEventListener('click', clearResults);
   });
 
   // ---------- elections & settings ----------
@@ -68,6 +70,7 @@
     // A settings rebuild needs published files to rebuild.
     document.getElementById('settings-draft-btn').closest('.settings-draft').hidden = !(current && current.data.currentVersion);
     renderPublished();
+    renderArchive();
     renderAuditBanner();
     if (current) { loadDrafts(); loadHistory(); loadUploads(); loadReported(); } else {
       ['drafts', 'history', 'uploads', 'reported'].forEach(function (s) { C.clear(document.getElementById(s)).appendChild(h('p', null, 'Save the new election first.')); });
@@ -78,7 +81,9 @@
     var el = C.clear(document.getElementById('published-now'));
     if (!current) return;
     var v = current.data.currentVersion;
-    el.appendChild(v ? h('span', null, 'Live data version ', h('code', null, v), ' · ') : h('span', null, 'Nothing published yet · '));
+    var cleared = current.data.cleared && !current.data.active;
+    el.appendChild(cleared ? h('span', null, 'Cleared from the public pages ' + C.when(current.data.cleared.at) + ' (last version ', h('code', null, v || '—'), ') · ')
+      : v ? h('span', null, 'Live data version ', h('code', null, v), ' · ') : h('span', null, 'Nothing published yet · '));
     el.appendChild(h('a', { href: 'index.html', target: '_blank', rel: 'noopener' }, 'View public page (opens in new tab)'));
   }
 
@@ -376,5 +381,109 @@
           h('td', null, h('code', null, u.sha256.slice(0, 12) + '…')));
       })));
     }, function (e) { if (el.loadToken === token) C.clear(el).appendChild(h('p', null, 'Could not load uploads: ' + C.errorText(e))); });
+  }
+
+  // ---------- after certification: official archive and clearing (docs/ARCHIVE.md) ----------
+
+  /** Today in the browser's time zone, YYYY-MM-DD (the county's, on the county's computers). */
+  function today() {
+    var d = new Date();
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  function archiveLink(page, label) {
+    return h('a', { href: page + '?' + C.cfg.carry + 'election=' + encodeURIComponent(current.id), target: '_blank', rel: 'noopener' }, label + ' (opens in new tab)');
+  }
+
+  function renderArchive() {
+    var state = C.clear(document.getElementById('archive-state'));
+    var form = document.getElementById('archive-form');
+    var clearBox = document.getElementById('clear-box');
+    form.hidden = true;
+    clearBox.hidden = true;
+    if (!current) return;
+    var d = current.data;
+    var a = d.archive;
+    var v = d.currentVersion;
+    if (a) {
+      state.appendChild(h('p', null, h('strong', null, '✓ Official archive created'), ' ' + C.when(a.archivedAt) + ' by ' + a.archivedBy + ': version ',
+        h('code', null, a.version), ', certified ' + a.certifiedDate + '.'));
+      state.appendChild(h('p', { class: 'row' }, archiveLink('index.html', 'Archived summary'), archiveLink('precincts.html', 'Archived precinct results'),
+        h('a', { href: 'archive.html' + (C.cfg.carry ? '?' + C.cfg.carry.replace(/&$/, '') : ''), target: '_blank', rel: 'noopener' }, 'All past elections (opens in new tab)')));
+      if (v && a.version !== v) {
+        state.appendChild(h('p', { class: 'field-error' }, 'Version ' + v + ' was published after the archive was made. Create the official archive again so it has the live results.'));
+      }
+    } else if (!v) {
+      state.appendChild(h('p', null, 'Nothing published yet. Publish the certified results first.'));
+    } else {
+      state.appendChild(h('p', null, 'Not archived yet.'));
+    }
+    var cleared = d.cleared && !d.active;
+    if (v && !cleared) {
+      form.hidden = false;
+      var date = document.getElementById('a-date');
+      date.value = (a && a.certifiedDate) || today();
+      document.getElementById('archive-btn').textContent = a ? 'Create official archive again' : 'Create official archive';
+    }
+    if (cleared) {
+      state.appendChild(h('p', null, h('strong', null, 'Public pages cleared'), ' ' + C.when(d.cleared.at) + ' by ' + d.cleared.by
+        + '. They say "There is no current election" until the next election\'s first publish.'));
+      return;
+    }
+    clearBox.hidden = false;
+    var hint = document.getElementById('clear-hint');
+    var btn = document.getElementById('clear-btn');
+    var why = !d.active ? 'This election is not the active one, so its results are not on the public pages.'
+      : v && (!a || a.version !== v) ? 'Create the official archive of the live version first.'
+        : null;
+    hint.textContent = why || 'Takes these results off the public pages, which then say "There is no current election. Please come back at a later time." with a link to past results. The archive stays. The next election\'s first publish brings the pages back.';
+    btn.disabled = Boolean(why);
+  }
+
+  function archiveElection(ev) {
+    ev.preventDefault();
+    var input = document.getElementById('a-date');
+    var err = document.getElementById('a-date-error');
+    err.textContent = '';
+    input.removeAttribute('aria-invalid');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.value)) {
+      err.textContent = 'Enter the date the results were certified.';
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+      return;
+    }
+    var again = Boolean(current.data.archive);
+    var text = 'Version ' + current.data.currentVersion + ' (live now) is copied to the archive, labelled Official results, certified ' + input.value + '.'
+      + (again ? ' It replaces the archive made earlier.' : '') + ' The live pages do not change.';
+    confirmDialog(again ? 'Create the official archive again?' : 'Create the official archive?', text, 'Create archive').then(function (ok) {
+      if (!ok) return;
+      C.busy(document.getElementById('archive-btn'), 'Creating the official archive…', function () {
+        return C.call('archiveElection', { electionId: current.id, certifiedDate: input.value });
+      }).then(function (r) {
+        C.announce('Official archive created: version ' + r.version + ', certified ' + r.certifiedDate + '.');
+        return loadElections(current.id);
+      }, function (e) {
+        if (e && e.details && e.details.field === 'certifiedDate') {
+          err.textContent = e.message.replace(/^Certified on: /, '');
+          input.setAttribute('aria-invalid', 'true');
+          input.focus();
+        }
+      });
+    });
+  }
+
+  function clearResults(ev) {
+    var btn = ev.currentTarget;
+    confirmDialog('Clear the public results pages?',
+      'The public pages stop showing ' + current.data.name + ' and say there is no current election, with a link to past results. '
+      + 'The official archive stays. This election stops being the active one.', 'Clear public results').then(function (ok) {
+      if (!ok) return;
+      C.busy(btn, 'Clearing the public pages…', function () { return C.call('clearCurrentResults', { electionId: current.id }); })
+        .then(function () {
+          C.announce('Public pages cleared. They now say there is no current election.');
+          return loadElections(current.id);
+        }, function () {});
+    });
   }
 }());

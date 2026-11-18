@@ -18,13 +18,13 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css?v=6aac0e72a4">
+  <link rel="stylesheet" href="styles.css?v=2242f7d659">
 
   <!-- The results bucket: connect while the page loads (the data requests start just below) -->
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
 
   <!-- Where the data lives; starts the data requests right away (app.js renders them) -->
-  <script src="./results-config.js?v=471d3112b9" data-files="precincts.json"></script>
+  <script src="./results-config.js?v=346b86b621" data-files="precincts.json"></script>
 </head>
 <body>
 
@@ -48,7 +48,7 @@
       </div>
       <div>
         <div class="navbar-title">Hamilton County Election Commission</div>
-        <div id="navbar-subtitle" class="navbar-subtitle">Unofficial Precinct Level Results</div>
+        <div id="navbar-subtitle" class="navbar-subtitle" data-archive-text="Official Precinct Level Results">Unofficial Precinct Level Results</div>
       </div>
     </a>
 
@@ -83,7 +83,7 @@
       <div class="hero-header">
         <div>
           <h1 id="hero-title" class="hero-title">Hamilton County Precinct Level Results</h1>
-          <div id="hero-date" class="hero-subtitle">Unofficial Precinct Results Breakdown</div>
+          <div id="hero-date" class="hero-subtitle" data-archive-text="Official Precinct Results Breakdown">Unofficial Precinct Results Breakdown</div>
         </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button type="button" class="export-btn" onclick="ElectionApp.refreshResults()" style="background:var(--secondary) !important;">
@@ -97,7 +97,7 @@
           </button>
           <div class="status-badge" role="group" aria-label="Election Status">
             <span class="pulse-dot" aria-hidden="true"></span>
-            <span id="status-text">UNOFFICIAL RESULTS</span>
+            <span id="status-text" data-archive-text="OFFICIAL RESULTS">UNOFFICIAL RESULTS</span>
           </div>
         </div>
       </div>
@@ -194,6 +194,6 @@
 
   <!-- Load Data Payload and App Controller -->
   <script src="./functions/src/validate.js?v=8a82b7e7f4" defer></script>
-  <script src="./app.js?v=1afa179b5a" defer></script>
+  <script src="./app.js?v=62a3827808" defer></script>
 </body>
 </html>

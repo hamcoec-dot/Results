@@ -5,7 +5,7 @@
 //   - no text past the right edge of the screen, except inside a sideways-scrolling table region
 //   - no horizontal page scroll.
 // The precinct page is checked with an early / Election Day split, so the extra lines are on screen.
-const { test, expect } = require('./fixtures');
+const { test, expect, routeArchive, routeNoElection, ARCHIVE_ID } = require('./fixtures');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -180,3 +180,22 @@ test('phone layout: precinct page, every view and every ballots choice', async (
     await check(page, `precincts.html Map with a precinct picked @ ${at}`);
   }
 });
+
+// The official archive (with its banner), the past elections list and the "no current election" message.
+for (const [what, file, ready, route] of [
+  ['archived summary page', `index.html?election=${ARCHIVE_ID}`, '#contests-container article', routeArchive],
+  ['archived precinct page', `precincts.html?election=${ARCHIVE_ID}`, '#precinct-results-container > *', routeArchive],
+  ['past elections list', 'archive.html', '#archive-list > li', routeArchive],
+  ['no current election (summary)', 'index.html', '#no-election-note', routeNoElection],
+  ['no current election (slides)', 'scrolling.html', '#no-election-note', routeNoElection],
+]) {
+  test(`phone layout: ${what}`, async ({ page }, testInfo) => {
+    await route(page);
+    for (const w of widthsFor(testInfo)) {
+      if (w) await page.setViewportSize({ width: w, height: 800 });
+      await page.goto(file);
+      await page.locator(ready).first().waitFor();
+      await check(page, `${what} @ ${w || testInfo.project.name}`);
+    }
+  });
+}

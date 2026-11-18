@@ -28,7 +28,7 @@ window.ElectionApp = (function() {
 
   // Where the data lives (results-config.js) and the shared validator (functions/src/validate.js).
   // Without results-config.js the pages read ./ as the legacy monitor writes it.
-  const RESULTS = window.RESULTS || { url: file => `./${file}?t=${Date.now()}`, draft: null, local: true, usesManifest: false };
+  const RESULTS = window.RESULTS || { url: file => `./${file}?t=${Date.now()}`, draft: null, archive: null, local: true, usesManifest: false };
   const Validate = window.ResultsValidate || null;
   if (!Validate && !RESULTS.local) {
     // Bucket and draft data are checked before they are shown; a site copy without the validator cannot.
@@ -46,6 +46,9 @@ window.ElectionApp = (function() {
   let livePaused = readSessionFlag(LIVE_PAUSED_KEY);
   let lastUpdatedText = '';
   let firstLoadGone = false; // the first load failed with 404 (a draft that no longer exists)
+  let noElection = false; // current/manifest.json says there is no election (docs/ARCHIVE.md)
+  // The status label when the data carries none: an official archive is never "unofficial".
+  const DEFAULT_STATUS = RESULTS.archive ? 'OFFICIAL RESULTS' : 'UNOFFICIAL RESULTS';
 
   // One formatter for every vote count: Number#toLocaleString builds a new one per call, which made a
   // full refresh (hundreds of numbers) a long task.
@@ -66,9 +69,12 @@ window.ElectionApp = (function() {
     try { sessionStorage.setItem(key, on ? '1' : '0'); } catch (e) { /* private mode: this page only */ }
   }
 
-  /** Export file names carry DRAFT_ in a draft view, so a draft is never mistaken for results. */
+  /**
+   * Export file names carry DRAFT_ in a draft view, so a draft is never mistaken for results, and
+   * Official_ in an official archive.
+   */
   function exportFileName(name) {
-    return RESULTS.draft ? `DRAFT_${name}` : name;
+    return RESULTS.draft ? `DRAFT_${name}` : RESULTS.archive ? `Official_${name}` : name;
   }
 
   function isPrecinctPageEnabled() {
@@ -86,7 +92,7 @@ window.ElectionApp = (function() {
     const enablePrecinct = isPrecinctPageEnabled();
 
     // Hide/show precinct navigation links across all pages
-    const precinctNavs = document.querySelectorAll('a[href="precincts.html"]');
+    const precinctNavs = document.querySelectorAll('a[href^="precincts.html"]');
     precinctNavs.forEach(nav => {
       // The hidden attribute, not style.display: .nav-btn sets display with !important.
       nav.hidden = !enablePrecinct;
@@ -320,6 +326,16 @@ window.ElectionApp = (function() {
   function loadLatest(force) {
     const manifestStep = RESULTS.usesManifest ? fetchJson('manifest.json') : Promise.resolve(null);
     return manifestStep.then(manifest => {
+      // Between elections the live manifest says so instead of naming a version (an archive never does).
+      if (manifest && manifest.noElection === true && !RESULTS.draft && !RESULTS.archive) {
+        showNoElection(true);
+        return false;
+      }
+      if (noElection) {
+        // The next election's first publish. A page that showed an earlier election starts afresh.
+        if (electionData) { location.reload(); return false; }
+        showNoElection(false);
+      }
       if (manifest && !force && manifest.dataVersion === activeDataVersion) return false;
       return Promise.all(PAGE_FILES.map(fetchJson)).then(list => {
         const files = {};
@@ -396,6 +412,7 @@ window.ElectionApp = (function() {
   function applyData(data, manifest) {
     tidyContestTitles(data.latest ? data.latest.contests : data.contests);
     const first = !electionData;
+    if (RESULTS.archive) showOfficialBanner(data, manifest);
     electionData = data;
     window.ELECTION_DATA = data;
     activeDataVersion = (data.metadata || {}).dataVersion || null;
@@ -412,6 +429,68 @@ window.ElectionApp = (function() {
       return when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
     return (data.metadata && data.metadata.lastUpdated) || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  /** "November 20, 2026" for a YYYY-MM-DD date, or the text as it is. */
+  function longDate(ymd) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd || '');
+    if (!m) return ymd || '';
+    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  /** The certification block of an official archive (docs/ARCHIVE.md), from its manifest or data. */
+  function officialInfo(data, manifest) {
+    return (manifest && manifest.official) || (data && data.metadata && data.metadata.official) || null;
+  }
+
+  /** An archive's banner: official, certified on <date>, and the way to the other archives. */
+  function showOfficialBanner(data, manifest) {
+    const official = officialInfo(data, manifest);
+    let banner = document.getElementById('official-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'official-banner';
+      banner.className = 'official-banner';
+      banner.setAttribute('role', 'note');
+      // After the skip link, so "Skip to main content" stays the first thing a keyboard reaches.
+      const skip = document.querySelector('body > .skip-link');
+      document.body.insertBefore(banner, skip ? skip.nextSibling : document.body.firstChild);
+    }
+    const meta = data.metadata || {};
+    const title = [meta.county ? `${meta.county} County` : '', meta.electionTitle || ''].filter(Boolean).join(' ');
+    const certified = official && official.certifiedDate ? `, certified ${longDate(official.certifiedDate)}` : '';
+    banner.innerHTML = `<strong>Official results</strong> ${escapeHtml(title ? `of the ${title}` : '')}${escapeHtml(certified)}. `
+      + `<a href="archive.html${RESULTS.carry ? `?${RESULTS.carry.replace(/&$/, '')}` : ''}">All past election results</a>`;
+  }
+
+  /**
+   * Between elections: the page's own content is hidden (not removed) behind one message, with the
+   * way to past results. Polling goes on, so the next election's first publish shows itself.
+   */
+  function showNoElection(on) {
+    noElection = on;
+    document.body.classList.toggle('no-election-view', on);
+    const main = document.getElementById('main-content');
+    if (!main) return;
+    let note = document.getElementById('no-election-note');
+    if (!on) {
+      if (!note) return;
+      note.remove();
+      Array.from(main.children).forEach(c => { c.hidden = c.dataset.hiddenBefore === '1'; delete c.dataset.hiddenBefore; });
+      return;
+    }
+    if (note) return;
+    Array.from(main.children).forEach(c => { c.dataset.hiddenBefore = c.hidden ? '1' : ''; c.hidden = true; });
+    note = document.createElement('section');
+    note.id = 'no-election-note';
+    note.className = 'no-election';
+    note.setAttribute('aria-labelledby', 'no-election-title');
+    const carry = RESULTS.carry ? `?${RESULTS.carry.replace(/&$/, '')}` : '';
+    note.innerHTML = `
+      <h1 id="no-election-title">There is no current election</h1>
+      <p>There are no election results to show right now. Please come back at a later time: results appear here on election night.</p>
+      <p><a class="export-btn no-election-link" href="archive.html${carry}">See official results of past elections</a></p>`;
+    main.appendChild(note);
   }
 
   function isSlideshowPage() {
@@ -483,7 +562,7 @@ window.ElectionApp = (function() {
   // Live updates (WCAG 2.2.2): a 60 s poll that stops while the tab is hidden or the viewer pauses
   // it, never runs for a draft, and reports through one polite status line.
   function liveUpdatesOn() {
-    return !RESULTS.draft && !livePaused && !document.hidden;
+    return !RESULTS.draft && !RESULTS.archive && !livePaused && !document.hidden;
   }
 
   function scheduleLiveUpdates() {
@@ -524,7 +603,7 @@ window.ElectionApp = (function() {
   function setupLiveControls() {
     const btn = document.getElementById('live-toggle');
     if (btn) {
-      btn.hidden = !!RESULTS.draft;
+      btn.hidden = !!(RESULTS.draft || RESULTS.archive);
       btn.setAttribute('aria-pressed', livePaused ? 'true' : 'false');
     }
     renderLiveStatus();
@@ -542,11 +621,18 @@ window.ElectionApp = (function() {
     const el = document.getElementById('live-status');
     if (!el) return;
     let text;
-    if (!electionData && !updatesDelayed) {
+    if (noElection) {
+      text = '';
+    } else if (RESULTS.archive && electionData) {
+      const official = officialInfo(electionData, null);
+      text = official && official.certifiedDate ? `Official results, certified ${longDate(official.certifiedDate)}.` : 'Official results.';
+    } else if (!electionData && !updatesDelayed) {
       text = 'Loading results…';
     } else if (!electionData) {
       // Only say "Retrying" when a retry is scheduled: a draft never polls, and a paused page waits.
-      if (RESULTS.draft) {
+      if (RESULTS.archive) {
+        text = 'These archived results could not be loaded. Reload the page to try again.';
+      } else if (RESULTS.draft) {
         text = firstLoadGone
           ? 'This draft could not be loaded. It may have been published, discarded or expired: open it again from its review page.'
           : 'This draft could not be loaded (its files failed a check, or the connection failed). Reload to try again; details are in the browser console.';
@@ -773,7 +859,7 @@ window.ElectionApp = (function() {
 
     if (heroTitle) heroTitle.textContent = `${data.county} County ${data.electionTitle}`;
     if (heroDate) heroDate.textContent = data.electionDate;
-    if (statusText) statusText.textContent = data.statusLabel || 'UNOFFICIAL RESULTS';
+    if (statusText) statusText.textContent = data.statusLabel || DEFAULT_STATUS;
     if (statVoters) statVoters.textContent = fmtNum(data.totalVoters);
     const scopedBallots = scopedNumber(data.totalBallots, early.ballots, scope);
     const turnoutPct = scope === 'ALL' ? data.turnoutPercent
@@ -1480,7 +1566,7 @@ window.ElectionApp = (function() {
     const earlyRep = earlyVotingReported(data);
     const earlyTot = Number(data.earlyVotingTotal) || 1;
 
-    if (tStatus) tStatus.innerHTML = `&#x25CF; ${escapeHtml(data.statusLabel || 'UNOFFICIAL RESULTS')}`;
+    if (tStatus) tStatus.innerHTML = `&#x25CF; ${escapeHtml(data.statusLabel || DEFAULT_STATUS)}`;
     if (tDate) tDate.textContent = formatCompactDate(data.electionDate) || data.electionDate || '';
     if (tVoters) tVoters.textContent = data.totalVoters ? fmtNum(data.totalVoters) : '0';
     if (tBallots) tBallots.textContent = data.totalBallots ? fmtNum(data.totalBallots) : '0';

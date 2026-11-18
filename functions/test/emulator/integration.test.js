@@ -119,3 +119,27 @@ test('a settings draft rebuilds the published files under new settings, with no 
   const [manifest] = await pub.file('current/manifest.json').download();
   assert.equal(JSON.parse(manifest).dataVersion, doc.dataVersion);
 });
+
+test('after certification: the official archive, then the public pages cleared (docs/ARCHIVE.md)', { skip }, async () => {
+  await assert.rejects(call('clearCurrentResults', { electionId: EID }), (e) => code('failed-precondition')(e) && /archive/.test(e.message));
+  const live = (await db.doc(`elections/${EID}`).get()).data().currentVersion;
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+  await assert.rejects(call('archiveElection', { electionId: EID, certifiedDate: '2026-11-02' }), code('invalid-argument'));
+  const r = await call('archiveElection', { electionId: EID, certifiedDate: today });
+  assert.equal(r.version, live);
+  const [summary] = await pub.file(`archive/${EID}/summary.json`).download();
+  assert.equal(JSON.parse(summary).metadata.statusLabel, 'OFFICIAL RESULTS');
+  const [meta] = await pub.file(`archive/${EID}/summary.json`).getMetadata();
+  assert.deepEqual([meta.cacheControl, meta.contentEncoding], ['public, max-age=300', 'gzip']);
+  const [index] = await pub.file('archive/index.json').download();
+  assert.deepEqual(JSON.parse(index).elections.map((e) => e.id), [EID]);
+
+  await call('clearCurrentResults', { electionId: EID });
+  const [manifest] = await pub.file('current/manifest.json').download();
+  assert.equal(JSON.parse(manifest).noElection, true);
+  const [exists] = await pub.file('current/summary.json').exists();
+  assert.equal(exists, false);
+  const e = (await db.doc(`elections/${EID}`).get()).data();
+  assert.equal(e.active, false);
+  assert.equal(e.publishLock, null);
+});
