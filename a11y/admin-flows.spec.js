@@ -264,6 +264,58 @@ test.describe('admin flows (emulators)', () => {
     const { violations } = await new AxeBuilder({ page }).include('#reported').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     expect(violations.map((v) => v.id)).toEqual([]);
   });
+
+  // After certification (docs/ARCHIVE.md): archive the live version, see it on its own pages and in
+  // the past elections list, clear the public pages, then bring them back (make the election active
+  // again and publish a settings draft) so the specs after this one find the results as before.
+  test('official archive, then clear the public pages; making the election active again brings them back', async ({ page, browser }) => {
+    test.setTimeout(300000);
+    const viewer = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
+    await signIn(page);
+    const state = page.locator('#archive-state');
+    await expect(state).toContainText('Not archived yet.', { timeout: 15000 });
+    await expect(page.locator('#clear-btn')).toBeDisabled();
+    await expect(page.locator('#clear-hint')).toHaveText('Create the official archive of the live version first.');
+    const certified = await page.locator('#a-date').inputValue();
+    expect(certified).toMatch(/^\d{4}-\d{2}-\d{2}$/); // today, filled in
+    await page.click('#archive-btn');
+    await expect(page.locator('#confirm-dialog')).toBeVisible();
+    await page.click('#confirm-ok');
+    await expect(state).toContainText('Official archive created', { timeout: 60000 });
+    await expect(state).toContainText(`certified ${certified}`);
+    await expect(page.locator('#archive-btn')).toHaveText('Create official archive again');
+    const { violations } = await new AxeBuilder({ page }).include('#archive-h').include('#archive-state').include('#archive-form').include('#clear-box')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(violations.map((v) => v.id)).toEqual([]);
+
+    await viewer.goto('index.html?emulator&election=2026-11-03-general');
+    await expect(viewer.locator('#official-banner')).toContainText('Official results', { timeout: 15000 });
+    await expect(viewer.locator('#status-text')).toHaveText('OFFICIAL RESULTS');
+    await viewer.goto('archive.html?emulator');
+    await expect(viewer.locator('#archive-list > li h2')).toHaveText(['2026-11-03 General'], { timeout: 15000 });
+    await expect(viewer.locator('#archive-list a', { hasText: 'Summary results' })).toHaveAttribute('href', 'index.html?emulator&election=2026-11-03-general');
+
+    await expect(page.locator('#clear-btn')).toBeEnabled();
+    await page.click('#clear-btn');
+    await page.click('#confirm-ok');
+    await expect(state).toContainText('Public pages cleared', { timeout: 60000 });
+    await viewer.goto('index.html?emulator');
+    await expect(viewer.locator('#no-election-note h1')).toHaveText('There is no current election', { timeout: 15000 });
+    await expect(viewer.locator('#no-election-note a')).toHaveAttribute('href', 'archive.html?emulator');
+
+    // Back: active again, and a settings draft republishes the same files to the public pages.
+    await page.locator('#s-active').check();
+    await page.click('#settings-form button[type="submit"]');
+    await expect(page.locator('#page-status')).toContainText('Settings saved', { timeout: 15000 });
+    await page.click('#settings-draft-btn');
+    await page.waitForURL(/review\.html\?/, { timeout: 120000 });
+    await expect(page.locator('#checks')).not.toBeEmpty({ timeout: 30000 });
+    await publishFromReview(page);
+    await viewer.goto('index.html?emulator');
+    await expect(viewer.locator('#contests-container .reporting-btn').first()).toBeVisible({ timeout: 15000 });
+    await expect(viewer.locator('#no-election-note')).toHaveCount(0);
+    await viewer.context().close();
+  });
 });
 
 test.describe('publish guard rails (emulators)', () => {

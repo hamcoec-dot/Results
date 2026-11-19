@@ -49,7 +49,7 @@ jobs:
   emulator:
     # Layers 6-7: security rules and the callables on the Firebase emulators.
     runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
-    timeout-minutes: 30
+    timeout-minutes: 50 # apt downloads for Playwright have taken 20+ min on slow runner mirrors (2026-11-18)
     defaults:
       run:
         working-directory: functions
@@ -92,7 +92,7 @@ jobs:
   pages:
     # Layers 10 and 12: axe (WCAG 2.1 AA) and live-update tests on the public pages.
     runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
-    timeout-minutes: 15
+    timeout-minutes: 30 # see emulator
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -119,7 +119,7 @@ jobs:
     # Layer 8 on the other profiles: the behaviour tests (DOM oracle, features, live updates,
     # resilience, hostile names) in Firefox, WebKit, and on emulated Pixel 7 and iPhone 14.
     runs-on: ubuntu-24.04 # Playwright 1.59 cannot install browsers on ubuntu-latest (26.04) yet
-    timeout-minutes: 20
+    timeout-minutes: 50 # see emulator
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

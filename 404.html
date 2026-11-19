@@ -8,7 +8,7 @@
   // GitHub Pages paths are case-sensitive, so /Results/Index.html or /Results/PRECINCTS.html would 404.
   // If the address matches one of this site's pages apart from capitalisation, go to the real page.
   (function () {
-    var pages = ["admin.html","index.html","precincts.html","reporting.html","review.html","scrolling.html"];
+    var pages = ["admin.html","archive.html","index.html","precincts.html","reporting.html","review.html","scrolling.html"];
     var base = '/' + location.pathname.split('/')[1] + '/';
     var rest = decodeURIComponent(location.pathname.slice(base.length)).replace(/\/+$/, '').toLowerCase();
     for (var i = 0; i < pages.length; i++) {

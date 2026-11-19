@@ -16,7 +16,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const ROOT = path.join(__dirname, '..');
-const PAGES = ['index.html', 'reporting.html', 'precincts.html', 'scrolling.html', 'admin.html', 'review.html'];
+const PAGES = ['index.html', 'reporting.html', 'precincts.html', 'scrolling.html', 'archive.html', 'admin.html', 'review.html'];
 // src="..." or href="..." pointing at a local .js/.css file, with or without an existing ?v=
 const REF = /\b(src|href)="(\.\/)?([\w./-]+\.(?:js|css))(?:\?v=[0-9a-f]*)?"/g;
 

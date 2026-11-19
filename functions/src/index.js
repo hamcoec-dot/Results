@@ -123,6 +123,8 @@ exports.publishDraft = adminCall('publishDraft', warm);
 exports.extendDraft = adminCall('extendDraft', warm);
 exports.discardDraft = adminCall('discardDraft');
 exports.auditLiveNow = adminCall('auditLive');
+exports.archiveElection = adminCall('archiveElection', { memory: '512MiB' });
+exports.clearCurrentResults = adminCall('clearCurrentResults');
 
 // Every minute: re-verify what the public is served for the active election (audit + alert log).
 // Skipped while a publish holds its lease; a mismatch is re-checked 10 s later before it is logged.

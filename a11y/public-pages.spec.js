@@ -1,7 +1,7 @@
 // Accessibility checks for the public pages (plan: Mobile & accessibility requirements).
 // Each page is loaded in its default mode (the production bucket's current/, served by ./fixtures), checked with axe for WCAG 2.1 A + AA,
 // and checked for horizontal page scroll (1.4.10) and for text clipped under text-spacing overrides (1.4.12).
-const { test, expect } = require('./fixtures'); // fixtures: the production bucket is never fetched
+const { test, expect, routeArchive, routeNoElection, ARCHIVE_ID } = require('./fixtures'); // fixtures: the production bucket is never fetched
 const { AxeBuilder } = require('@axe-core/playwright');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -60,6 +60,25 @@ for (const [file, ready] of Object.entries(PAGES)) {
     await expect(page).toHaveTitle(/^\[DRAFT\] /);
     await audit(page);
   });
+}
+
+// The official archive, the past elections list and the "no current election" message (docs/ARCHIVE.md).
+for (const [what, file, ready, route] of [
+  ['archived summary page', `index.html?election=${ARCHIVE_ID}`, '#official-banner', routeArchive],
+  ['archived precinct page', `precincts.html?election=${ARCHIVE_ID}`, '#precinct-results-container article', routeArchive],
+  ['past elections list', 'archive.html', '#archive-list > li', routeArchive],
+  ['no current election', 'index.html', '#no-election-note', routeNoElection],
+]) {
+  for (const width of WIDTHS) {
+    test(`${what} @ ${width}px`, async ({ page }) => {
+      await route(page);
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(file);
+      await page.locator(ready).first().waitFor();
+      await audit(page);
+      await noHorizontalScroll(page);
+    });
+  }
 }
 
 // ?staging shows test numbers on the official domain, so it is always marked as test data.
