@@ -109,6 +109,7 @@ const admin = nm('firebase-admin');
 const { initializeApp, deleteApp } = nm('firebase/app');
 const { getAuth, connectAuthEmulator, signInWithEmailAndPassword } = nm('firebase/auth');
 const { getFunctions, connectFunctionsEmulator, httpsCallable } = nm('firebase/functions');
+const { restorePrevious } = require('./restore-previous');
 
 /** The sample file for a step, and its upload kind (as emulator-drafts.js, plus 00 = Zero). */
 function sample(prefix) {
@@ -125,7 +126,10 @@ function sample(prefix) {
 
 /** What the public bucket serves now (cache-busted), parsed, or null. */
 async function served(file) {
-  const res = await fetch(`https://storage.googleapis.com/${project}-results/current/${file}?t=${Date.now()}`, { headers: { 'cache-control': 'no-cache' } });
+  const url = emulator
+    ? `http://${process.env.FIREBASE_STORAGE_EMULATOR_HOST || '127.0.0.1:9199'}/download/storage/v1/b/${project}-results/o/${encodeURIComponent(`current/${file}`)}?alt=media`
+    : `https://storage.googleapis.com/${project}-results/current/${file}?t=${Date.now()}`;
+  const res = await fetch(url, { headers: { 'cache-control': 'no-cache' } });
   return res.ok ? res.json() : null;
 }
 
@@ -319,6 +323,7 @@ async function ensureBot(db) {
   return { email, password };
 }
 
+
 async function main() {
   admin.initializeApp({ projectId: project });
   const db = admin.firestore();
@@ -334,7 +339,8 @@ async function main() {
   let failed = false;
   const checker = checkPages ? await require('./check-live-pages').createChecker({ bucket: `${project}-results`, emulator }) : null;
 
-  // makeActive (below) deactivates whichever election is active now; it is made active again at the end,
+  // makeActive (below) deactivates whichever election is active now; it is made active again at the end
+  // (tools/restore-previous.js: with the public files it had),
   // so a rehearsal in production leaves a real election that was set up beforehand as it was.
   const previous = (await db.collection('elections').where('active', '==', true).get()).docs.map((d) => d.id).find((id) => id !== electionId);
   if (previous) console.log(`${previous} is the active election now; it is made active again at the end.`);
@@ -380,9 +386,17 @@ async function main() {
     failed = true;
   } finally {
     if (previous) {
-      await db.doc(`elections/${electionId}`).update({ active: false });
-      await db.doc(`elections/${previous}`).update({ active: true });
-      console.log(`${previous} is the active election again.`);
+      try {
+        const r = await restorePrevious({
+          previous, electionId, call, readManifest: () => served('manifest.json'),
+          getElection: async (id) => (await db.doc(`elections/${id}`).get()).data() ?? null,
+          getDraft: async (eid, id) => (await db.doc(`elections/${eid}/drafts/${id}`).get()).data(),
+        });
+        if (!r.ok) failed = true;
+      } catch (e) {
+        console.error(`FAIL: could not restore ${previous}: ${e.code ?? ''} ${e.message}. ${electionId} may still be the active election; check the admin page.`);
+        failed = true;
+      }
     }
     if (!keepAdmin) {
       await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
