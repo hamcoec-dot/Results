@@ -151,9 +151,13 @@ window.ElectionApp = (function() {
    * "Write-in: Name" columns). Their label follows the name on every page, slide and download.
    */
   const WRITE_IN_LABEL = ' (Certified Write-in)';
-  const WRITE_IN_NOTE = 'Certified write-in candidates are shown under All Ballots only.';
+  const WRITE_IN_NOTE = 'Some certified write-in candidates are shown under All Ballots only: their early and Election Day votes are not known.';
   function isWriteIn(cand) {
     return !!(cand && cand.writeIn === true);
+  }
+  /** A write-in the Early/ABS file doesn't list: its early / Election Day split is not known. */
+  function noSplit(cand) {
+    return isWriteIn(cand) && cand.noEarlySplit === true;
   }
   /** Add the write-in label to the names (once: the upload already adds it when a name clashes). */
   function labelWriteIns(contests) {
@@ -161,20 +165,21 @@ window.ElectionApp = (function() {
       if (isWriteIn(cand) && typeof cand.name === 'string' && !cand.name.endsWith(WRITE_IN_LABEL)) cand.name += WRITE_IN_LABEL;
     }));
   }
-  function hasWriteIns(data) {
-    return ((data && data.contests) || []).some(c => (c.candidates || []).some(isWriteIn));
+  function hasUnsplitWriteIns(data) {
+    return ((data && data.contests) || []).some(c => (c.candidates || []).some(noSplit));
   }
   /**
-   * The dataset without write-ins, for the Early & Absentee and Election Day views: a write-in's
-   * split between the two is not known (the certified file names write-ins, the election-night
-   * Early/ABS file doesn't). Contests, their totals and the early numbers stay aligned. The same
-   * object comes back for the same data, so live updates can patch the cards.
+   * The dataset without the write-ins whose early / Election Day split is not known (noEarlySplit:
+   * the Early/ABS file in use doesn't list them), for the Early & Absentee and Election Day views.
+   * Write-ins the Early/ABS file lists stay, split like any candidate. Contests, their totals and
+   * the early numbers stay aligned. The same object comes back for the same data, so live updates
+   * can patch the cards.
    */
   const noWriteInsCache = new WeakMap();
-  function withoutWriteIns(data) {
-    if (!data || !hasWriteIns(data)) return data;
+  function withoutUnsplitWriteIns(data) {
+    if (!data || !hasUnsplitWriteIns(data)) return data;
     if (noWriteInsCache.has(data)) return noWriteInsCache.get(data);
-    const keep = data.contests.map(c => (c.candidates || []).map(cand => !isWriteIn(cand)));
+    const keep = data.contests.map(c => (c.candidates || []).map(cand => !noSplit(cand)));
     const filterRows = rows => rows.map((row, ci) => (Array.isArray(row) && keep[ci] ? row.filter((_, k) => keep[ci][k]) : row));
     const out = Object.assign({}, data, {
       contests: data.contests.map((c, ci) => {
@@ -873,7 +878,7 @@ window.ElectionApp = (function() {
       note.textContent = (scope === 'EARLY'
         ? 'Showing early voting and absentee ballots only. Choose All Ballots for the full results.'
         : scope === 'ED' ? 'Showing ballots cast on Election Day only. Choose All Ballots for the full results.' : '')
-        + (scope !== 'ALL' && hasWriteIns(data) ? ' ' + WRITE_IN_NOTE : '');
+        + (scope !== 'ALL' && hasUnsplitWriteIns(data) ? ' ' + WRITE_IN_NOTE : '');
     }
   }
 
@@ -1024,7 +1029,7 @@ window.ElectionApp = (function() {
     const container = document.getElementById('contests-container');
     if (!container || !all || !all.contests) return;
     // Write-ins only under All Ballots (their early / Election Day split is not known).
-    const data = currentSummaryScope(all) === 'ALL' ? all : withoutWriteIns(all);
+    const data = currentSummaryScope(all) === 'ALL' ? all : withoutUnsplitWriteIns(all);
 
     const filteredContests = data.contests.filter(contest => {
       if (searchQuery) {
@@ -1517,8 +1522,8 @@ window.ElectionApp = (function() {
       const ci = data.contests.indexOf(contest);
       contest.candidates.forEach((cand, k) => {
         const early = split ? scopedNumber(cand.votes, data.earlyTotals.contests[ci][k], 'EARLY') : 0;
-        // A write-in's early / Election Day split is not known: those two cells stay empty.
-        const splitCells = !split ? [] : isWriteIn(cand) ? ['', ''] : [early, (Number(cand.votes) || 0) - early];
+        // A write-in whose early / Election Day split is not known: those two cells stay empty.
+        const splitCells = !split ? [] : noSplit(cand) ? ['', ''] : [early, (Number(cand.votes) || 0) - early];
         csvRows.push([
           formatCsvCell(data.electionTitle),
           formatCsvCell(data.county),
@@ -2254,7 +2259,7 @@ ${ballotsCard || reportingCard}
   function renderPrecinctPage() {
     if (!electionData || !electionData.latest) return;
     // Write-ins only under All ballots (their early / Election Day split is not known).
-    const latest = currentScope(electionData.latest) === 'ALL' ? electionData.latest : withoutWriteIns(electionData.latest);
+    const latest = currentScope(electionData.latest) === 'ALL' ? electionData.latest : withoutUnsplitWriteIns(electionData.latest);
 
     syncScopeTabs(latest);
     renderPrecinctHeaderMetrics();
@@ -2403,7 +2408,7 @@ ${ballotsCard || reportingCard}
         precinctTotalVotes += pv;
         const ev = splitOk ? scopedPrecinctVotes(latest, c, k, selectedPrecinct, 'EARLY') : 0;
         return {
-          split: splitOk && scope === 'ALL' && !isWriteIn(cand) ? [ev, allPv - ev] : null,
+          split: splitOk && scope === 'ALL' && !noSplit(cand) ? [ev, allPv - ev] : null,
           name: cand.name,
           party: getCandidateParty(cand, c),
           votes: pv,
@@ -2697,7 +2702,7 @@ ${ballotsCard || reportingCard}
     });
     const note = document.getElementById('precinct-scope-note');
     if (note) {
-      const show = scope !== 'ALL' && hasWriteIns(electionData && electionData.latest);
+      const show = scope !== 'ALL' && hasUnsplitWriteIns(electionData && electionData.latest);
       note.hidden = !show;
       note.textContent = show ? WRITE_IN_NOTE : '';
     }
@@ -3035,8 +3040,8 @@ ${ballotsCard || reportingCard}
       const cells = [formatCsvCell(pName), formatCsvCell(c.title), formatCsvCell(cand.name), formatCsvCell(getCandidateParty(cand, c)),
         (cand.precinctVotes || {})[pName] || 0];
       if (split) {
-        // A write-in's early / Election Day split is not known: those two cells stay empty.
-        if (isWriteIn(cand)) cells.push('', '');
+        // A write-in whose early / Election Day split is not known: those two cells stay empty.
+        if (noSplit(cand)) cells.push('', '');
         else cells.push(scopedPrecinctVotes(latest, c, k, pName, 'EARLY'), scopedPrecinctVotes(latest, c, k, pName, 'ED'));
       }
       cells.push(cand.votes);

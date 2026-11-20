@@ -9,7 +9,7 @@
  * CSV "R of T" (d1) rather than the legacy overrides.
  */
 const { pyStrip, pyRound2, pyStrFloat } = require('./pycompat');
-const { cleanNum, cleanContestName, parseReporting, findTotals, statsRowName, resultColumns, stripPrefixes, FIXES } = require('./parse');
+const { cleanNum, cleanContestName, parseReporting, findTotals, statsRowName, stripPrefixes, FIXES } = require('./parse');
 
 /** Visits every contest block: cb(i, reportingCells, contestRow, candidateRow, totalsIdx). */
 function eachContestBlock(rows, cb) {
@@ -25,12 +25,48 @@ function eachContestBlock(rows, cb) {
 
 const rawCell = (row, col) => (row[col] ? pyStrip(row[col]) : '');
 
+const WRITE_IN_SUFFIX = ' (Certified Write-in)';
 /**
- * Candidate columns of one contest: [[col, name], ...] (party prefix removed). Write-in totals and
- * unassigned write-ins are skipped; named write-ins are kept with fix d6 (parse.resultColumns).
+ * A write-in column's candidate name, read independently of parse.resultColumns (verify is the
+ * second reader of the CSV): '' for a column that is not a named write-in. The header is
+ * "Write-in" (any case; a space or hyphen, or nothing, between the words), then ":" and the name.
+ * "Totals", "Not Assigned" and an empty name are not candidates; a party word before the name is dropped.
+ */
+function writeInName(raw) {
+  const lower = raw.toLowerCase();
+  if (!lower.startsWith('write')) return '';
+  let i = 5;
+  while (i < raw.length && (raw[i] === '-' || /\s/u.test(raw[i]))) i++;
+  if (lower.slice(i, i + 2) !== 'in') return '';
+  i += 2;
+  while (i < raw.length && /\s/u.test(raw[i])) i++;
+  if (raw[i] !== ':') return '';
+  let name = raw.slice(i + 1).split(/\s+/u).filter(Boolean).join(' ');
+  for (const p of ['REP ', 'DEM ', 'IND ']) if (name.startsWith(p)) { name = pyStrip(name.slice(p.length)); break; }
+  const l = name.toLowerCase();
+  if (!name || l.split(' ').join('') === 'notassigned' || l.includes('write') && /write[\s-]*in/u.test(l)) return '';
+  return name;
+}
+
+/**
+ * Candidate columns of one contest: [[col, name], ...] (party prefix removed). Legacy skips every
+ * column containing "write-in"; with fix d6 named write-ins are kept (a name equal to a ballot
+ * candidate's gets the " (Certified Write-in)" suffix) and totals / not-assigned columns are not.
  */
 function candidateColumns(candidateRow, col, nextCol, fixes = FIXES) {
-  return resultColumns(candidateRow, col, nextCol, fixes).map((x) => [x.c, x.writeIn ? x.name : stripPrefixes(x.raw)]);
+  const ballot = [];
+  const writeIns = [];
+  for (let c = col; c < Math.min(nextCol, candidateRow.length); c++) {
+    const raw = pyStrip(candidateRow[c] ?? '');
+    if (!raw) continue;
+    if (!fixes.d6) { if (!raw.toLowerCase().includes('write-in')) ballot.push([c, stripPrefixes(raw)]); continue; }
+    if (!/write[\s-]*in/iu.test(raw)) { ballot.push([c, stripPrefixes(raw)]); continue; }
+    const name = writeInName(raw);
+    if (name) writeIns.push([c, name]);
+  }
+  const names = new Set(ballot.map(([, n]) => n));
+  const out = [...ballot, ...writeIns.map(([c, n]) => [c, names.has(n) ? n + WRITE_IN_SUFFIX : n])];
+  return out.sort((a, b) => a[0] - b[0]);
 }
 
 function firstTotals(rows) {
@@ -217,4 +253,4 @@ function verify({ earlyRows, edRows, latest: js, files = {} }, { precinctCap = 9
   return checks;
 }
 
-module.exports = { verify, eachContestBlock, findAllRawContests, candidateColumns };
+module.exports = { verify, eachContestBlock, findAllRawContests, candidateColumns, writeInName };

@@ -141,7 +141,7 @@ function findTotals(rows, from) {
 
 const WRITE_IN = /write[\s-]*in/iu;
 const NAMED_WRITE_IN = /^write[\s-]*in[\s]*:[\s]*(.+)$/iu;
-const NOT_ASSIGNED = /^not[\s]+assigned$/iu;
+const NOT_ASSIGNED = /^not[\s]*assigned$/iu;
 const PARTY_PREFIXES = ['REP ', 'DEM ', 'IND '];
 /** A ballot candidate's name without its party prefixes (as verify.py compares names). */
 function stripPrefixes(raw) {
@@ -168,19 +168,25 @@ function resultColumns(candidateRow, col, nextCol, fixes = FIXES) {
     }
     if (!WRITE_IN.test(raw)) { out.push({ c, raw, writeIn: false }); continue; }
     const m = NAMED_WRITE_IN.exec(raw);
-    const name = m ? pyStrip(m[1]).replace(WS_RUN, ' ') : '';
+    let name = m ? pyStrip(m[1]).replace(WS_RUN, ' ') : '';
+    // "Write-in: DEM Jane Doe": the party word is not part of the name.
+    const prefix = PARTY_PREFIXES.find((p) => name.startsWith(p));
+    if (prefix) name = pyStrip(name.slice(prefix.length));
     if (!name || NOT_ASSIGNED.test(name) || WRITE_IN.test(name)) continue;
-    out.push({ c, raw, writeIn: true, name });
+    out.push({ c, raw, writeIn: true, name, ...(prefix ? { party: prefix.trim() } : {}) });
   }
   const ballotNames = new Set(out.filter((x) => !x.writeIn).map((x) => stripPrefixes(x.raw)));
   for (const x of out) if (x.writeIn && ballotNames.has(x.name)) x.name += WRITE_IN_CLASH_SUFFIX;
   return out;
 }
 
-/** A write-in's party: the primary's party (REP / DEM contest title), else none. */
-function writeInParty(contestName) {
+/**
+ * A write-in's party: the primary's party (REP / DEM contest title), else a party word written
+ * before the name ("Write-in: DEM Jane Doe"), else none (not IND: a write-in is not an independent).
+ */
+function writeInParty(contestName, written = '') {
   const upper = contestName.toUpperCase();
-  return upper.startsWith('REP') ? 'REP' : upper.startsWith('DEM') ? 'DEM' : '';
+  return upper.startsWith('REP') ? 'REP' : upper.startsWith('DEM') ? 'DEM' : written;
 }
 
 /**
@@ -303,8 +309,8 @@ function parseContests(rows, isEd, fixes) {
       const contest = contests.get(contestName);
 
       const candCols = [];
-      for (const { c, raw, writeIn, name: writeInName } of resultColumns(candidateRow, col, nextCol, fixes)) {
-        const { party, name } = writeIn ? { party: writeInParty(contestName), name: writeInName } : partyOf(contestName, raw);
+      for (const { c, raw, writeIn, name: writeInName, party: written } of resultColumns(candidateRow, col, nextCol, fixes)) {
+        const { party, name } = writeIn ? { party: writeInParty(contestName, written), name: writeInName } : partyOf(contestName, raw);
         const votes = cleanNum(rows[totalsIdx]?.[c]);
         const existing = contest.candidates.get(name);
         if (!existing) {

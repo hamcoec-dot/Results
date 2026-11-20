@@ -3,6 +3,29 @@ import csv
 import json
 import re
 import hashlib
+
+# Named write-ins ("Write-in: <name>", added by the certified export). Off by default: the legacy
+# behaviour (every write-in column skipped) is what the Node port's parity tests compare against.
+# tools/check-live-pages.js turns it on (NAMED_WRITE_INS=1) to check the pages, which show them.
+NAMED_WRITE_INS = os.environ.get('NAMED_WRITE_INS') == '1'
+WRITE_IN_SUFFIX = ' (Certified Write-in)'
+_WRITE_IN = re.compile(r'write[\s-]*in', re.IGNORECASE)
+_NAMED_WRITE_IN = re.compile(r'^write[\s-]*in\s*:\s*(.+)$', re.IGNORECASE)
+_NOT_ASSIGNED = re.compile(r'^not\s*assigned$', re.IGNORECASE)
+
+
+def named_write_in(cand_raw):
+    """(name, written party) for a named write-in column, ('', '') for any other write-in column."""
+    m = _NAMED_WRITE_IN.match(cand_raw)
+    name = ' '.join(m.group(1).split()) if m else ''
+    party = ''
+    for p in ('REP ', 'DEM ', 'IND '):
+        if name.startswith(p):
+            name, party = name[len(p):].strip(), p.strip()
+            break
+    if not name or _NOT_ASSIGNED.match(name) or _WRITE_IN.search(name):
+        return '', ''
+    return name, party
 from verify import run_verification
 
 def read_csv_robust(file_path):
@@ -154,11 +177,26 @@ def parse_election_csv(file_path, is_ed=False):
 
                 # Process candidates
                 cand_cols = []
+                ballot_names = set()
+                if NAMED_WRITE_INS:
+                    for c_idx in range(col_idx, min(next_contest_col, len(candidate_row))):
+                        r = candidate_row[c_idx].strip()
+                        if r and not _WRITE_IN.search(r):
+                            for p in ('REP ', 'DEM ', 'IND '):
+                                if r.startswith(p):
+                                    r = r[len(p):].strip()
+                            ballot_names.add(r)
                 for c_idx in range(col_idx, next_contest_col):
                     if c_idx >= len(candidate_row):
                         break
                     cand_raw = candidate_row[c_idx].strip()
-                    if not cand_raw or 'write-in' in cand_raw.lower():
+                    write_in = False
+                    if NAMED_WRITE_INS and cand_raw and _WRITE_IN.search(cand_raw):
+                        wi_name, wi_party = named_write_in(cand_raw)
+                        if not wi_name:
+                            continue
+                        write_in = True
+                    elif not cand_raw or 'write-in' in cand_raw.lower():
                         continue
 
                     party = 'REP' if contest_name.upper().startswith('REP') else ('DEM' if contest_name.upper().startswith('DEM') else 'IND')
@@ -178,6 +216,9 @@ def parse_election_csv(file_path, is_ed=False):
                             party = 'REP'
                         elif contest_name.upper().startswith('DEM'):
                             party = 'DEM'
+                    if write_in:
+                        cand_name = wi_name + (WRITE_IN_SUFFIX if wi_name in ballot_names else '')
+                        party = 'REP' if contest_name.upper().startswith('REP') else ('DEM' if contest_name.upper().startswith('DEM') else wi_party)
 
                     vote_count = 0
                     if totals_row_idx is not None and totals_row_idx < len(rows):
@@ -192,6 +233,8 @@ def parse_election_csv(file_path, is_ed=False):
                             'votes': vote_count,
                             'precinctVotes': {}
                         }
+                        if write_in:
+                            contests[contest_name]['candidates'][cand_name]['writeIn'] = True
                     else:
                         contests[contest_name]['candidates'][cand_name]['votes'] = max(
                             contests[contest_name]['candidates'][cand_name]['votes'], vote_count
@@ -302,7 +345,8 @@ def merge_parsed_data(early_parsed, ed_parsed):
                     'name': cand_info['name'],
                     'party': cand_info['party'],
                     'votes': cand_info['votes'],
-                    'precinctVotes': cand_info.get('precinctVotes', {})
+                    'precinctVotes': cand_info.get('precinctVotes', {}),
+                    **({'writeIn': True} if cand_info.get('writeIn') else {})
                 }
             if early_c:
                 for cand_name, cand_info in early_c['candidates'].items():
@@ -311,7 +355,8 @@ def merge_parsed_data(early_parsed, ed_parsed):
                             'name': cand_info['name'],
                             'party': cand_info['party'],
                             'votes': cand_info['votes'],
-                            'precinctVotes': cand_info.get('precinctVotes', {})
+                            'precinctVotes': cand_info.get('precinctVotes', {}),
+                            **({'writeIn': True} if cand_info.get('writeIn') else {})
                         }
         elif early_c:
             for cand_name, cand_info in early_c['candidates'].items():
@@ -319,7 +364,8 @@ def merge_parsed_data(early_parsed, ed_parsed):
                     'name': cand_info['name'],
                     'party': cand_info['party'],
                     'votes': cand_info['votes'],
-                    'precinctVotes': cand_info.get('precinctVotes', {})
+                    'precinctVotes': cand_info.get('precinctVotes', {}),
+                    **({'writeIn': True} if cand_info.get('writeIn') else {})
                 }
 
         cand_list = list(cand_dict.values())

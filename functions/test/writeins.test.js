@@ -8,6 +8,7 @@ const path = require('node:path');
 const { readCsv } = require('../src/csv');
 const { parseRows, resultColumns, FIXES, LEGACY } = require('../src/parse');
 const { mergeParsedData, splitEarly, HIDE_ZERO_VOTE_WRITE_INS } = require('../src/merge');
+const { spawnSync } = require('node:child_process');
 const { verify, candidateColumns } = require('../src/verify');
 const { buildResults } = require('../src/pipeline');
 const { badNumberCells } = require('../src/checks');
@@ -86,14 +87,36 @@ test('d6: merge keeps write-ins (0-vote ones too), with percentages and leading 
   assert.deepEqual(gov.candidates.map((c) => [c.name, c.party, c.votes, c.percentage]), [['Gail', 'REP', 80, 100], ['Hal', '', 0, 0]]);
 });
 
-test('d6: a write-in gets no early numbers in the early / Election Day split', () => {
+test('d6: a write-in the Early file lists is split like any candidate', () => {
   const ed = parseRows(rows(), { isEd: true });
   const early = parseRows(rows(), { isEd: false });
-  // The same file in both slots: every ballot candidate's early = all; the write-ins stay empty.
+  // The same file in both slots: every early number = all, write-ins included.
   const { data } = mergeParsedData(early, ed, { precinctCap: 2 });
-  const split = splitEarly(early, ed, data.contests);
   const com = data.contests.findIndex((c) => c.title === 'Commission');
+  assert.deepEqual(data.earlyByPrecinct.contests[com], [{ P1: 30, P2: 25 }, { P1: 20, P2: 15 }, { P1: 7, P2: 4 }, { P1: 1 }]);
+  assert.ok(data.contests[com].candidates.every((x) => x.noEarlySplit === undefined));
+  assert.deepEqual(data.earlyTotals.contests[com], [55, 35, 11, 1]);
+});
+
+test('d6: a write-in the Early file does not list has no early numbers and noEarlySplit', () => {
+  const ed = parseRows(rows(), { isEd: true });
+  // An election-night Early/ABS file: the same columns, but no named write-ins.
+  const early = parseRows(readCsv(CERT.replaceAll('Write-In:  Fred', 'Write-in Totals Fred').replaceAll('Write-in: Bob', 'Write-in Totals Bob')), { isEd: false });
+  const { data } = mergeParsedData(early, ed, { precinctCap: 2 });
+  const com = data.contests.findIndex((c) => c.title === 'Commission');
+  const split = splitEarly(early, ed, data.contests);
   assert.deepEqual(split.contests[com], [{ P1: 30, P2: 25 }, { P1: 20, P2: 15 }, {}, {}]);
+  assert.deepEqual(data.contests[com].candidates.map((x) => x.noEarlySplit ?? false), [false, false, true, true]);
+  // Governor's Hal is listed in the Early file (unchanged), so it is split.
+  const gov = data.contests.find((c) => c.title === 'Governor');
+  assert.equal(gov.candidates.find((x) => x.name === 'Hal').noEarlySplit, undefined);
+  // No Early slot: no split, no flag.
+  assert.ok(mergeParsedData(null, ed, { precinctCap: 2 }).data.contests.every((c) => c.candidates.every((x) => x.noEarlySplit === undefined)));
+  const res = buildResults({ early: CERT.replaceAll('Write-In:  Fred', 'Write-in Totals Fred').replaceAll('Write-in: Bob', 'Write-in Totals Bob'), ed: CERT }, { precinctCap: 2, lastUpdated: 'x' });
+  assert.deepEqual(res.verify.filter((c) => !c.pass), []);
+  for (const [name, text] of Object.entries(res.outputs.files)) {
+    if (name.endsWith('.json')) assert.deepEqual(Validate.validateFile(name, JSON.parse(text)).errors, [], name);
+  }
 });
 
 test('d6: write-ins say nothing about which precincts reported', () => {
@@ -121,11 +144,45 @@ test('d6: the whole pipeline verifies, validates and flags bad write-in cells', 
   assert.deepEqual(badNumberCells(bad).map((b) => b.value), ['x']);
 });
 
-test('d6: validate accepts writeIn: true only', () => {
+test('d6: validate accepts writeIn: true only, and noEarlySplit: true only on a write-in', () => {
   const res = buildResults({ early: null, ed: CERT }, { precinctCap: 2, lastUpdated: 'x' });
-  const summary = JSON.parse(res.outputs.files['summary.json']);
-  summary.latest.contests[0].candidates[2].writeIn = 'yes';
-  assert.ok(Validate.validateFile('summary.json', summary).errors.some((e) => /writeIn/.test(e)));
+  const bad = (edit, re) => {
+    const summary = JSON.parse(res.outputs.files['summary.json']);
+    edit(summary.latest.contests[0].candidates);
+    assert.ok(Validate.validateFile('summary.json', summary).errors.some((e) => re.test(e)));
+  };
+  bad((c) => { c[2].writeIn = 'yes'; }, /writeIn/);
+  bad((c) => { c[0].noEarlySplit = true; }, /noEarlySplit/);
+  bad((c) => { c[2].noEarlySplit = false; }, /noEarlySplit/);
+});
+
+test('d6: a party word before a write-in name is not part of the name', () => {
+  const cells = ['REP Ann', 'Write-in: DEM Jane Doe', 'Write-in: IND  Bo', 'Write-in: REP Ann'];
+  assert.deepEqual(resultColumns(cells, 0, 4).map((x) => [x.name, x.party]),
+    [[undefined, undefined], ['Jane Doe', 'DEM'], ['Bo', 'IND'], ['Ann (Certified Write-in)', 'REP']]);
+  assert.deepEqual(candidateColumns(cells, 0, 4).map((x) => x[1]), ['Ann', 'Jane Doe', 'Bo', 'Ann (Certified Write-in)']);
+  const csv = CERT.replace('Write-in: Hal', 'Write-in: DEM Hal');
+  const p = parseRows(readCsv(csv), { isEd: true });
+  assert.equal(p.contestsRaw.get('Governor').candidates.get('Hal').party, 'DEM');
+  assert.deepEqual(buildResults({ early: null, ed: csv }, { precinctCap: 2, lastUpdated: 'x' }).verify.filter((c) => !c.pass), []);
+});
+
+// verify.js reads write-in headers with its own code (writeInName); both readers must agree.
+const HEADINGS = [
+  'Write-in: Fred Ferguson', 'Write-In:  Fred   Ferguson ', 'WRITE-IN: A', 'write-in:a', 'Write in: B', 'Writein: C', 'Write - in: D',
+  'Write-in : E', 'Write-in:', 'Write-in: ', 'Write-in', 'Write-in Totals', 'Write-In Totals', 'Write-in: Not Assigned',
+  'Write-in: not  assigned', 'Write-in: NotAssigned', 'Write-in: Write-in', 'Write-in: DEM Jane', 'Write-in: REP  Ann', 'Write-in: IND Bo',
+  'Write-in: Carlton "CB" Boleyjack', 'Write-in: O\'Brien, Jr.', 'Write-in: José Núñez', 'Write-in: Ann', 'Write-in: Ann', 'Ann', 'REP Ann',
+  'Total Write-in Votes', 'Write-ins: F', 'Write-in:: G', 'Write-in: Dem Lower', 'Write-in: REPublic Party', 'Write-in:\tTab Name',
+];
+test('d6: parse and verify read every write-in heading the same way', () => {
+  for (let i = 0; i < HEADINGS.length; i++) {
+    for (const cells of [[HEADINGS[i]], ['Ann', HEADINGS[i]], ['REP Ann', HEADINGS[i], 'Write-in Totals']]) {
+      const fromParse = resultColumns(cells, 0, cells.length).map((x) => [x.c, x.writeIn ? x.name : x.raw.replace(/^(REP|DEM|IND) /, '')]);
+      assert.deepEqual(candidateColumns(cells, 0, cells.length), fromParse, JSON.stringify(cells));
+    }
+  }
+  assert.deepEqual(candidateColumns(HEADINGS, 0, HEADINGS.length), resultColumns(HEADINGS, 0, HEADINGS.length).map((x) => [x.c, x.writeIn ? x.name : x.raw.replace(/^(REP|DEM|IND) /, '')]));
 });
 
 test('d6: the review screen marks write-ins', () => {
@@ -196,4 +253,49 @@ test('the certified 2026-11-03 general file: write-ins in, nothing else changes'
     assert.equal(x.votes, legacy.merged.contests[ci].candidates[k].votes);
     assert.equal(x.name, legacy.merged.contests[ci].candidates[k].name);
   }));
+});
+
+test('the certified pair: early-only certified file + certified file splits Fred Ferguson 348 / 418', () => {
+  const dir = path.join(__dirname, 'data');
+  const res = buildResults({ early: fs.readFileSync(path.join(dir, '2026-11-03-general-certified-early.csv')), ed: fs.readFileSync(path.join(dir, '2026-11-03-general-certified.csv')) },
+    { precinctCap: 94, config: { enablePrecinctResults: true, precinctCap: 94 }, lastUpdated: 'x' });
+  assert.deepEqual(res.verify.filter((c) => !c.pass), []);
+  const m = res.merged;
+  assert.equal(m.earlyTotals.ballots, 70058);
+  const ci = m.contests.findIndex((c) => c.title === 'Red Bank Commission Red Bank');
+  const k = m.contests[ci].candidates.findIndex((x) => x.name === 'Fred Ferguson');
+  assert.equal(m.earlyTotals.contests[ci][k], 348);
+  assert.equal(m.contests[ci].candidates[k].votes - m.earlyTotals.contests[ci][k], 418);
+  assert.ok(m.contests.every((c) => c.candidates.every((x) => x.noEarlySplit === undefined)));
+});
+
+test('convert_data.py with NAMED_WRITE_INS=1 reads the same write-ins (the check-live-pages reference)', (t) => {
+  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  if (spawnSync(py, ['--version']).status !== 0) return t.skip('no Python');
+  const repo = path.join(__dirname, '..', '..');
+  const script = [
+    'import sys, json, convert_data as c',
+    'out = []',
+    'for h in json.loads(sys.stdin.read()):',
+    '    out.append(list(c.named_write_in(h)))',
+    'print(json.dumps(out))',
+  ].join('\n');
+  const r = spawnSync(py, ['-c', script], { cwd: repo, input: JSON.stringify(HEADINGS.filter((h) => /write[\s-]*in/i.test(h))), env: { ...process.env, NAMED_WRITE_INS: '1' }, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const fromPy = JSON.parse(r.stdout).map(([n]) => n);
+  const fromJs = HEADINGS.filter((h) => /write[\s-]*in/i.test(h)).map((h) => resultColumns([h], 0, 1).map((x) => x.name)[0] ?? '');
+  assert.deepEqual(fromPy, fromJs);
+  // The whole certified file, merged by Python, has the same write-ins and votes.
+  const dir = path.join(__dirname, 'data');
+  const merge = [
+    'import sys, json, convert_data as c',
+    `e = c.parse_election_csv(${JSON.stringify(path.join(dir, '2026-11-03-general-certified-early.csv'))})`,
+    `d = c.parse_election_csv(${JSON.stringify(path.join(dir, '2026-11-03-general-certified.csv'))}, is_ed=True)`,
+    'm = c.merge_parsed_data(e, d)',
+    'print(json.dumps([[ct["title"], x["name"], x["party"], x["votes"]] for ct in m["contests"] for x in ct["candidates"] if x.get("writeIn")]))',
+  ].join('\n');
+  const r2 = spawnSync(py, ['-c', merge], { cwd: repo, env: { ...process.env, NAMED_WRITE_INS: '1' }, encoding: 'utf8' });
+  assert.equal(r2.status, 0, r2.stderr);
+  const res = buildResults({ early: fs.readFileSync(path.join(dir, '2026-11-03-general-certified-early.csv')), ed: fs.readFileSync(path.join(dir, '2026-11-03-general-certified.csv')) }, { precinctCap: 94, lastUpdated: 'x' });
+  assert.deepEqual(JSON.parse(r2.stdout), res.merged.contests.flatMap((c) => c.candidates.filter((x) => x.writeIn).map((x) => [c.title, x.name, x.party, x.votes])));
 });

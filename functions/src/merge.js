@@ -174,6 +174,7 @@ function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES, markedRep
   }
 
   const earlyByPrecinct = fixes.d5 ? splitEarly(early, ed, contests) : null;
+  if (earlyByPrecinct) markUnsplitWriteIns(early, contests);
 
   const dataVersion = crypto.createHash('md5').update(pyDumps(contests, { sortKeys: true })).digest('hex').slice(0, 12);
 
@@ -230,9 +231,10 @@ function splitEarly(early, ed, contests) {
     const row = [];
     for (const cand of c.candidates) {
       const pv = {};
-      // A write-in's early / Election Day split is unknown (write-ins are only named in the
-      // certified file), so it gets no early numbers; the pages show write-ins under All Ballots only.
-      const src = cand.writeIn ? undefined : earlyC?.candidates.get(cand.name);
+      // A write-in the Early-slot file lists is split like any candidate; one it doesn't list (an
+      // election-night Early/ABS file names no write-ins) gets no early numbers and is marked
+      // noEarlySplit (markUnsplitWriteIns), so the pages show it under All Ballots only.
+      const src = earlyC?.candidates.get(cand.name);
       if (src) {
         for (const [p, v] of src.precinctVotes) {
           if (!(v > 0)) continue;
@@ -245,6 +247,18 @@ function splitEarly(early, ed, contests) {
     out.push(row);
   }
   return { ballots, contests: out };
+}
+
+/**
+ * Fix d6 with d5: a write-in the Early-slot file doesn't list has an unknown early / Election Day
+ * split (not "all on Election Day"): noEarlySplit: true. Write-ins the Early file lists (a certified
+ * early-only export) are split as usual.
+ */
+function markUnsplitWriteIns(early, contests) {
+  for (const c of contests) {
+    const earlyC = early.contestsRaw.get(c.title);
+    for (const cand of c.candidates) if (cand.writeIn && !earlyC?.candidates.has(cand.name)) cand.noEarlySplit = true;
+  }
 }
 
 /**
@@ -267,4 +281,4 @@ function earlyTotals(early, split, data) {
 }
 
 module.exports = {
-  HIDE_ZERO_VOTE_WRITE_INS, mergeParsedData, voteForNumber, inferReported, splitEarly, earlyTotals };
+  HIDE_ZERO_VOTE_WRITE_INS, mergeParsedData, voteForNumber, inferReported, splitEarly, markUnsplitWriteIns, earlyTotals };
