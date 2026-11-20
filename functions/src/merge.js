@@ -31,7 +31,18 @@ function voteForNumber(text) {
   return m ? Math.max(1, pyInt(m[1])) : 1;
 }
 
-const copyCandidate = (c) => ({ name: c.name, party: c.party, votes: c.votes, precinctVotes: c.precinctVotes });
+const copyCandidate = (c) => {
+  const out = { name: c.name, party: c.party, votes: c.votes, precinctVotes: c.precinctVotes };
+  if (c.writeIn) out.writeIn = true;
+  return out;
+};
+
+/**
+ * Fix d6: whether named write-ins that got no votes are left out of the results (the certified file
+ * lists every registered write-in, some with 0). Nate's decision 2026-11-20: show them with 0 votes,
+ * so this is false. Set it to true to hide them.
+ */
+const HIDE_ZERO_VOTE_WRITE_INS = false;
 
 /** Precincts of an ED contest that reported (fix d1; see the header). */
 function inferReported(edC, earlyC) {
@@ -40,6 +51,7 @@ function inferReported(edC, earlyC) {
     let nonzero = false;
     let changed = false;
     for (const [name, cand] of edC.candidates) {
+      if (cand.writeIn) continue; // write-ins are assigned after the count; they say nothing about reporting
       const v = cand.precinctVotes.get(p);
       if (v === undefined) continue;
       if (v !== 0) nonzero = true;
@@ -98,7 +110,8 @@ function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES, markedRep
       if (!src) continue;
       for (const [name, c] of src.candidates) if (!byName.has(name)) byName.set(name, copyCandidate(c));
     }
-    const candidates = [...byName.values()];
+    let candidates = [...byName.values()];
+    if (fixes.d6 && HIDE_ZERO_VOTE_WRITE_INS) candidates = candidates.filter((c) => !(c.writeIn && c.votes === 0));
 
     // No REP/DEM in the contest: every candidate is IND, and the label is dropped.
     if (!candidates.some((c) => c.party === 'REP' || c.party === 'DEM')) for (const c of candidates) c.party = '';
@@ -161,6 +174,7 @@ function mergeParsedData(early, ed, { precinctCap = 92, fixes = FIXES, markedRep
   }
 
   const earlyByPrecinct = fixes.d5 ? splitEarly(early, ed, contests) : null;
+  if (earlyByPrecinct) markUnsplitWriteIns(early, contests);
 
   const dataVersion = crypto.createHash('md5').update(pyDumps(contests, { sortKeys: true })).digest('hex').slice(0, 12);
 
@@ -217,6 +231,9 @@ function splitEarly(early, ed, contests) {
     const row = [];
     for (const cand of c.candidates) {
       const pv = {};
+      // A write-in the Early-slot file lists is split like any candidate; one it doesn't list (an
+      // election-night Early/ABS file names no write-ins) gets no early numbers and is marked
+      // noEarlySplit (markUnsplitWriteIns), so the pages show it under All Ballots only.
       const src = earlyC?.candidates.get(cand.name);
       if (src) {
         for (const [p, v] of src.precinctVotes) {
@@ -230,6 +247,18 @@ function splitEarly(early, ed, contests) {
     out.push(row);
   }
   return { ballots, contests: out };
+}
+
+/**
+ * Fix d6 with d5: a write-in the Early-slot file doesn't list has an unknown early / Election Day
+ * split (not "all on Election Day"): noEarlySplit: true. Write-ins the Early file lists (a certified
+ * early-only export) are split as usual.
+ */
+function markUnsplitWriteIns(early, contests) {
+  for (const c of contests) {
+    const earlyC = early.contestsRaw.get(c.title);
+    for (const cand of c.candidates) if (cand.writeIn && !earlyC?.candidates.has(cand.name)) cand.noEarlySplit = true;
+  }
 }
 
 /**
@@ -251,4 +280,5 @@ function earlyTotals(early, split, data) {
   };
 }
 
-module.exports = { mergeParsedData, voteForNumber, inferReported, splitEarly, earlyTotals };
+module.exports = {
+  HIDE_ZERO_VOTE_WRITE_INS, mergeParsedData, voteForNumber, inferReported, splitEarly, markUnsplitWriteIns, earlyTotals };

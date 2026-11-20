@@ -52,6 +52,7 @@ function contestDiff(title, cur, next) {
       wasLeading: Boolean(o?.isLeading),
       decreased: votes.delta !== null && votes.delta < 0,
       status: !o ? 'added' : !n ? 'removed' : 'same',
+      ...((n ?? o).writeIn ? { writeIn: true } : {}),
     };
   });
   const flags = (x) => new Map((x?.precinctsStatus ?? []).map((p) => [p.name, p.reported]));

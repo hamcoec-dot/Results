@@ -26,6 +26,9 @@
  *   FIREBASE_WEB_API_KEY=… node tools/staging-election.js [--project hcec-election-results-staging]
  *       [--api-key KEY] [--election test-staging-dryrun] [--steps 00,01,02,03,04,05,06] [--publish false]
  *       [--set 92|94] [--pause S] [--rehearsal] [--check-pages] [--keep-admin] [--allow-production]
+ *       [--file ed=PATH --file early=PATH ...]
+ * --file uploads the given CSV files, in order, as the given kind (zero, early or ed), instead of the
+ *   sample steps: e.g. the certified pair (the certified file as ed, then the early-only export as early).
  * --pause waits S seconds after each publish, so pages polling every 60 s (and a load test) see each one.
  * --check-pages checks all four pages, as draft previews before every publish and live after it, against
  *   the CSV files behind them (tools/check-live-pages.js: every number, from the legacy Python converter).
@@ -58,7 +61,12 @@ const allowProduction = flag('--allow-production');
 const project = opt('--project', emulator ? 'demo-hcec' : 'hcec-election-results-staging');
 const apiKey = opt('--api-key', process.env.FIREBASE_WEB_API_KEY || (emulator ? 'demo-key' : configApiKey(project)));
 const electionId = opt('--election', 'test-staging-dryrun');
-const steps = opt('--steps', '00,01,02,03,04,05,06').split(',').map((s) => s.trim()).filter(Boolean);
+const fileSteps = [];
+for (let i = args.indexOf('--file'); i >= 0; i = args.indexOf('--file')) {
+  const [kind, ...rest] = String(args.splice(i, 2)[1] ?? '').split('=');
+  fileSteps.push({ kind, file: path.resolve(rest.join('=')) });
+}
+const steps = fileSteps.length ? fileSteps.map((_, k) => `f${k}`) : opt('--steps', '00,01,02,03,04,05,06').split(',').map((s) => s.trim()).filter(Boolean);
 const publish = !/^(false|no|0)$/i.test(opt('--publish', 'true'));
 const set = opt('--set', '92');
 const pause = Number(opt('--pause', '0'));
@@ -85,7 +93,10 @@ if (!apiKey) usage('No Firebase web API key: pass --api-key or set FIREBASE_WEB_
 // Only test-* elections: the tool resets their file slots (below), which must never happen to a real one.
 if (!/^test-[a-z0-9-]{1,57}$/.test(electionId)) usage(`The election id must start with "test-" (got ${electionId}).`);
 if (!['92', '94'].includes(set)) usage('--set is 92 or 94 (the sample file suffix, and the max precincts).');
-if (!steps.every((s) => /^\d\d$/.test(s))) usage('--steps are two-digit sample prefixes, e.g. 00,01,02.');
+if (!fileSteps.length && !steps.every((s) => /^\d\d$/.test(s))) usage('--steps are two-digit sample prefixes, e.g. 00,01,02.');
+for (const f of fileSteps) {
+  if (!['zero', 'early', 'ed'].includes(f.kind) || !fs.existsSync(f.file)) usage(`--file is zero|early|ed=<existing csv> (got ${f.kind}=${f.file}).`);
+}
 if (!(pause >= 0 && pause <= 600)) usage('--pause is 0 to 600 seconds.');
 if (rehearsal && (!publish || steps.join(',') !== '00,01,02,03,04,05,06')) usage('--rehearsal needs the full 00→06 run, published.');
 
@@ -101,6 +112,10 @@ const { getFunctions, connectFunctionsEmulator, httpsCallable } = nm('firebase/f
 
 /** The sample file for a step, and its upload kind (as emulator-drafts.js, plus 00 = Zero). */
 function sample(prefix) {
+  if (/^f\d+$/.test(prefix)) {
+    const f = fileSteps[Number(prefix.slice(1))];
+    return { name: path.basename(f.file), file: f.file, csv: fs.readFileSync(f.file, 'utf8'), kind: f.kind };
+  }
   const name = fs.readdirSync(SAMPLES).find((f) => f.startsWith(`${prefix}-`) && f.endsWith(`(${set}).csv`));
   if (!name) throw new Error(`No sample "${prefix}-… (${set}).csv" in ${SAMPLES}`);
   const n = Number(prefix);
@@ -339,12 +354,12 @@ async function main() {
     // run's selected ED file would be blocked (zero-file-has-votes). currentVersion is kept, so publishes
     // still chain on the live version.
     const existing = (await db.doc(`elections/${electionId}`).get()).data();
-    if (steps[0] === '00' && (existing.selectedEarlyUploadId || existing.selectedEdUploadId)) {
+    if ((steps[0] === '00' || fileSteps.length) && (existing.selectedEarlyUploadId || existing.selectedEdUploadId)) {
       await db.doc(`elections/${electionId}`).update({ selectedEarlyUploadId: null, selectedEdUploadId: null });
       console.log(`Cleared ${electionId}'s selected uploads from a previous run.`);
     }
     // A run that stopped in step 6d could leave a precinct marked as reported.
-    if (steps[0] === '00' && existing.markedReported?.length) {
+    if ((steps[0] === '00' || fileSteps.length) && existing.markedReported?.length) {
       await call('setMarkedReported', { electionId, precincts: [] });
       console.log(`Cleared ${electionId}'s precincts marked as reported from a previous run.`);
     }

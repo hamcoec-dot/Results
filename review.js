@@ -254,7 +254,7 @@
     var rows = c.candidates.map(function (x) {
       return h('tr', { class: x.decreased ? 'down' : null },
         h('th', { scope: 'row' }, x.name, x.status !== 'same' ? ' (' + x.status + ')' : ''),
-        h('td', null, x.party || '—'),
+        h('td', null, x.writeIn ? 'Certified write-in' + (x.party ? ' (' + x.party + ')' : '') : x.party || '—'),
         h('td', { class: 'n' }, C.num(x.current)),
         h('td', { class: 'n' }, C.num(x.draft)),
         h('td', { class: 'n' }, C.delta(x.delta)),

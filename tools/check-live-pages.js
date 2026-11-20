@@ -39,11 +39,14 @@ const STAGING_BASE = 'https://storage.googleapis.com/hcec-election-results-stagi
 const PAGES = ['index.html', 'reporting.html', 'precincts.html', 'scrolling.html'];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 const fmt = (n) => Number(n).toLocaleString('en-US');
+const WRITE_IN_LABEL = ' (Certified Write-in)';
 const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
 function bridge(op, inputs) {
   const out = execFileSync(process.env.PYTHON || 'python3', [path.join(ROOT, 'tools', 'py_bridge.py')], {
     input: JSON.stringify({ op, inputs }), maxBuffer: 1 << 28,
+    // The pages show named write-ins (fix d6), so the reference reads them too (convert_data.NAMED_WRITE_INS).
+    env: { ...process.env, NAMED_WRITE_INS: '1' },
   });
   return JSON.parse(out).map((r) => {
     if (!('ok' in r)) throw new Error(`convert_data ${op} failed: ${r.error}`);
@@ -59,7 +62,17 @@ function bridge(op, inputs) {
  */
 function expected(early, ed, marked = []) {
   const want = expectedRaw(early, ed, marked);
-  for (const c of want.contests) c.title = shownTitle(c.title);
+  // Status and county from the last non-empty header cell (defect d2, fixed in parse.js);
+  // convert_data.py reads column 4, which the certified export leaves empty.
+  const head = csvRows(fs.readFileSync(ed || early, 'utf8').replace(/^\uFEFF/, ''));
+  const lastCell = (row) => (row || []).slice(1).map((x) => x.trim()).filter(Boolean).pop();
+  want.statusLabel = lastCell(head[0]) ?? want.statusLabel;
+  want.county = lastCell(head[2]) ?? want.county;
+  for (const c of want.contests) {
+    c.title = shownTitle(c.title);
+    // The pages put the label after a write-in's name (app.js labelWriteIns).
+    for (const x of c.candidates) if (x.writeIn && !x.name.endsWith(WRITE_IN_LABEL)) x.name += WRITE_IN_LABEL;
+  }
   return want;
 }
 
@@ -87,7 +100,8 @@ function expectedRaw(early, ed, marked = []) {
     const all = e.csvPrecinctsTotal > 0 && e.csvPrecinctsReporting >= e.csvPrecinctsTotal;
     const byVotes = (p) => {
       if (all) return true;
-      const cands = Object.entries(e.candidates).filter(([, x]) => p in x.precinctVotes);
+      // Write-ins are assigned after the count: they say nothing about reporting (merge.js).
+      const cands = Object.entries(e.candidates).filter(([, x]) => p in x.precinctVotes && !x.writeIn);
       return cands.some(([, x]) => x.precinctVotes[p] !== 0) && cands.some(([n, x]) => x.precinctVotes[p] !== before?.candidates[n]?.precinctVotes[p]);
     };
     c.precinctsReporting = e.csvPrecinctsReporting;
@@ -250,7 +264,8 @@ async function createChecker({ bucket, emulator = false }) {
         const row = card.rows.find((r) => norm(r.name) === norm(x.name));
         if (!row) { problems.push(`summary ${c.title}: candidate "${x.name}" missing`); continue; }
         eq(`summary ${c.title} / ${x.name} votes`, row.votes, fmt(x.votes));
-        eq(`summary ${c.title} / ${x.name} percent`, row.pct, `(${x.percentage.toFixed(1)}%)`);
+        // From the votes, as the page computes it (PR #41), not convert_data's 2-decimal percentage.
+        eq(`summary ${c.title} / ${x.name} percent`, row.pct, `(${(c.totalVotes > 0 ? (x.votes / c.totalVotes) * 100 : 0).toFixed(1)}%)`);
       }
     }
 

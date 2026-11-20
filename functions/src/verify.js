@@ -9,14 +9,7 @@
  * CSV "R of T" (d1) rather than the legacy overrides.
  */
 const { pyStrip, pyRound2, pyStrFloat } = require('./pycompat');
-const { cleanNum, cleanContestName, parseReporting, findTotals, statsRowName, FIXES } = require('./parse');
-
-const PARTY_PREFIXES = ['REP ', 'DEM ', 'IND '];
-const stripPrefixes = (raw) => {
-  let s = raw;
-  for (const p of PARTY_PREFIXES) if (s.startsWith(p)) s = pyStrip(s.slice(p.length));
-  return s;
-};
+const { cleanNum, cleanContestName, parseReporting, findTotals, statsRowName, stripPrefixes, FIXES } = require('./parse');
 
 /** Visits every contest block: cb(i, reportingCells, contestRow, candidateRow, totalsIdx). */
 function eachContestBlock(rows, cb) {
@@ -32,15 +25,48 @@ function eachContestBlock(rows, cb) {
 
 const rawCell = (row, col) => (row[col] ? pyStrip(row[col]) : '');
 
-/** Candidate columns of one contest: [[col, name], ...] (write-ins skipped, party prefix removed). */
-function candidateColumns(candidateRow, col, nextCol) {
-  const out = [];
+const WRITE_IN_SUFFIX = ' (Certified Write-in)';
+/**
+ * A write-in column's candidate name, read independently of parse.resultColumns (verify is the
+ * second reader of the CSV): '' for a column that is not a named write-in. The header is
+ * "Write-in" (any case; a space or hyphen, or nothing, between the words), then ":" and the name.
+ * "Totals", "Not Assigned" and an empty name are not candidates; a party word before the name is dropped.
+ */
+function writeInName(raw) {
+  const lower = raw.toLowerCase();
+  if (!lower.startsWith('write')) return '';
+  let i = 5;
+  while (i < raw.length && (raw[i] === '-' || /\s/u.test(raw[i]))) i++;
+  if (lower.slice(i, i + 2) !== 'in') return '';
+  i += 2;
+  while (i < raw.length && /\s/u.test(raw[i])) i++;
+  if (raw[i] !== ':') return '';
+  let name = raw.slice(i + 1).split(/\s+/u).filter(Boolean).join(' ');
+  for (const p of ['REP ', 'DEM ', 'IND ']) if (name.startsWith(p)) { name = pyStrip(name.slice(p.length)); break; }
+  const l = name.toLowerCase();
+  if (!name || l.split(' ').join('') === 'notassigned' || l.includes('write') && /write[\s-]*in/u.test(l)) return '';
+  return name;
+}
+
+/**
+ * Candidate columns of one contest: [[col, name], ...] (party prefix removed). Legacy skips every
+ * column containing "write-in"; with fix d6 named write-ins are kept (a name equal to a ballot
+ * candidate's gets the " (Certified Write-in)" suffix) and totals / not-assigned columns are not.
+ */
+function candidateColumns(candidateRow, col, nextCol, fixes = FIXES) {
+  const ballot = [];
+  const writeIns = [];
   for (let c = col; c < Math.min(nextCol, candidateRow.length); c++) {
-    const raw = pyStrip(candidateRow[c]);
-    if (!raw || raw.toLowerCase().includes('write-in')) continue;
-    out.push([c, stripPrefixes(raw)]);
+    const raw = pyStrip(candidateRow[c] ?? '');
+    if (!raw) continue;
+    if (!fixes.d6) { if (!raw.toLowerCase().includes('write-in')) ballot.push([c, stripPrefixes(raw)]); continue; }
+    if (!/write[\s-]*in/iu.test(raw)) { ballot.push([c, stripPrefixes(raw)]); continue; }
+    const name = writeInName(raw);
+    if (name) writeIns.push([c, name]);
   }
-  return out;
+  const names = new Set(ballot.map(([, n]) => n));
+  const out = [...ballot, ...writeIns.map(([c, n]) => [c, names.has(n) ? n + WRITE_IN_SUFFIX : n])];
+  return out.sort((a, b) => a[0] - b[0]);
 }
 
 function firstTotals(rows) {
@@ -62,7 +88,7 @@ function findAllRawContests(rows) {
 }
 
 /** Contest name (uncleaned, as verify.py keys it) -> candidate -> Totals-row votes. */
-function extractCandidateVotes(rows) {
+function extractCandidateVotes(rows, fixes) {
   const res = new Map();
   eachContestBlock(rows, (i, cells, contestRow, candidateRow, totalsIdx) => {
     cells.forEach(([col], k) => {
@@ -71,7 +97,7 @@ function extractCandidateVotes(rows) {
       if (!res.has(name)) res.set(name, new Map());
       const m = res.get(name);
       const nextCol = k + 1 < cells.length ? cells[k + 1][0] : candidateRow.length;
-      for (const [c, cand] of candidateColumns(candidateRow, col, nextCol)) {
+      for (const [c, cand] of candidateColumns(candidateRow, col, nextCol, fixes)) {
         const votes = cleanNum(rows[totalsIdx]?.[c]);
         m.set(cand, Math.max(m.get(cand) ?? 0, votes));
       }
@@ -170,8 +196,8 @@ function verify({ earlyRows, edRows, latest: js, files = {} }, { precinctCap = 9
   check('contestCount', jsContests.size === rawFound.size, `Total contest count matches (${jsContests.size} == ${rawFound.size})`);
 
   // 4. Candidate totals
-  const earlyCands = extractCandidateVotes(early);
-  const edCands = extractCandidateVotes(ed);
+  const earlyCands = extractCandidateVotes(early, fixes);
+  const edCands = extractCandidateVotes(ed, fixes);
   for (const title of new Set([...earlyCands.keys(), ...edCands.keys()])) {
     if (!jsContests.has(title)) continue;
     const jsCands = new Map(jsContests.get(title).candidates.map((c) => [c.name, c]));
@@ -203,7 +229,7 @@ function verify({ earlyRows, edRows, latest: js, files = {} }, { precinctCap = 9
         if (!name || !jsContests.has(name)) return;
         const jsCands = new Map(jsContests.get(name).candidates.map((c) => [c.name, c]));
         const nextCol = k + 1 < cells.length ? cells[k + 1][0] : candidateRow.length;
-        const cols = candidateColumns(candidateRow, col, nextCol);
+        const cols = candidateColumns(candidateRow, col, nextCol, fixes);
         if (totalsIdx === null) return;
         for (let d = i + 2; d < totalsIdx; d++) {
           const row = precinctRows[d];
@@ -227,4 +253,4 @@ function verify({ earlyRows, edRows, latest: js, files = {} }, { precinctCap = 9
   return checks;
 }
 
-module.exports = { verify, eachContestBlock, findAllRawContests, candidateColumns };
+module.exports = { verify, eachContestBlock, findAllRawContests, candidateColumns, writeInName };

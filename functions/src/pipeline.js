@@ -37,7 +37,7 @@ function buildResults({ early = null, ed = null }, opts = {}) {
   };
   const result = mergeParsedData(parsed.early, parsed.ed, { precinctCap, fixes, markedReported });
   if (!result) return null;
-  if (fixes.d4) result.data.dataVersion = versionOf(result.data.contests, config);
+  if (fixes.d4) result.data.dataVersion = versionOf(result.data.contests, config, result.data.earlyByPrecinct);
 
   const outputs = buildOutputs(result.data, { config, lastUpdated });
   const checks = verify({
@@ -52,13 +52,17 @@ function buildResults({ early = null, ed = null }, opts = {}) {
 /**
  * d4: one hash of the contests (as merge.js hashes them) and the page config, so the same results
  * under different settings are different versions. LEGACY keeps merge.js's contests-only hash.
+ * With an early / Election Day split (d5) the split is hashed too: a new Early/ABS file that changes
+ * only the split (the certified early-only export after the certified file) is a new version, so
+ * open pages refetch it and the version archive keeps both.
  */
-function versionOf(contests, config) {
-  return crypto.createHash('md5')
+function versionOf(contests, config, earlyByPrecinct = null) {
+  const h = crypto.createHash('md5')
     .update(pyDumps(contests, { sortKeys: true }))
     .update('\n')
-    .update(pyDumps(config, { sortKeys: true }))
-    .digest('hex').slice(0, 12);
+    .update(pyDumps(config, { sortKeys: true }));
+  if (earlyByPrecinct) h.update('\n').update(pyDumps(earlyByPrecinct, { sortKeys: true }));
+  return h.digest('hex').slice(0, 12);
 }
 
 module.exports = { buildResults, versionOf };

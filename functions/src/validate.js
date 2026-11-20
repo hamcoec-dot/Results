@@ -64,6 +64,10 @@
       if (count(r, p + '.votes', x.votes)) sum += x.votes;
       if (pct(r, p + '.percentage', x.percentage) && x.percentage > 100) r.fail(p + '.percentage', 'over 100');
       bool(r, p + '.isLeading', x.isLeading);
+      // Optional (fix d6): a named write-in candidate.
+      if (x.writeIn !== undefined && x.writeIn !== true) r.fail(p + '.writeIn', 'must be true when present');
+      // A write-in whose early / Election Day split is not known (the Early file doesn't list it).
+      if (x.noEarlySplit !== undefined && !(x.noEarlySplit === true && x.writeIn === true)) r.fail(p + '.noEarlySplit', 'must be true, and only on a write-in');
     });
     if (count(r, path + '.totalVotes', c.totalVotes) && sum !== c.totalVotes) {
       r.fail(path, 'candidate votes add up to ' + sum + ', contest total is ' + c.totalVotes);
