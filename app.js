@@ -1791,7 +1791,6 @@ window.ElectionApp = (function() {
       const overallRepCapped = Math.min(data.overallPrecinctsReporting || 0, precinctCap());
       const overallTotCapped = Math.min(data.overallPrecinctsTotal || precinctCap(), precinctCap());
       const earlyRep = earlyVotingReported(data);
-      const earlyTot = Number(data.earlyVotingTotal) || 1;
 
       // With the early / Election Day ballots card shown, early & absentee ballots are visibly in, and
       // the line would push the left column into the footer on a 1280 x 720 screen: left out.
