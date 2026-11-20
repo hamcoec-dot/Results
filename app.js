@@ -1028,7 +1028,7 @@ window.ElectionApp = (function() {
     const all = getCurrentDataset();
     const container = document.getElementById('contests-container');
     if (!container || !all || !all.contests) return;
-    // Write-ins only under All Ballots (their early / Election Day split is not known).
+    // Write-ins whose early / Election Day split is not known (noEarlySplit) are left out of the Early & Absentee and Election Day views; split write-ins stay.
     const data = currentSummaryScope(all) === 'ALL' ? all : withoutUnsplitWriteIns(all);
 
     const filteredContests = data.contests.filter(contest => {
@@ -2258,7 +2258,7 @@ ${ballotsCard || reportingCard}
 
   function renderPrecinctPage() {
     if (!electionData || !electionData.latest) return;
-    // Write-ins only under All ballots (their early / Election Day split is not known).
+    // Write-ins whose early / Election Day split is not known (noEarlySplit) are left out of the Early & absentee and Election Day views; split write-ins stay.
     const latest = currentScope(electionData.latest) === 'ALL' ? electionData.latest : withoutUnsplitWriteIns(electionData.latest);
 
     syncScopeTabs(latest);
