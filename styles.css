@@ -2144,3 +2144,9 @@ body.archive-view [onclick="ElectionApp.refreshResults()"] {
   font-size: 13px;
   font-weight: 700;
 }
+
+/* Precinct page: the same note, as a full-width line in the filter bar. */
+#precinct-scope-note {
+  flex-basis: 100%;
+  margin: 0;
+}

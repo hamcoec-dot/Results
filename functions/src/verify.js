@@ -9,14 +9,7 @@
  * CSV "R of T" (d1) rather than the legacy overrides.
  */
 const { pyStrip, pyRound2, pyStrFloat } = require('./pycompat');
-const { cleanNum, cleanContestName, parseReporting, findTotals, statsRowName, FIXES } = require('./parse');
-
-const PARTY_PREFIXES = ['REP ', 'DEM ', 'IND '];
-const stripPrefixes = (raw) => {
-  let s = raw;
-  for (const p of PARTY_PREFIXES) if (s.startsWith(p)) s = pyStrip(s.slice(p.length));
-  return s;
-};
+const { cleanNum, cleanContestName, parseReporting, findTotals, statsRowName, resultColumns, stripPrefixes, FIXES } = require('./parse');
 
 /** Visits every contest block: cb(i, reportingCells, contestRow, candidateRow, totalsIdx). */
 function eachContestBlock(rows, cb) {
@@ -32,15 +25,12 @@ function eachContestBlock(rows, cb) {
 
 const rawCell = (row, col) => (row[col] ? pyStrip(row[col]) : '');
 
-/** Candidate columns of one contest: [[col, name], ...] (write-ins skipped, party prefix removed). */
-function candidateColumns(candidateRow, col, nextCol) {
-  const out = [];
-  for (let c = col; c < Math.min(nextCol, candidateRow.length); c++) {
-    const raw = pyStrip(candidateRow[c]);
-    if (!raw || raw.toLowerCase().includes('write-in')) continue;
-    out.push([c, stripPrefixes(raw)]);
-  }
-  return out;
+/**
+ * Candidate columns of one contest: [[col, name], ...] (party prefix removed). Write-in totals and
+ * unassigned write-ins are skipped; named write-ins are kept with fix d6 (parse.resultColumns).
+ */
+function candidateColumns(candidateRow, col, nextCol, fixes = FIXES) {
+  return resultColumns(candidateRow, col, nextCol, fixes).map((x) => [x.c, x.writeIn ? x.name : stripPrefixes(x.raw)]);
 }
 
 function firstTotals(rows) {
@@ -62,7 +52,7 @@ function findAllRawContests(rows) {
 }
 
 /** Contest name (uncleaned, as verify.py keys it) -> candidate -> Totals-row votes. */
-function extractCandidateVotes(rows) {
+function extractCandidateVotes(rows, fixes) {
   const res = new Map();
   eachContestBlock(rows, (i, cells, contestRow, candidateRow, totalsIdx) => {
     cells.forEach(([col], k) => {
@@ -71,7 +61,7 @@ function extractCandidateVotes(rows) {
       if (!res.has(name)) res.set(name, new Map());
       const m = res.get(name);
       const nextCol = k + 1 < cells.length ? cells[k + 1][0] : candidateRow.length;
-      for (const [c, cand] of candidateColumns(candidateRow, col, nextCol)) {
+      for (const [c, cand] of candidateColumns(candidateRow, col, nextCol, fixes)) {
         const votes = cleanNum(rows[totalsIdx]?.[c]);
         m.set(cand, Math.max(m.get(cand) ?? 0, votes));
       }
@@ -170,8 +160,8 @@ function verify({ earlyRows, edRows, latest: js, files = {} }, { precinctCap = 9
   check('contestCount', jsContests.size === rawFound.size, `Total contest count matches (${jsContests.size} == ${rawFound.size})`);
 
   // 4. Candidate totals
-  const earlyCands = extractCandidateVotes(early);
-  const edCands = extractCandidateVotes(ed);
+  const earlyCands = extractCandidateVotes(early, fixes);
+  const edCands = extractCandidateVotes(ed, fixes);
   for (const title of new Set([...earlyCands.keys(), ...edCands.keys()])) {
     if (!jsContests.has(title)) continue;
     const jsCands = new Map(jsContests.get(title).candidates.map((c) => [c.name, c]));
@@ -203,7 +193,7 @@ function verify({ earlyRows, edRows, latest: js, files = {} }, { precinctCap = 9
         if (!name || !jsContests.has(name)) return;
         const jsCands = new Map(jsContests.get(name).candidates.map((c) => [c.name, c]));
         const nextCol = k + 1 < cells.length ? cells[k + 1][0] : candidateRow.length;
-        const cols = candidateColumns(candidateRow, col, nextCol);
+        const cols = candidateColumns(candidateRow, col, nextCol, fixes);
         if (totalsIdx === null) return;
         for (let d = i + 2; d < totalsIdx; d++) {
           const row = precinctRows[d];

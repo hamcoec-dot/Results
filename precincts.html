@@ -18,7 +18,7 @@
   </script>
 
   <!-- CSS Design System -->
-  <link rel="stylesheet" href="styles.css?v=2242f7d659">
+  <link rel="stylesheet" href="styles.css?v=7572423ea0">
 
   <!-- The results bucket: connect while the page loads (the data requests start just below) -->
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
@@ -157,6 +157,7 @@
           <button type="button" class="tab-btn" data-scope="EARLY" aria-pressed="false" onclick="ElectionApp.setPrecinctVoteScope('EARLY')">Early &amp; Absentee</button>
           <button type="button" class="tab-btn" data-scope="ED" aria-pressed="false" onclick="ElectionApp.setPrecinctVoteScope('ED')">Election Day</button>
         </div>
+        <p id="precinct-scope-note" class="ballot-scope-note" role="status" hidden></p>
         <!-- Party Filter Tabs -->
         <div class="filter-tabs" role="group" aria-label="Party Filter">
           <button type="button" class="tab-btn active" data-precinct-party="ALL" aria-pressed="true" onclick="ElectionApp.setPrecinctPartyFilter('ALL')">All Contests</button>
@@ -193,7 +194,7 @@
   </button>
 
   <!-- Load Data Payload and App Controller -->
-  <script src="./functions/src/validate.js?v=8a82b7e7f4" defer></script>
-  <script src="./app.js?v=62a3827808" defer></script>
+  <script src="./functions/src/validate.js?v=55ace16c4b" defer></script>
+  <script src="./app.js?v=2e0fb4b3ba" defer></script>
 </body>
 </html>

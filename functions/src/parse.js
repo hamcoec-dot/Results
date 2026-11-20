@@ -12,12 +12,21 @@
  *   d3  STATISTICS rows of the 5-column export (5 cells, 3 on continuation pages) are read.
  *   d4  dataVersion also covers the page config (pipeline.js), so a settings-only change (precinct page
  *       toggle, max precincts) is a new version: pages refetch it and the version archive isn't overwritten.
+ *   d5  early vs Election Day split per precinct (merge.js).
+ *   d6  named write-in candidates ("Write-in: Name" columns, added to the certified file) are results:
+ *       they are read with writeIn: true. "Write-in Totals", "Write-in: Not Assigned" and a bare
+ *       "Write-in" are still skipped (Totals = named + not assigned, so keeping it would double count).
+ *       A write-in with a ballot candidate's name in the same contest is named "<name> (Certified Write-in)".
+ *       Legacy skipped every column containing "write-in".
+ *   d7  the STATISTICS columns are read by their header names. Legacy read the 3rd-5th numbers as
+ *       Republican / Democratic / General ballots whatever they were (the certified export's 3rd
+ *       column is "Ballots Cast - Blank").
  */
 const { PY_WS, pyStrip, pyLowerChars, pyInt, pyIntBig, pyTrueDiv, pyFloat, pyRound2 } = require('./pycompat');
 const { readCsv } = require('./csv');
 
-const FIXES = Object.freeze({ d1: true, d2: true, d3: true, d4: true, d5: true });
-const LEGACY = Object.freeze({ d1: false, d2: false, d3: false, d4: false, d5: false });
+const FIXES = Object.freeze({ d1: true, d2: true, d3: true, d4: true, d5: true, d6: true, d7: true });
+const LEGACY = Object.freeze({ d1: false, d2: false, d3: false, d4: false, d5: false, d6: false, d7: false });
 
 /** Raised where the legacy parser raises (an IndexError on a malformed header). */
 class ParseError extends Error {
@@ -130,6 +139,50 @@ function findTotals(rows, from) {
   return null;
 }
 
+const WRITE_IN = /write[\s-]*in/iu;
+const NAMED_WRITE_IN = /^write[\s-]*in[\s]*:[\s]*(.+)$/iu;
+const NOT_ASSIGNED = /^not[\s]+assigned$/iu;
+const PARTY_PREFIXES = ['REP ', 'DEM ', 'IND '];
+/** A ballot candidate's name without its party prefixes (as verify.py compares names). */
+function stripPrefixes(raw) {
+  let s = raw;
+  for (const p of PARTY_PREFIXES) if (s.startsWith(p)) s = pyStrip(s.slice(p.length));
+  return s;
+}
+/** Appended to a write-in's name only when a ballot candidate in the contest has the same name. */
+const WRITE_IN_CLASH_SUFFIX = ' (Certified Write-in)';
+
+/**
+ * The result columns of one contest block, in order: [{c, raw, writeIn, name?}]. Blank headers and
+ * columns that are not results are left out (legacy: every "write-in" column; d6: write-in totals,
+ * not-assigned and unnamed write-ins). A named write-in carries its name (made unique, see d6).
+ */
+function resultColumns(candidateRow, col, nextCol, fixes = FIXES) {
+  const out = [];
+  for (let c = col; c < Math.min(nextCol, candidateRow.length); c++) {
+    const raw = pyStrip(candidateRow[c] ?? '');
+    if (!raw) continue;
+    if (!fixes.d6) {
+      if (!raw.toLowerCase().includes('write-in')) out.push({ c, raw, writeIn: false });
+      continue;
+    }
+    if (!WRITE_IN.test(raw)) { out.push({ c, raw, writeIn: false }); continue; }
+    const m = NAMED_WRITE_IN.exec(raw);
+    const name = m ? pyStrip(m[1]).replace(WS_RUN, ' ') : '';
+    if (!name || NOT_ASSIGNED.test(name) || WRITE_IN.test(name)) continue;
+    out.push({ c, raw, writeIn: true, name });
+  }
+  const ballotNames = new Set(out.filter((x) => !x.writeIn).map((x) => stripPrefixes(x.raw)));
+  for (const x of out) if (x.writeIn && ballotNames.has(x.name)) x.name += WRITE_IN_CLASH_SUFFIX;
+  return out;
+}
+
+/** A write-in's party: the primary's party (REP / DEM contest title), else none. */
+function writeInParty(contestName) {
+  const upper = contestName.toUpperCase();
+  return upper.startsWith('REP') ? 'REP' : upper.startsWith('DEM') ? 'DEM' : '';
+}
+
 /**
  * [precinct name, index of its voters cell] for a STATISTICS row, or null. First-page rows put the
  * name in column 1, continuation pages in column 0; minimum row lengths are min0 / min1 (d3).
@@ -144,15 +197,44 @@ function statsRowName(row, min0, min1) {
   return row.length >= min1 && c1 && !STATS_SKIP_1.has(c1) ? [c1, 2] : null;
 }
 
+const STATS_VOTERS = 'Registered Voters - Total';
+const STATS_PARTY = [['rep', 'Ballots Cast - Republican'], ['dem', 'Ballots Cast - Democratic'], ['gen', 'Ballots Cast - General']];
+/** Legacy (and a STATISTICS block with no header row): rep / dem / gen are the 3rd-5th numbers. */
+const STATS_LEGACY_OFFSETS = Object.freeze({ rep: 2, dem: 3, gen: 4 });
+
+/**
+ * d7: where rep / dem / gen sit relative to the voters cell, from a STATISTICS header row
+ * ("Registered Voters - Total", "Ballots Cast - Total", "Ballots Cast - Republican", ...); null for
+ * a column the export doesn't have. null when the row is not a header row.
+ */
+function statsOffsets(row) {
+  const cells = row.map((c) => pyStrip(c ?? '').toLowerCase());
+  const v = cells.indexOf(STATS_VOTERS.toLowerCase());
+  if (v < 0) return null;
+  const out = {};
+  for (const [key, label] of STATS_PARTY) {
+    const at = cells.indexOf(label.toLowerCase());
+    out[key] = at > v ? at - v : null;
+  }
+  return out;
+}
+
+const partyCell = (row, v, off) => (off === null ? 0 : cleanNum(row[v + off]));
+
 function parseStats(rows, fixes) {
   const [min0, min1] = fixes.d3 ? [3, 4] : [6, 7];
   const stats = new Map();
   let inStats = false;
+  let offsets = STATS_LEGACY_OFFSETS;
   for (const row of rows) {
     if (row.length === 0) continue;
     if (row[0] === 'Totals' && inStats) break;
     if (row.some((cell) => cell.includes('STATISTICS'))) { inStats = true; continue; }
     if (!inStats) continue;
+    if (fixes.d7) {
+      const header = statsOffsets(row);
+      if (header) { offsets = header; continue; }
+    }
 
     const at = statsRowName(row, min0, min1);
     if (!at) continue;
@@ -164,14 +246,25 @@ function parseStats(rows, fixes) {
         name,
         voters,
         ballots,
-        rep: cleanNum(row[v + 2]),
-        dem: cleanNum(row[v + 3]),
-        gen: cleanNum(row[v + 4]),
+        rep: partyCell(row, v, offsets.rep),
+        dem: partyCell(row, v, offsets.dem),
+        gen: partyCell(row, v, offsets.gen),
         turnoutPercent: statsTurnout(row[v + 1], row[v]),
       });
     }
   }
   return stats;
+}
+
+/** d7: the first STATISTICS block's header offsets (the countywide Totals row follows its columns). */
+function firstStatsOffsets(rows) {
+  let inStats = false;
+  for (const row of rows) {
+    if (row[0] === 'Totals') break;
+    if (row.some((cell) => cell.includes('STATISTICS'))) { inStats = true; continue; }
+    if (inStats && row.length) return statsOffsets(row) ?? STATS_LEGACY_OFFSETS;
+  }
+  return STATS_LEGACY_OFFSETS;
 }
 
 function parseContests(rows, isEd, fixes) {
@@ -210,14 +303,15 @@ function parseContests(rows, isEd, fixes) {
       const contest = contests.get(contestName);
 
       const candCols = [];
-      for (let c = col; c < Math.min(nextCol, candidateRow.length); c++) {
-        const candRaw = pyStrip(candidateRow[c]);
-        if (!candRaw || candRaw.toLowerCase().includes('write-in')) continue;
-        const { party, name } = partyOf(contestName, candRaw);
+      for (const { c, raw, writeIn, name: writeInName } of resultColumns(candidateRow, col, nextCol, fixes)) {
+        const { party, name } = writeIn ? { party: writeInParty(contestName), name: writeInName } : partyOf(contestName, raw);
         const votes = cleanNum(rows[totalsIdx]?.[c]);
         const existing = contest.candidates.get(name);
-        if (!existing) contest.candidates.set(name, { name, party, votes, precinctVotes: new Map() });
-        else existing.votes = Math.max(existing.votes, votes);
+        if (!existing) {
+          const cand = { name, party, votes, precinctVotes: new Map() };
+          if (writeIn) cand.writeIn = true;
+          contest.candidates.set(name, cand);
+        } else existing.votes = Math.max(existing.votes, votes);
         candCols.push([c, name]);
       }
 
@@ -260,6 +354,9 @@ function parseRows(rows, { isEd = false, fixes = FIXES } = {}) {
 
   const totalsRow = rows.find((r) => r[0] === 'Totals');
   const tot = (k) => cleanNum(totalsRow?.[k]);
+  // The Totals row's voters cell is column 1; rep / dem / gen follow the header's offsets (d7).
+  const off = fixes.d7 ? firstStatsOffsets(rows) : STATS_LEGACY_OFFSETS;
+  const partyTot = (key) => (off[key] === null ? 0 : tot(1 + off[key]));
 
   return {
     isEd,
@@ -269,9 +366,9 @@ function parseRows(rows, { isEd = false, fixes = FIXES } = {}) {
     statusLabel: headerCell(rows[0], fixes) ?? 'UNOFFICIAL RESULTS',
     totalVoters: tot(1),
     totalBallots: tot(2),
-    ballotsRep: tot(3),
-    ballotsDem: tot(4),
-    ballotsGen: tot(5),
+    ballotsRep: partyTot('rep'),
+    ballotsDem: partyTot('dem'),
+    ballotsGen: partyTot('gen'),
     precinctStats: parseStats(rows, fixes),
     contestsRaw: parseContests(rows, isEd, fixes),
   };
@@ -284,5 +381,5 @@ function parseElectionCsv(input, opts) {
 
 module.exports = {
   parseElectionCsv, parseRows, cleanNum, cleanContestName, parseReporting, findTotals, partyOf, statsRowName, statsTurnout,
-  ParseError, FIXES, LEGACY,
+  resultColumns, stripPrefixes, writeInParty, WRITE_IN_CLASH_SUFFIX, ParseError, FIXES, LEGACY,
 };
