@@ -54,7 +54,10 @@ Then the workflow runs the smoke test. Start it from the Actions tab: **staging-
 tick **test_election** when you run **deploy** (staging only; it publishes right after the staging deploy).
 
 It signs in as the bot admin `staging-bot`. It creates the Auth user (a new random password each run) and
-`admins/staging-bot`, and deletes that doc at the end. The test election is made the active election (only the active election can publish).
+`admins/staging-bot`, and deletes that doc at the end. The test election is made the active election (only the active election can publish). At the end the election that was
+active before is made active again and, if the run published, its last version is republished through a rollback draft,
+so `current/` serves its files again and `auditLive` stays green. If that election never published anything, the test
+election stays active (with a warning), because its files are what `current/` serves.
 
 **It replaces the bucket's `current/` files.** Those files are shared by every election in the project, active
 or not. The tool refuses `hcec-election-results` unless `--allow-production` is passed (rehearsal only).

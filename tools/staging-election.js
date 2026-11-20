@@ -319,6 +319,45 @@ async function ensureBot(db) {
   return { email, password };
 }
 
+/**
+ * Makes the election that was active before the run active again. current/ is one set per bucket, so
+ * when this run published, current/ now holds the test election's files: auditLive (every minute, the
+ * active election only) would flag a mismatch for the previous election. Its files are put back by
+ * republishing its currentVersion through a rollback draft (the admin page's own path). If it has no
+ * currentVersion there is nothing to put back, so the test election stays active, with a warning.
+ * Returns false if the previous election could not be fully restored.
+ */
+async function restorePrevious({ db, call, previous, published }) {
+  const prev = (await db.doc(`elections/${previous}`).get()).data() ?? {};
+  if (published && !prev.currentVersion) {
+    console.log(`WARNING: ${previous} has no published version to put back on the public pages, so ${electionId} stays the active election (its files are what current/ serves). Make ${previous} active in its settings when wanted.`);
+    return true;
+  }
+  await call('upsertElection', {
+    id: previous, name: prev.name, date: prev.date, county: prev.county, precinctCap: prev.precinctCap,
+    enablePrecinctResults: Boolean(prev.enablePrecinctResults), makeActive: true,
+  });
+  console.log(`${previous} is the active election again.`);
+  if (!published) return true;
+  const version = prev.currentVersion;
+  const d = await call('createRollbackDraft', { electionId: previous, version });
+  const doc = (await db.doc(`elections/${previous}/drafts/${d.draftId}`).get()).data();
+  if (d.status !== 'ready') {
+    console.error(`FAIL: the rollback draft to put ${previous}'s ${version} back is ${d.status}; current/ still serves ${electionId}'s files.`);
+    return false;
+  }
+  const warns = doc.checks.filter((c) => c.severity === 'warn').map((c) => c.key);
+  const r = await call('publishDraft', {
+    electionId: previous, draftId: d.draftId, acknowledged: warns, confirmCount: doc.confirmCount, baseVersion: doc.baseVersion,
+  });
+  if (!r.liveCheck.ok || r.dataVersion !== version) {
+    console.error(`FAIL: republishing ${previous}'s ${version} gave ${r.dataVersion}, live check ${r.liveCheck.ok ? 'ok' : 'FAILED'}.`);
+    return false;
+  }
+  console.log(`${previous}'s ${version} is back on the public pages (rollback draft ${d.draftId.slice(0, 8)}, live check ok).`);
+  return true;
+}
+
 async function main() {
   admin.initializeApp({ projectId: project });
   const db = admin.firestore();
@@ -332,9 +371,11 @@ async function main() {
   }
   const call = (name, data) => httpsCallable(fns, name, { timeout: 180000 })(data).then((r) => r.data);
   let failed = false;
+  let ctx = null;
   const checker = checkPages ? await require('./check-live-pages').createChecker({ bucket: `${project}-results`, emulator }) : null;
 
-  // makeActive (below) deactivates whichever election is active now; it is made active again at the end,
+  // makeActive (below) deactivates whichever election is active now; it is made active again at the end
+  // (restorePrevious: with its files republished if this run published),
   // so a rehearsal in production leaves a real election that was set up beforehand as it was.
   const previous = (await db.collection('elections').where('active', '==', true).get()).docs.map((d) => d.id).find((id) => id !== electionId);
   if (previous) console.log(`${previous} is the active election now; it is made active again at the end.`);
@@ -364,7 +405,7 @@ async function main() {
       console.log(`Cleared ${electionId}'s precincts marked as reported from a previous run.`);
     }
 
-    const ctx = makeContext({ call, db, checker });
+    ctx = makeContext({ call, db, checker });
     for (const prefix of steps) {
       const t0 = Date.now();
       const u = await ctx.upload(prefix);
@@ -380,9 +421,12 @@ async function main() {
     failed = true;
   } finally {
     if (previous) {
-      await db.doc(`elections/${electionId}`).update({ active: false });
-      await db.doc(`elections/${previous}`).update({ active: true });
-      console.log(`${previous} is the active election again.`);
+      try {
+        if (!(await restorePrevious({ db, call, previous, published: Boolean(ctx?.versions.length) }))) failed = true;
+      } catch (e) {
+        console.error(`FAIL: could not restore ${previous}: ${e.code ?? ''} ${e.message}. ${electionId} may still be the active election; check the admin page.`);
+        failed = true;
+      }
     }
     if (!keepAdmin) {
       await db.doc(`admins/${BOT_UID}`).delete().catch((e) => console.error(`Could not remove admins/${BOT_UID}: ${e.message}`));
