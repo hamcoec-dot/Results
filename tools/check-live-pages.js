@@ -62,6 +62,12 @@ function bridge(op, inputs) {
  */
 function expected(early, ed, marked = []) {
   const want = expectedRaw(early, ed, marked);
+  // Status and county from the last non-empty header cell (defect d2, fixed in parse.js);
+  // convert_data.py reads column 4, which the certified export leaves empty.
+  const head = csvRows(fs.readFileSync(ed || early, 'utf8').replace(/^\uFEFF/, ''));
+  const lastCell = (row) => (row || []).slice(1).map((x) => x.trim()).filter(Boolean).pop();
+  want.statusLabel = lastCell(head[0]) ?? want.statusLabel;
+  want.county = lastCell(head[2]) ?? want.county;
   for (const c of want.contests) {
     c.title = shownTitle(c.title);
     // The pages put the label after a write-in's name (app.js labelWriteIns).
@@ -258,7 +264,8 @@ async function createChecker({ bucket, emulator = false }) {
         const row = card.rows.find((r) => norm(r.name) === norm(x.name));
         if (!row) { problems.push(`summary ${c.title}: candidate "${x.name}" missing`); continue; }
         eq(`summary ${c.title} / ${x.name} votes`, row.votes, fmt(x.votes));
-        eq(`summary ${c.title} / ${x.name} percent`, row.pct, `(${x.percentage.toFixed(1)}%)`);
+        // From the votes, as the page computes it (PR #41), not convert_data's 2-decimal percentage.
+        eq(`summary ${c.title} / ${x.name} percent`, row.pct, `(${(c.totalVotes > 0 ? (x.votes / c.totalVotes) * 100 : 0).toFixed(1)}%)`);
       }
     }
 

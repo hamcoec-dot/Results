@@ -299,3 +299,14 @@ test('convert_data.py with NAMED_WRITE_INS=1 reads the same write-ins (the check
   const res = buildResults({ early: fs.readFileSync(path.join(dir, '2026-11-03-general-certified-early.csv')), ed: fs.readFileSync(path.join(dir, '2026-11-03-general-certified.csv')) }, { precinctCap: 94, lastUpdated: 'x' });
   assert.deepEqual(JSON.parse(r2.stdout), res.merged.contests.flatMap((c) => c.candidates.filter((x) => x.writeIn).map((x) => [c.title, x.name, x.party, x.votes])));
 });
+
+test('d4 with d5: a new Early file that changes only the split is a new data version', () => {
+  const dir = path.join(__dirname, 'data');
+  const ed = fs.readFileSync(path.join(dir, '2026-11-03-general-certified.csv'));
+  const early = fs.readFileSync(path.join(dir, '2026-11-03-general-certified-early.csv'), 'utf8');
+  const opts = { precinctCap: 94, config: { enablePrecinctResults: true, precinctCap: 94 }, lastUpdated: 'x' };
+  const withSplit = buildResults({ early, ed }, opts).merged;
+  const noSplit = buildResults({ early: null, ed }, opts).merged;
+  assert.deepEqual(withSplit.contests.map((c) => c.totalVotes), noSplit.contests.map((c) => c.totalVotes));
+  assert.notEqual(withSplit.dataVersion, noSplit.dataVersion);
+});
