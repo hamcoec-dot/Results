@@ -134,8 +134,8 @@
    "key": "older-export:0",
    "id": "older-export",
    "severity": "warn",
-   "title": "File is older than the last published file",
-   "detail": "This file was saved 2026-11-03T20:00:00.000Z; the last published one 2026-11-03T21:00:00.000Z.",
+   "title": "File is older than the last published Election Day file",
+   "detail": "This file was saved 2026-11-03T20:00:00.000Z; the Election Day file published now was saved 2026-11-03T21:00:00.000Z.",
    "refs": []
   }
  ],

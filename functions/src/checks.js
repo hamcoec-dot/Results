@@ -26,16 +26,17 @@ const { validateFile } = require('./validate');
 
 const REPORTING_MISMATCH_SEVERITY = 'warn';
 const KINDS = ['zero', 'early', 'ed'];
+const KIND_NAMES = { zero: 'Zero', early: 'Early/ABS', ed: 'Election Day' };
 
 /** Every check id this module can emit (TESTING.md: each must have a test). */
 const CHECK_IDS = Object.freeze([
   'unreadable', 'not-custom-table-report', 'no-contests', 'no-statistics', 'verify-failed', 'date-mismatch',
   'reporting-over-cap', 'reporting-over-total', 'reporting-inconsistent', 'reporting-mismatch', 'negative-votes', 'non-numeric-cell',
-  'zero-file-has-votes', 'output-invalid',
+  'zero-file-has-votes', 'output-invalid', 'ed-below-early',
   'date-unreadable', 'title-mismatch', 'precinct-count', 'overvote', 'ballots-over-registered', 'reporting-decreased',
   'votes-decreased', 'contest-added', 'contest-removed', 'candidate-added', 'candidate-removed', 'leader-changed',
   'close-race', 'ed-none-reporting', 'early-has-reporting', 'duplicate-upload', 'no-change', 'turnout-high',
-  'status-changed', 'older-export', 'rollback', 'settings-changed',
+  'status-changed', 'older-export', 'candidate-only-early', 'rollback', 'settings-changed',
   'summary',
 ]);
 
@@ -119,7 +120,8 @@ function badNumberCells(rows) {
  * @param {object|null} a.current           currently published `latest` (data.js), or null
  * @param {{name: string, date: string, precinctCap: number}} a.election
  * @param {{sha256: string, lastModified?: number}} a.upload
- * @param {{uploadSha256s?: string[], lastPublishedFileTime?: number}} [a.history]
+ * @param {{uploadSha256s?: string[], lastPublishedFileTime?: number}} [a.history]  lastPublishedFileTime: the saved time of
+ *   the file of the same kind published now in this upload's slot (service.js createDraft)
  * @param {{before: object|null, after: object}|null} [a.settingsChange]  a settings rebuild: published vs new page config
  * @returns {object[]} checks, blocks first
  */
@@ -194,6 +196,45 @@ function runChecks({ kind, rows, result, current = null, election, upload, histo
     if (nonzero) add('zero-file-has-votes', 'block', 'Zero file contains votes', `Total ballots ${fmt(merged.totalBallots)}; a Zero report must be all zeros. Was the wrong kind chosen?`);
   }
 
+  // --- the Election Day file against the Early slot (both files are in every draft once both slots are used)
+  const { early, ed } = result.parsed;
+  if (early && ed && early.totalBallots > 0) {
+    // ES&S Election Day exports are cumulative (early + absentee + Election Day), so nothing in them
+    // can be below the Early file. An "Election Day and provisional only" export is: it would cut
+    // every total down to the Election Day share. Only an Election Day upload is blocked; an Early/ABS
+    // upload against such an ED file is caught when that ED file was uploaded.
+    const below = [];
+    if (ed.totalBallots < early.totalBallots) below.push(`Ballots: ${fmt(ed.totalBallots)} in the Election Day file, ${fmt(early.totalBallots)} in the Early/ABS file`);
+    for (const [title, earlyC] of early.contestsRaw) {
+      const edC = ed.contestsRaw.get(title);
+      if (!edC) continue;
+      for (const [name, c] of earlyC.candidates) {
+        const edCand = edC.candidates.get(name);
+        if (edCand && edCand.votes < c.votes) below.push(`${title}, ${name}: ${fmt(edCand.votes)} in the Election Day file, ${fmt(c.votes)} early`);
+      }
+    }
+    if (below.length && kind === 'ed') {
+      add('ed-below-early', 'block', 'Election Day file has fewer votes than the Early/ABS file',
+        'The Election Day file must include early and absentee ballots (the full report). This looks like an Election Day-only export. '
+          + `Upload the full report as Election Day.\n${below.slice(0, 20).join('\n')}${below.length > 20 ? `\n… and ${below.length - 20} more` : ''}`);
+    }
+    // A candidate only the Early file has is copied in with its early votes as its total (merge.js),
+    // which is too low: the Election Day file is probably an older export, made before that candidate
+    // (a certified write-in) was added.
+    const earlyOnly = [];
+    for (const [title, earlyC] of early.contestsRaw) {
+      const edC = ed.contestsRaw.get(title);
+      if (!edC) continue;
+      for (const name of earlyC.candidates.keys()) if (!edC.candidates.has(name)) earlyOnly.push([title, name]);
+    }
+    if (earlyOnly.length) {
+      add('candidate-only-early', 'warn', `Candidate${earlyOnly.length > 1 ? `s (${earlyOnly.length})` : ''} only in the Early/ABS file`,
+        `${earlyOnly.map(([t, n]) => `${t}: ${n}`).join('\n')}\nThe Election Day file does not list ${earlyOnly.length > 1 ? 'them' : 'this candidate'}, so the total shown would be the early votes only. `
+          + 'The Election Day file is probably an older export: upload the latest full report as Election Day.',
+        earlyOnly.map(([contest, candidate]) => ({ contest, candidate })));
+    }
+  }
+
   // --- plausibility (warn)
   if (pyStrip(parsed.electionTitle).toLowerCase() !== pyStrip(election.name ?? '').toLowerCase()) {
     add('title-mismatch', 'warn', 'Title differs from the election name', `File: "${parsed.electionTitle}". Election: "${election.name}".`);
@@ -230,8 +271,8 @@ function runChecks({ kind, rows, result, current = null, election, upload, histo
 
   if ((history.uploadSha256s ?? []).includes(upload.sha256)) add('duplicate-upload', 'warn', 'This exact file was uploaded before', `sha256 ${upload.sha256.slice(0, 12)}…`);
   if (upload.lastModified && history.lastPublishedFileTime && upload.lastModified < history.lastPublishedFileTime) {
-    add('older-export', 'warn', 'File is older than the last published file',
-      `This file was saved ${new Date(upload.lastModified).toISOString()}; the last published one ${new Date(history.lastPublishedFileTime).toISOString()}.`);
+    add('older-export', 'warn', `File is older than the last published ${KIND_NAMES[kind]} file`,
+      `This file was saved ${new Date(upload.lastModified).toISOString()}; the ${KIND_NAMES[kind]} file published now was saved ${new Date(history.lastPublishedFileTime).toISOString()}.`);
   }
 
   const marked = election.markedReported ?? [];

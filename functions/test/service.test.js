@@ -548,3 +548,67 @@ test('marked as reported: before any Election Day file a mark changes nothing pu
   assert.equal(doc.dataVersion, d.doc.dataVersion);
   assert.match(doc.checks.find((c) => c.id === 'marked-reported').detail, /apply once an Election Day file is in use/);
 });
+
+// older-export compares like with like (2026-11-20: Nate's certified Election Day file was flagged as
+// older than the certified Early/ABS file published before it).
+test('older-export: only against the published file of the same kind in the same slot', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  const T = (h) => Date.UTC(2026, 10, 3, h);
+  const up = async (kind, name, lastModified) => {
+    const d = await draftOf(env, kind, name, { lastModified });
+    return { d, has: d.doc.checks.some((c) => c.id === 'older-export') };
+  };
+  const zero = await up('zero', '00-Zero File', T(20));
+  await publish(env, zero.d);
+  // Early/ABS after a Zero file: the Zero file is newer here, but it is a different kind.
+  const early = await up('early', '02-After EV', T(10));
+  assert.equal(early.has, false, 'Early/ABS vs Zero');
+  await publish(env, early.d);
+  // An Election Day file older than the published Early/ABS file: a different slot.
+  const ed = await up('ed', '03-After 5 Reporting', T(5));
+  assert.equal(ed.has, false, 'Election Day vs Early/ABS');
+  await publish(env, ed.d);
+  // Older than the published Election Day file: flagged, naming the kind.
+  const older = await up('ed', '04-After 10 Reporting', T(4));
+  const hit = older.d.doc.checks.find((c) => c.id === 'older-export');
+  assert.equal(hit?.title, 'File is older than the last published Election Day file');
+  assert.equal((await up('ed', '04-After 10 Reporting', T(6))).has, false, 'newer Election Day file');
+  // Older than the published Early/ABS file: flagged.
+  assert.equal((await up('early', '01-After NH&ABS', T(9))).has, true, 'older Early/ABS file');
+});
+
+test('older-export: the certified pair, uploaded in either order after election night, is never flagged', async () => {
+  const dir = path.join(__dirname, 'data');
+  const CERT_ED = fs.readFileSync(path.join(dir, '2026-11-03-general-certified.csv'), 'utf8');
+  const CERT_EARLY = fs.readFileSync(path.join(dir, '2026-11-03-general-certified-early.csv'), 'utf8');
+  const night = Date.UTC(2026, 10, 4, 3);
+  const savedEd = Date.UTC(2026, 10, 20, 16, 14, 26);
+  const savedEarly = Date.UTC(2026, 10, 20, 17, 1, 22);
+  for (const order of [['ed', 'early'], ['early', 'ed']]) {
+    const env = setup();
+    await env.svc.upsertElection(ADMIN, { ...SETTINGS, precinctCap: 94 });
+    // Election night stands in as the same pair saved on the night (the sample files are another election).
+    for (const [kind, csv] of [['early', CERT_EARLY], ['ed', CERT_ED]]) {
+      await publish(env, await draftOf(env, kind, csv, { lastModified: night }));
+    }
+    for (const kind of order) {
+      const d = await draftOf(env, kind, kind === 'ed' ? CERT_ED : CERT_EARLY, { lastModified: kind === 'ed' ? savedEd : savedEarly });
+      const ids = d.doc.checks.map((c) => c.id);
+      assert.ok(!ids.includes('older-export'), `${order.join(' then ')}: ${kind}`);
+      assert.ok(!ids.includes('ed-below-early') && !ids.includes('candidate-only-early'), `${order.join(' then ')}: ${kind}`);
+      assert.equal(d.status, 'ready', `${order.join(' then ')}: ${kind} ${JSON.stringify(d.doc.checks.filter((c) => c.severity === 'block'))}`);
+      await publish(env, d);
+    }
+  }
+});
+
+test('an Election Day-only export as the Election Day file is blocked; an older ED file with fewer candidates warns', async () => {
+  const env = setup();
+  await env.svc.upsertElection(ADMIN, SETTINGS);
+  await publish(env, await draftOf(env, 'early', '02-After EV'));
+  const d = await draftOf(env, 'ed', '01-After NH&ABS');
+  assert.equal(d.status, 'blocked');
+  assert.ok(d.doc.checks.some((c) => c.id === 'ed-below-early' && c.severity === 'block'));
+  await assert.rejects(publish(env, d), refusal('blocked'));
+});

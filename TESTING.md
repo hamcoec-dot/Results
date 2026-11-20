@@ -133,6 +133,7 @@ cases now pass `verify.py` with 0 failures.
 | Tests catch injected bugs (mutation score ≥ 85 %) | `npm run mutation` (nightly) |
 | Every check fires exactly when its condition holds; every check id has a test | `checks.test.js` (last test enumerates `CHECK_IDS`) |
 | The real election night 00 → 06 produces no blocking check | `checks.test.js` › real election night |
+| An Election Day file below the Early/ABS file (an Election Day-only export) is blocked; a candidate only the Early/ABS file lists is a warning; older-export compares only with the published file of the same kind in the same slot, and the certified pair in either order is never flagged (2026-11-20 live incident) | `checks.test.js` › ed-below-early, candidate-only-early, older-export names the kind; `service.test.js` › older-export (both tests), Election Day-only export blocked |
 | Pages never render invalid data; files the pages would reject are never published | `validate.test.js`, `checks.test.js` › output-invalid |
 | Review shows current → draft → Δ for every contest and candidate; newly / no longer reporting precincts | `review.test.js` |
 | Raw-source trace rows are the physical CSV lines | `review.test.js` › trace |
