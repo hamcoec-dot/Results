@@ -36,7 +36,7 @@ const CHECK_IDS = Object.freeze([
   'date-unreadable', 'title-mismatch', 'precinct-count', 'overvote', 'ballots-over-registered', 'reporting-decreased',
   'votes-decreased', 'contest-added', 'contest-removed', 'candidate-added', 'candidate-removed', 'leader-changed',
   'close-race', 'ed-none-reporting', 'early-has-reporting', 'duplicate-upload', 'no-change', 'turnout-high',
-  'status-changed', 'older-export', 'candidate-only-early', 'rollback', 'settings-changed',
+  'status-changed', 'older-export', 'candidate-only-early', 'candidate-below-early', 'rollback', 'settings-changed',
   'summary',
 ]);
 
@@ -203,20 +203,28 @@ function runChecks({ kind, rows, result, current = null, election, upload, histo
     // can be below the Early file. An "Election Day and provisional only" export is: it would cut
     // every total down to the Election Day share. Only an Election Day upload is blocked; an Early/ABS
     // upload against such an ED file is caught when that ED file was uploaded.
+    if (kind === 'ed' && ed.totalBallots < early.totalBallots) {
+      add('ed-below-early', 'block', 'Election Day file has fewer ballots than the Early/ABS file',
+        `Ballots: ${fmt(ed.totalBallots)} in the Election Day file, ${fmt(early.totalBallots)} in the Early/ABS file. `
+          + 'The Election Day file must include early and absentee ballots (the full report). This looks like an Election Day-only export. '
+          + 'Upload the full report as Election Day.');
+    }
+    // Ballots fine but some candidate below its early votes: a canvass correction can do that, so a
+    // warning. splitEarly then publishes no early / Election Day split (it would show negative numbers).
     const below = [];
-    if (ed.totalBallots < early.totalBallots) below.push(`Ballots: ${fmt(ed.totalBallots)} in the Election Day file, ${fmt(early.totalBallots)} in the Early/ABS file`);
     for (const [title, earlyC] of early.contestsRaw) {
       const edC = ed.contestsRaw.get(title);
       if (!edC) continue;
       for (const [name, c] of earlyC.candidates) {
         const edCand = edC.candidates.get(name);
-        if (edCand && edCand.votes < c.votes) below.push(`${title}, ${name}: ${fmt(edCand.votes)} in the Election Day file, ${fmt(c.votes)} early`);
+        if (edCand && edCand.votes < c.votes) below.push([title, name, `${title}, ${name}: ${fmt(edCand.votes)} in the Election Day file, ${fmt(c.votes)} early`]);
       }
     }
-    if (below.length && kind === 'ed') {
-      add('ed-below-early', 'block', 'Election Day file has fewer votes than the Early/ABS file',
-        'The Election Day file must include early and absentee ballots (the full report). This looks like an Election Day-only export. '
-          + `Upload the full report as Election Day.\n${below.slice(0, 20).join('\n')}${below.length > 20 ? `\n… and ${below.length - 20} more` : ''}`);
+    if (below.length && ed.totalBallots >= early.totalBallots) {
+      add('candidate-below-early', 'warn', `Candidate${below.length > 1 ? `s (${below.length})` : ''} with fewer votes than in the Early/ABS file`,
+        `${below.slice(0, 20).map((x) => x[2]).join('\n')}${below.length > 20 ? `\n… and ${below.length - 20} more` : ''}\n`
+          + 'The Election Day file should include the early votes. The early / Election Day split stays hidden until a matching Early/ABS file is uploaded.',
+        below.map(([contest, candidate]) => ({ contest, candidate })));
     }
     // A candidate only the Early file has is copied in with its early votes as its total (merge.js),
     // which is too low: the Election Day file is probably an older export, made before that candidate

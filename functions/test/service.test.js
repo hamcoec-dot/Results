@@ -596,7 +596,7 @@ test('older-export: the certified pair, uploaded in either order after election 
       const d = await draftOf(env, kind, kind === 'ed' ? CERT_ED : CERT_EARLY, { lastModified: kind === 'ed' ? savedEd : savedEarly });
       const ids = d.doc.checks.map((c) => c.id);
       assert.ok(!ids.includes('older-export'), `${order.join(' then ')}: ${kind}`);
-      assert.ok(!ids.includes('ed-below-early') && !ids.includes('candidate-only-early'), `${order.join(' then ')}: ${kind}`);
+      assert.ok(!ids.includes('ed-below-early') && !ids.includes('candidate-only-early') && !ids.includes('candidate-below-early'), `${order.join(' then ')}: ${kind}`);
       assert.equal(d.status, 'ready', `${order.join(' then ')}: ${kind} ${JSON.stringify(d.doc.checks.filter((c) => c.severity === 'block'))}`);
       await publish(env, d);
     }

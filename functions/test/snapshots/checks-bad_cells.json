@@ -189,12 +189,17 @@
    "refs": []
   },
   {
-   "key": "ed-below-early:0",
-   "id": "ed-below-early",
-   "severity": "block",
-   "title": "Election Day file has fewer votes than the Early/ABS file",
-   "detail": "The Election Day file must include early and absentee ballots (the full report). This looks like an Election Day-only export. Upload the full report as Election Day.\nGovernor, Marsha Blackburn: 0 in the Election Day file, 56 early",
-   "refs": []
+   "key": "candidate-below-early:0",
+   "id": "candidate-below-early",
+   "severity": "warn",
+   "title": "Candidate with fewer votes than in the Early/ABS file",
+   "detail": "Governor, Marsha Blackburn: 0 in the Election Day file, 56 early\nThe Election Day file should include the early votes. The early / Election Day split stays hidden until a matching Early/ABS file is uploaded.",
+   "refs": [
+    {
+     "contest": "Governor",
+     "candidate": "Marsha Blackburn"
+    }
+   ]
   },
   {
    "key": "close-race:0",
