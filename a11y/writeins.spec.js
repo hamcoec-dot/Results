@@ -18,7 +18,8 @@ const CERTIFIED_EARLY = path.join(DATA, '2026-11-03-general-certified-early.csv'
 const DRAFT_ID = 'abcdef0123456789abcdef0123456789';
 const LABEL = ' (Certified Write-in)';
 const WRITE_INS = ['Stephen C. Maxwell', 'Jason Michael Smith', 'Carlton "CB" Boleyjack', 'Fred Ferguson'];
-const WIDTHS = [320, 375, 414];
+// Phone widths, plus a 1280 x 720 screen (the slides' summary once overlapped its footer there).
+const WIDTHS = [320, 375, 414, 1280];
 
 // SPLIT: Nate's flow (certified early-only file as Early/ABS + certified file): every write-in split.
 // UNSPLIT: an Early/ABS file without named write-ins (the election-night one): write-ins not split.
@@ -232,11 +233,11 @@ test('the official archive shows the write-ins the same way', async ({ page }) =
 });
 
 // Phone layout with the long labelled names (Carlton "CB" Boleyjack (Certified Write-in)).
-test('phone layout: write-ins on the summary, precinct and slides pages', async ({ page }, testInfo) => {
+test('layout (phones and 1280 x 720): write-ins on the summary, precinct and slides pages', async ({ page }, testInfo) => {
   test.setTimeout(180000);
   const widths = testInfo.project.name === 'chromium' ? WIDTHS : [null];
   for (const w of widths) {
-    if (w) await page.setViewportSize({ width: w, height: 800 });
+    if (w) await page.setViewportSize({ width: w, height: w >= 1000 ? 720 : 800 });
     const at = w || testInfo.project.name;
     for (const [file, ready] of [SUMMARY, ['scrolling.html', '#slide-viewport > *'], ['reporting.html', '#reporting-table-body tr'],
       [`precincts.html?precinct=${encodeURIComponent('RED BANK B')}`, PRECINCTS[1]]]) {

@@ -1793,6 +1793,12 @@ window.ElectionApp = (function() {
       const earlyRep = earlyVotingReported(data);
       const earlyTot = Number(data.earlyVotingTotal) || 1;
 
+      // With the early / Election Day ballots card shown, early & absentee ballots are visibly in, and
+      // the line would push the left column into the footer on a 1280 x 720 screen: left out.
+      const ballotsCard = ballotBreakdownCard(data);
+      const earlyLine = ballotsCard ? '' : `<div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px); margin-top:8px;">
+                  ${earlyRep > 0 ? '&#x2705; Early Voting &amp; Absentee: Complete' : '&#x23F3; Early Voting &amp; Absentee: Pending'}
+                </div>`;
       const reportingCard = `
               <div class="visual-stat-card">
                 <div class="visual-stat-title">&#x1F4EC; Reporting Completion</div>
@@ -1803,11 +1809,8 @@ window.ElectionApp = (function() {
                 <div class="proj-track">
                   <div class="proj-fill" style="width: ${(overallRepCapped / (overallTotCapped || 1)) * 100}%; background:#16a34a;"></div>
                 </div>
-                <div style="font-weight:700; color:var(--neutral-muted); font-size:clamp(12px, 1.4vh, 18px); margin-top:8px;">
-                  ${earlyRep > 0 ? '&#x2705; Early Voting &amp; Absentee: Complete' : '&#x23F3; Early Voting &amp; Absentee: Pending'}
-                </div>
+                ${earlyLine}
               </div>`;
-      const ballotsCard = ballotBreakdownCard(data);
 
       viewport.innerHTML = `
         <article class="slide-card">
