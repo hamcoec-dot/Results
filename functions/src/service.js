@@ -118,9 +118,13 @@ function createService({ db, publicBucket, privateBucket, fetchLive, now = Date.
     const uploadId = P.newDraftId();
     const draftId = P.newDraftId();
     const isEd = upload.kind === 'ed';
+    // older-export compares like with like: the file published now in this upload's slot, and only
+    // if it is the same kind (Zero and Early/ABS share the Early slot; a Zero file is older by design).
+    const sameSlotId = isEd ? election.selectedEdUploadId ?? null : election.selectedEarlyUploadId ?? null;
+    const sameSlot = sameSlotId ? await db.get(paths.upload(eid, sameSlotId)) : null;
     const history = {
       uploadSha256s: (await db.list(paths.uploads(eid))).map((u) => u.data.sha256),
-      lastPublishedFileTime: election.currentFileTime ?? null,
+      lastPublishedFileTime: sameSlot?.kind === upload.kind ? sameSlot.lastModified ?? null : null,
     };
 
     // Every upload is archived, even ones never published.

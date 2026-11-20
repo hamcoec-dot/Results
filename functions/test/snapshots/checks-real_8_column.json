@@ -1,6 +1,14 @@
 [
  [
   {
+   "key": "ed-below-early:0",
+   "id": "ed-below-early",
+   "severity": "block",
+   "title": "Election Day file has fewer ballots than the Early/ABS file",
+   "detail": "Ballots: 325 in the Election Day file, 22,995 in the Early/ABS file. The Election Day file must include early and absentee ballots (the full report). This looks like an Election Day-only export. Upload the full report as Election Day.",
+   "refs": []
+  },
+  {
    "key": "overvote:0",
    "id": "overvote",
    "severity": "warn",

@@ -189,6 +189,19 @@
    "refs": []
   },
   {
+   "key": "candidate-below-early:0",
+   "id": "candidate-below-early",
+   "severity": "warn",
+   "title": "Candidate with fewer votes than in the Early/ABS file",
+   "detail": "Governor, Marsha Blackburn: 0 in the Election Day file, 56 early\nThe Election Day file should include the early votes. The early / Election Day split stays hidden until a matching Early/ABS file is uploaded.",
+   "refs": [
+    {
+     "contest": "Governor",
+     "candidate": "Marsha Blackburn"
+    }
+   ]
+  },
+  {
    "key": "close-race:0",
    "id": "close-race",
    "severity": "warn",

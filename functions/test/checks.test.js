@@ -285,6 +285,67 @@ test('settings rebuild: an info check lists exactly what changed; upload-history
   silent(check('ed', ED3), 'settings-changed');
 });
 
+const CERT_DIR = require('node:path').join(__dirname, 'data');
+const CERT_ED = require('node:fs').readFileSync(require('node:path').join(CERT_DIR, '2026-11-03-general-certified.csv'));
+const CERT_EARLY = require('node:fs').readFileSync(require('node:path').join(CERT_DIR, '2026-11-03-general-certified-early.csv'));
+const CERT_ELECTION = { name: 'November 3, 2026 State and Federal General Election', date: '2026-11-03', precinctCap: 94 };
+
+test('ed-below-early: an Election Day file with fewer ballots than the Early/ABS file is blocked (an ED-only export)', () => {
+  // 01 (after nursing homes & absentee) as the "Election Day" file against 02 (after early voting).
+  const checks = check('ed', S('01-nh-abs').early, { early: EV });
+  const [hit] = fires(checks, 'ed-below-early', 'block');
+  assert.match(hit.detail, /^Ballots: [\d,]+ in the Election Day file, [\d,]+ in the Early\/ABS file\. The Election Day file must include early and absentee ballots \(the full report\)\. This looks like an Election Day-only export\. Upload the full report as Election Day\.$/);
+  silent(checks, 'candidate-below-early'); // the block says it all
+  // Cumulative files never trip it, nor an Early/ABS upload (caught when the ED file was uploaded).
+  for (const f of [ED3, ED4, S('06-end-provisional').ed]) silent(check('ed', f), 'ed-below-early');
+  silent(check('early', EV), 'ed-below-early');
+});
+
+test('candidate-below-early: ballots fine, a candidate below its early votes is a warning (a canvass correction)', () => {
+  const one = check('ed', ED3, { tamper: (r) => {
+    const [title, c] = [...r.parsed.ed.contestsRaw][0];
+    const [name, cand] = [...c.candidates][0];
+    cand.votes = r.parsed.early.contestsRaw.get(title).candidates.get(name).votes - 1;
+    return r;
+  } });
+  silent(one, 'ed-below-early');
+  const [hit] = fires(one, 'candidate-below-early', 'warn');
+  assert.match(hit.detail, /^.+, .+: [\d,]+ in the Election Day file, [\d,]+ early$/m);
+  assert.match(hit.detail, /The early \/ Election Day split stays hidden until a matching Early\/ABS file is uploaded\.$/);
+  assert.equal(hit.refs.length, 1);
+  for (const f of [ED3, ED4, S('06-end-provisional').ed]) silent(check('ed', f), 'candidate-below-early');
+});
+
+test('candidate-only-early: a candidate the Election Day file lacks is a warning naming it', () => {
+  const run = (tamper) => {
+    let result = buildResults({ early: CERT_EARLY, ed: CERT_ED }, { precinctCap: 94, lastUpdated: 'x' });
+    if (tamper) result = tamper(result);
+    return runChecks({ kind: 'ed', rows: readCsv(CERT_ED), result, election: CERT_ELECTION, upload: { sha256: 'abc' } });
+  };
+  const names = [...buildResults({ early: CERT_EARLY, ed: null }, { precinctCap: 94, lastUpdated: 'x' }).parsed.early.contestsRaw.values()]
+    .flatMap((c) => [...c.candidates.keys()]);
+  const ferguson = names.find((n) => /Ferguson/.test(n));
+  assert.ok(ferguson, 'the certified early file names Fred Ferguson');
+  const checks = run((r) => {
+    for (const c of r.parsed.ed.contestsRaw.values()) c.candidates.delete(ferguson);
+    return r;
+  });
+  const [hit] = fires(checks, 'candidate-only-early', 'warn');
+  assert.match(hit.detail, new RegExp(`: ${ferguson.replace(/[()]/g, '\\$&')}$`, 'm'));
+  assert.match(hit.detail, /probably an older export/);
+  assert.deepEqual(hit.refs.map((x) => x.candidate), [ferguson]);
+  // The certified pair itself: neither new check, and no older-export without a same-kind file.
+  const pair = run();
+  for (const id of ['candidate-only-early', 'ed-below-early', 'older-export']) silent(pair, id);
+});
+
+test('older-export names the kind compared', () => {
+  const [hit] = fires(check('early', EV, { upload: { sha256: 'abc', lastModified: 1000 }, history: { lastPublishedFileTime: 2000 } }), 'older-export', 'warn');
+  assert.equal(hit.title, 'File is older than the last published Early/ABS file');
+  assert.match(fires(check('ed', ED3, { upload: { sha256: 'abc', lastModified: 1000 }, history: { lastPublishedFileTime: 2000 } }), 'older-export', 'warn')[0].detail,
+    /the Election Day file published now was saved/);
+});
+
 test('every check id has a test', () => {
   assert.deepEqual(CHECK_IDS.filter((id) => !triggered.has(id)), []);
 });

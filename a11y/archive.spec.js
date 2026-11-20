@@ -30,9 +30,12 @@ test.describe('official archive pages', () => {
     expect(log.some((p) => p.includes(`/archive/${ARCHIVE_ID}/summary.json`))).toBe(true);
     expect(log.filter((p) => p.includes('/current/'))).toEqual([]);
     // Every link to another results page stays in the archive.
+    // (Past Elections goes to the list of every archive, not this one.)
     for (const href of await page.locator('nav a.nav-btn').evaluateAll((as) => as.map((a) => a.getAttribute('href')))) {
+      if (href === 'archive.html') continue;
       expect(href).toContain(`election=${ARCHIVE_ID}`);
     }
+    await expect(page.locator('nav a.nav-btn', { hasText: 'Past Elections' })).toHaveAttribute('href', 'archive.html');
     await expect(page.locator('#official-banner a')).toHaveAttribute('href', 'archive.html');
   });
 
@@ -50,6 +53,22 @@ test.describe('official archive pages', () => {
     await page.locator('#precinct-results-container > *').first().waitFor();
     await expect(page.locator('#status-text')).toHaveText('OFFICIAL RESULTS');
     await expect(page.locator('#hero-date')).not.toContainText('Unofficial');
+  });
+
+  test('a "Past Elections" button on every results page, live and archived, opens the list of archives', async ({ page }) => {
+    await routeArchive(page);
+    for (const file of ['index.html', 'reporting.html', 'precincts.html', 'scrolling.html']) {
+      for (const q of ['', Q]) {
+        await page.goto(`${file}${q}`);
+        const btn = page.locator('nav a.nav-btn', { hasText: 'Past Elections' });
+        await expect(btn, `${file}${q}`).toBeVisible();
+        await expect(btn, `${file}${q}`).toHaveAttribute('href', 'archive.html');
+      }
+    }
+    await page.goto(`reporting.html${Q}`);
+    await page.locator('nav a.nav-btn', { hasText: 'Past Elections' }).click();
+    await expect(page).toHaveURL(/\/archive\.html$/);
+    await expect(page.locator('nav a.nav-btn.active')).toHaveText('Past Elections');
   });
 
   test('an archive that does not exist says so instead of showing live results', async ({ page }) => {
