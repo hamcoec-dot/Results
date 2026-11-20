@@ -189,6 +189,7 @@ body {
 
 .navbar-controls {
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
   gap: 10px !important;
   max-width: 100% !important;
@@ -244,6 +245,7 @@ body {
   }
 
   .navbar-controls {
+    flex-wrap: nowrap !important;
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: auto !important;
