@@ -18,7 +18,7 @@ Verdict format: `VERDICT: approve | reject`, `WHY` (3 lines max), `FIX FIRST` (o
 Tests ran in this session and passed; build and lint pass; the real user flow was walked through, including phone widths, with evidence; the Reviewer approved the diff and the test output. Follow the `verify` skill (`.claude/skills/verify`). No proof, no done.
 - Never delete or skip a failing test to make it green. Flaky tests get fixed, not rerun until green.
 - Unsure about scope: ask before touching more files than the task names.
-- A one-line fix may skip the planning and review steps; the checks above still run.
+- A one-line fix may skip the planning step; the checks above and the Reviewer thread's verdict still apply.
 
 ## Repository rules
 - Every change to a public page needs phone-width tests (the mobile-layout spec and the phone Playwright projects).

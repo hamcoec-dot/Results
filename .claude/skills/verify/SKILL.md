@@ -11,7 +11,7 @@ No proof, no done. Do every step in this session; evidence from an earlier sessi
 - `cd functions && npm ci && npm run test:pr` (always: coverage gates included)
 - `npm run assets:check` and `npm run lint:html`
 - `npm run a11y` (public pages, Chromium)
-- Changed `admin.html`, `review.html`, `admin*.js`, `admin.css` or anything in `functions/`? Also run `npm run a11y:admin`, and `cd functions && npm run test:emulator` for changes in `functions/`.
+- Changed `admin.html`, `review.html`, `admin*.js`, `review.js`, `admin.css` or anything in `functions/`? Also run `npm run a11y:admin`, and `cd functions && npm run test:emulator` for changes in `functions/`.
 - A failing test: fix the cause. Never delete, skip or weaken a test to get green. A flaky test gets fixed, not rerun until green. If the same error happens twice, stop and send the error history to the Reviewer thread; no blind third try.
 
 ## 2. Real walkthrough, including phone widths
