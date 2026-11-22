@@ -8,7 +8,9 @@ __pycache__/
 
 
 # Local session state (checkpoints load from disk)
-/.claude/
+/.claude/*
+!/.claude/agents/
+!/.claude/skills/
 
 # Mutation testing (Stryker)
 functions/reports/
